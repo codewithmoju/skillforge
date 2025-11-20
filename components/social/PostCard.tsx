@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence import
+import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2, Loader2 } from "lucide-react";
 import { Post, likePost, savePost, deletePost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -26,8 +26,6 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
     const [saves, setSaves] = useState(post.saves);
     const [showComments, setShowComments] = useState(false);
     const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-    const [isLoadingLike, setIsLoadingLike] = useState(false);
-    const [isLoadingSave, setIsLoadingSave] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     const optionsMenuRef = useRef<HTMLDivElement>(null);
@@ -48,9 +46,8 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
     }, [optionsMenuRef]);
 
     const handleLike = async () => {
-        if (!user || isLoadingLike) return;
+        if (!user) return;
 
-        setIsLoadingLike(true);
         const previousLikedState = isLiked;
         const previousLikesCount = likes;
 
@@ -65,15 +62,12 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
             // Revert UI on error
             setIsLiked(previousLikedState);
             setLikes(previousLikesCount);
-        } finally {
-            setIsLoadingLike(false);
         }
     };
 
     const handleSave = async () => {
-        if (!user || isLoadingSave) return;
+        if (!user) return;
 
-        setIsLoadingSave(true);
         const previousSavedState = isSaved;
         const previousSavesCount = saves;
 
@@ -88,8 +82,6 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
             // Revert UI on error
             setIsSaved(previousSavedState);
             setSaves(previousSavesCount);
-        } finally {
-            setIsLoadingSave(false);
         }
     };
 
@@ -263,19 +255,14 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                 <div className="flex items-center gap-6">
                     <button
                         onClick={handleLike}
-                        disabled={isLoadingLike}
                         className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors group"
                     >
-                        {isLoadingLike ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Heart
-                                className={cn(
-                                    "w-5 h-5 transition-all",
-                                    isLiked && "fill-red-400 text-red-400"
-                                )}
-                            />
-                        )}
+                        <Heart
+                            className={cn(
+                                "w-5 h-5 transition-all",
+                                isLiked && "fill-red-400 text-red-400"
+                            )}
+                        />
                         <span className="text-sm font-medium">{likes}</span>
                     </button>
 
@@ -298,19 +285,14 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                 <div className="flex items-center gap-4">
                     <button
                         onClick={handleSave}
-                        disabled={isLoadingSave}
                         className="text-slate-400 hover:text-accent-cyan transition-colors"
                     >
-                        {isLoadingSave ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Bookmark
-                                className={cn(
-                                    "w-5 h-5 transition-all",
-                                    isSaved && "fill-accent-cyan text-accent-cyan"
-                                )}
-                            />
-                        )}
+                        <Bookmark
+                            className={cn(
+                                "w-5 h-5 transition-all",
+                                isSaved && "fill-accent-cyan text-accent-cyan"
+                            )}
+                        />
                     </button>
                     <span className="text-xs text-slate-500">{formatDate(post.createdAt)}</span>
                 </div>
