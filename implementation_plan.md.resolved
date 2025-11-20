@@ -1,0 +1,347 @@
+# Implementation Plan - Complete SkillForge Platform
+
+## Goal
+Create a complete, fully functional social learning platform with no 404 errors, PWA support, full mobile responsiveness, and all requested features.
+
+## This Iteration - MUST COMPLETE
+
+> [!IMPORTANT]
+> **Priority 1**: Mobile Responsiveness - App must work perfectly on mobile devices like a native app.
+
+> [!IMPORTANT]
+> **Priority 2**: Fix all 404 errors by creating all missing pages and routes.
+
+> [!IMPORTANT]
+> **Required Features**: Share functionality, PWA support, Search, Notifications, Comments, DMs, Groups, Challenges, Badges.
+
+---
+
+## Phase 0: Mobile Responsiveness (CRITICAL)
+
+### Mobile Navigation
+
+#### [NEW] [components/layout/MobileNav.tsx](file:///d:/AntiGravity%20projects/skillforge/components/layout/MobileNav.tsx)
+- Bottom navigation bar for mobile
+- Icons for Dashboard, Social, Create, Notifications, Profile
+- Active state indicators
+- Fixed position at bottom
+
+#### [NEW] [components/layout/MobileHeader.tsx](file:///d:/AntiGravity%20projects/skillforge/components/layout/MobileHeader.tsx)
+- Mobile top bar with logo
+- Search icon
+- Menu icon for drawer
+- Back button for nested pages
+
+#### [NEW] [components/layout/MobileDrawer.tsx](file:///d:/AntiGravity%20projects/skillforge/components/layout/MobileDrawer.tsx)
+- Slide-out menu
+- User profile section
+- Navigation links
+- Settings, Logout
+
+#### [MODIFY] [components/layout/LayoutContent.tsx](file:///d:/AntiGravity%20projects/skillforge/components/layout/LayoutContent.tsx)
+- Show Sidebar on desktop (md:)
+- Show MobileNav on mobile (< md)
+- Responsive padding and spacing
+
+---
+
+### Mobile-Optimized Components
+
+#### [MODIFY] All existing components for mobile:
+- **PostCard**: Stack elements vertically on mobile
+- **ProfileHeader**: Responsive layout
+- **CreatePost**: Full-screen modal on mobile
+- **SearchBar**: Expand on focus
+- **Comments**: Touch-friendly tap targets
+- **Messages**: Full-screen chat on mobile
+
+#### Mobile Design Principles:
+- Minimum tap target: 44x44px
+- Touch-friendly spacing
+- Swipe gestures where appropriate
+- Pull-to-refresh on feeds
+- Optimized images for mobile
+- Fast loading times
+
+---
+
+### Responsive Breakpoints
+```css
+sm: 640px   // Small phones
+md: 768px   // Tablets
+lg: 1024px  // Desktop
+xl: 1280px  // Large desktop
+```
+
+---
+
+## Phase 1: Fix 404 Errors & Core Pages
+
+### Profile Nested Pages
+
+#### [NEW] [app/profile/[username]/followers/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/profile/[username]/followers/page.tsx)
+- List of followers with user cards
+- Follow back buttons
+- Empty state
+- Loading state
+
+#### [NEW] [app/profile/[username]/following/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/profile/[username]/following/page.tsx)
+- List of following users
+- Unfollow buttons
+- Empty state
+
+#### [NEW] [components/profile/EditProfileModal.tsx](file:///d:/AntiGravity%20projects/skillforge/components/profile/EditProfileModal.tsx)
+- Edit all profile fields
+- Image upload
+- Privacy toggle
+- Save to Firestore
+
+#### [MODIFY] [app/profile/[username]/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/profile/[username]/page.tsx)
+- Make stats clickable (navigate to followers/following)
+- Add edit button
+
+---
+
+### Settings System
+
+#### [NEW] [app/settings/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/settings/page.tsx)
+- Tabbed interface
+- Account, Profile, Privacy, Security, Data sections
+
+#### [NEW] [components/settings/*.tsx](file:///d:/AntiGravity%20projects/skillforge/components/settings/)
+- AccountSettings
+- ProfileSettings
+- PrivacySettings
+- SecuritySettings
+- DataSettings
+
+---
+
+### Core Pages
+
+#### [NEW] [app/dashboard/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/dashboard/page.tsx)
+- Stats cards (XP, Level, Streak)
+- Recent activity feed
+- Quick actions
+- Progress charts
+
+#### [NEW] [app/explore/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/explore/page.tsx)
+- User discovery
+- Search bar
+- Suggested users
+- Categories
+
+#### [NEW] [app/notifications/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/notifications/page.tsx)
+- Notification list
+- Follow requests
+- Likes, comments
+- Mark as read
+
+---
+
+## Phase 2: Share Functionality (MUST DO)
+
+#### [NEW] [components/social/ShareButton.tsx](file:///d:/AntiGravity%20projects/skillforge/components/social/ShareButton.tsx)
+- Share button component
+- Copy link
+- Share to social media
+- Share modal
+
+#### [NEW] [lib/utils/share.ts](file:///d:/AntiGravity%20projects/skillforge/lib/utils/share.ts)
+- `sharePost(postId)` - Generate shareable link
+- `shareRoadmap(roadmapId)` - Share roadmap
+- `shareAchievement(achievementId)` - Share achievement
+- `copyToClipboard(text)` - Copy utility
+
+#### [MODIFY] [components/social/PostCard.tsx](file:///d:/AntiGravity%20projects/skillforge/components/social/PostCard.tsx)
+- Add share button
+
+---
+
+## Phase 3: PWA Support (MUST DO)
+
+#### [NEW] [public/manifest.json](file:///d:/AntiGravity%20projects/skillforge/public/manifest.json)
+- App name, icons, colors
+- Display mode: standalone
+- Start URL
+
+#### [NEW] [public/sw.js](file:///d:/AntiGravity%20projects/skillforge/public/sw.js)
+- Service worker for offline support
+- Cache strategies
+- Background sync
+
+#### [NEW] [public/icons/*](file:///d:/AntiGravity%20projects/skillforge/public/icons/)
+- App icons (192x192, 512x512)
+- Favicon
+- Apple touch icon
+
+#### [MODIFY] [app/layout.tsx](file:///d:/AntiGravity%20projects/skillforge/app/layout.tsx)
+- Add manifest link
+- Register service worker
+- Add meta tags for PWA
+
+---
+
+## Phase 4: Search & Discovery
+
+#### [NEW] [app/search/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/search/page.tsx)
+- Search results page
+- Tabs: Users, Posts, Roadmaps
+- Filters
+
+#### [NEW] [components/search/SearchBar.tsx](file:///d:/AntiGravity%20projects/skillforge/components/search/SearchBar.tsx)
+- Global search input
+- Auto-complete
+- Recent searches
+
+#### [NEW] [lib/services/search.ts](file:///d:/AntiGravity%20projects/skillforge/lib/services/search.ts)
+- `searchUsers(query)` - Search users
+- `searchPosts(query)` - Search posts
+- `searchRoadmaps(query)` - Search roadmaps
+
+---
+
+## Phase 5: Notifications System
+
+#### [NEW] [lib/services/notifications.ts](file:///d:/AntiGravity%20projects/skillforge/lib/services/notifications.ts)
+- `createNotification(userId, type, data)` - Create notification
+- `getNotifications(userId)` - Get user notifications
+- `markAsRead(notificationId)` - Mark read
+- Notification types: follow, like, comment, mention
+
+#### [NEW] Firestore Collection: `notifications`
+```typescript
+{
+  id: string
+  userId: string
+  type: 'follow' | 'like' | 'comment' | 'mention'
+  fromUserId: string
+  fromUserName: string
+  fromUserPhoto?: string
+  postId?: string
+  read: boolean
+  createdAt: timestamp
+}
+```
+
+---
+
+## Phase 6: Comments System
+
+#### [NEW] [components/social/CommentSection.tsx](file:///d:/AntiGravity%20projects/skillforge/components/social/CommentSection.tsx)
+- Comment list
+- Add comment input
+- Reply to comments
+- Like comments
+
+#### [NEW] [lib/services/comments.ts](file:///d:/AntiGravity%20projects/skillforge/lib/services/comments.ts)
+- `addComment(postId, userId, text)` - Add comment
+- `getComments(postId)` - Get post comments
+- `likeComment(commentId)` - Like comment
+- `deleteComment(commentId)` - Delete comment
+
+#### [NEW] Firestore Collection: `comments`
+```typescript
+{
+  id: string
+  postId: string
+  userId: string
+  userName: string
+  userPhoto?: string
+  text: string
+  likes: number
+  parentId?: string // for replies
+  createdAt: timestamp
+}
+```
+
+---
+
+## Phase 7: Direct Messaging
+
+#### [NEW] [app/messages/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/messages/page.tsx)
+- Conversation list
+- Chat interface
+- Send messages
+
+#### [NEW] [components/messages/ChatWindow.tsx](file:///d:/AntiGravity%20projects/skillforge/components/messages/ChatWindow.tsx)
+- Message bubbles
+- Input field
+- Real-time updates
+
+#### [NEW] [lib/services/messages.ts](file:///d:/AntiGravity%20projects/skillforge/lib/services/messages.ts)
+- `sendMessage(fromId, toId, text)` - Send message
+- `getConversations(userId)` - Get conversations
+- `getMessages(conversationId)` - Get messages
+
+#### [NEW] Firestore Collections: `conversations`, `messages`
+
+---
+
+## Phase 8: Groups/Communities
+
+#### [NEW] [app/groups/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/groups/page.tsx)
+- Group list
+- Create group
+- Join/leave
+
+#### [NEW] [app/groups/[groupId]/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/groups/[groupId]/page.tsx)
+- Group feed
+- Members list
+- Group settings
+
+#### [NEW] [lib/services/groups.ts](file:///d:/AntiGravity%20projects/skillforge/lib/services/groups.ts)
+- `createGroup(name, description)` - Create group
+- `joinGroup(groupId, userId)` - Join group
+- `getGroupPosts(groupId)` - Get posts
+
+---
+
+## Phase 9: Challenges System
+
+#### [NEW] [app/challenges/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/challenges/page.tsx)
+- Active challenges
+- Create challenge
+- Join challenge
+
+#### [NEW] [app/challenges/[challengeId]/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/challenges/[challengeId]/page.tsx)
+- Challenge details
+- Leaderboard
+- Progress tracking
+
+#### [NEW] [lib/services/challenges.ts](file:///d:/AntiGravity%20projects/skillforge/lib/services/challenges.ts)
+- `createChallenge(data)` - Create challenge
+- `joinChallenge(challengeId, userId)` - Join
+- `updateProgress(challengeId, userId, progress)` - Update
+
+---
+
+## Phase 10: Badges System
+
+#### [NEW] [lib/utils/badges.ts](file:///d:/AntiGravity%20projects/skillforge/lib/utils/badges.ts)
+- Badge definitions
+- `checkBadges(userData)` - Check unlocked badges
+- Badge categories: Social, Learning, Engagement
+
+#### [NEW] [app/badges/page.tsx](file:///d:/AntiGravity%20projects/skillforge/app/badges/page.tsx)
+- Badge collection
+- Locked/unlocked badges
+- Badge details
+
+---
+
+## Verification Plan
+
+### Testing Checklist
+- [ ] No 404 errors anywhere
+- [ ] All profile links work
+- [ ] Settings save correctly
+- [ ] Share functionality works
+- [ ] PWA installs on mobile
+- [ ] Search returns results
+- [ ] Notifications appear
+- [ ] Comments post successfully
+- [ ] Messages send/receive
+- [ ] Groups functional
+- [ ] Challenges track progress
+- [ ] Badges unlock correctly
