@@ -23,6 +23,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
     const [isSaved, setIsSaved] = useState(initialSaved);
     const [likes, setLikes] = useState(post.likes);
     const [saves, setSaves] = useState(post.saves);
+    const [showComments, setShowComments] = useState(false); // Moved state declaration here
 
     const handleLike = async () => {
         if (!user) return;
@@ -164,72 +165,60 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                 )}
             </div>
 
-            const [showComments, setShowComments] = useState(false);
-
-            // ... existing handlers ...
-
-            return (
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden mb-4"
-            >
-                {/* ... existing header and content ... */}
-
-                {/* Actions */}
-                <div className="px-4 py-3 border-t border-slate-800 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        <button
-                            onClick={handleLike}
-                            className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors group"
-                        >
-                            <Heart
-                                className={cn(
-                                    "w-5 h-5 transition-all",
-                                    isLiked && "fill-red-400 text-red-400"
-                                )}
-                            />
-                            <span className="text-sm font-medium">{likes}</span>
-                        </button>
-
-                        <button
-                            onClick={() => setShowComments(!showComments)}
-                            className={`flex items-center gap-2 transition-colors ${showComments ? "text-accent-cyan" : "text-slate-400 hover:text-accent-cyan"}`}
-                        >
-                            <MessageCircle className="w-5 h-5" />
-                            <span className="text-sm font-medium">{post.comments}</span>
-                        </button>
-
-                        {/* Share Button */}
-                        <ShareButton
-                            url={sharePost(post.id)}
-                            title={`Check out this post by ${post.userName}`}
-                            text={post.content.text}
+            {/* Actions */}
+            <div className="px-4 py-3 border-t border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                    <button
+                        onClick={handleLike}
+                        className="flex items-center gap-2 text-slate-400 hover:text-red-400 transition-colors group"
+                    >
+                        <Heart
+                            className={cn(
+                                "w-5 h-5 transition-all",
+                                isLiked && "fill-red-400 text-red-400"
+                            )}
                         />
-                    </div>
+                        <span className="text-sm font-medium">{likes}</span>
+                    </button>
 
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={handleSave}
-                            className="text-slate-400 hover:text-accent-cyan transition-colors"
-                        >
-                            <Bookmark
-                                className={cn(
-                                    "w-5 h-5 transition-all",
-                                    isSaved && "fill-accent-cyan text-accent-cyan"
-                                )}
-                            />
-                        </button>
-                        <span className="text-xs text-slate-500">{formatDate(post.createdAt)}</span>
-                    </div>
+                    <button
+                        onClick={() => setShowComments(!showComments)}
+                        className={`flex items-center gap-2 transition-colors ${showComments ? "text-accent-cyan" : "text-slate-400 hover:text-accent-cyan"}`}
+                    >
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="text-sm font-medium">{post.comments}</span>
+                    </button>
+
+                    {/* Share Button */}
+                    <ShareButton
+                        url={sharePost(post.id)}
+                        title={`Check out this post by ${post.userName}`}
+                        text={post.content.text}
+                    />
                 </div>
 
-                {/* Comments Section */}
-                {showComments && (
-                    <div className="px-4 pb-4">
-                        <CommentSection postId={post.id} />
-                    </div>
-                )}
-            </motion.div>
-            );
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleSave}
+                        className="text-slate-400 hover:text-accent-cyan transition-colors"
+                    >
+                        <Bookmark
+                            className={cn(
+                                "w-5 h-5 transition-all",
+                                isSaved && "fill-accent-cyan text-accent-cyan"
+                            )}
+                        />
+                    </button>
+                    <span className="text-xs text-slate-500">{formatDate(post.createdAt)}</span>
+                </div>
+            </div>
+
+            {/* Comments Section */}
+            {showComments && (
+                <div className="px-4 pb-4">
+                    <CommentSection postId={post.id} />
+                </div>
+            )}
+        </motion.div>
+    );
 }

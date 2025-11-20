@@ -21,13 +21,37 @@ export interface Post {
     likes: number;
     saves: number;
     comments: number;
-});
-
-return postId;
-    } catch (error) {
-    console.error('Error creating post:', error);
-    throw error;
+    createdAt: string; // Added missing createdAt property
 }
+
+export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, content: Post['content']): Promise<string> {
+    try {
+        const postData = {
+            userId,
+            username,
+            userName,
+            userPhoto,
+            type: content.type,
+            content,
+            likes: 0,
+            saves: 0,
+            comments: 0,
+            createdAt: new Date().toISOString(),
+        };
+
+        const docRef = await addDoc(collection(db, 'posts'), postData);
+        const postId = docRef.id;
+
+        // Update user's post count
+        await updateDoc(doc(db, 'users', userId), {
+            postsCount: increment(1),
+        });
+
+        return postId;
+    } catch (error) {
+        console.error('Error creating post:', error);
+        throw error;
+    }
 }
 
 export async function deletePost(postId: string, userId: string): Promise<void> {
