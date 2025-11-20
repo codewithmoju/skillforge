@@ -46,7 +46,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
 
                 {/* Right Side */}
                 <button
-                    onClick={() => router.push('/explore')} {/* Navigate to /explore */}
+                    onClick={() => router.push('/explore')}
                     className="p-2 -mr-2 text-slate-400 hover:text-white active:scale-95 transition-all"
                 >
                     <Search className="w-6 h-6" />
