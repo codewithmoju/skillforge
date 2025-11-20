@@ -55,6 +55,10 @@ export default function SocialPage() {
         }
     };
 
+    const handlePostDeleted = (deletedPostId: string) => {
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+    };
+
     useEffect(() => {
         loadFeed();
     }, [user]);
@@ -110,6 +114,7 @@ export default function SocialPage() {
                                 post={post}
                                 isLiked={likedPosts.has(post.id)}
                                 isSaved={savedPosts.has(post.id)}
+                                onDelete={handlePostDeleted}
                             />
                         ))}
                     </div>

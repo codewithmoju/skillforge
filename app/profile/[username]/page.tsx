@@ -31,7 +31,7 @@ export default function ProfilePage() {
 
     useEffect(() => {
         loadProfile();
-    }, [username]);
+    }, [username, currentUser]); // Added currentUser to dependencies
 
     const loadProfile = async () => {
         setLoading(true);
@@ -80,12 +80,21 @@ export default function ProfilePage() {
     const loadSavedPosts = async () => {
         if (!currentUser || !isOwnProfile) return;
 
+        setLoading(true); // Set loading when switching to saved posts
         try {
             const saved = await getSavedPosts(currentUser.uid);
             setPosts(saved);
         } catch (error) {
             console.error('Error loading saved posts:', error);
+        } finally {
+            setLoading(false);
         }
+    };
+
+    const handlePostDeleted = (deletedPostId: string) => {
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+        // Also update postsCount in userData if it's the user's own profile
+        setUserData(prevData => prevData ? { ...prevData, postsCount: (prevData.postsCount || 0) - 1 } : null);
     };
 
     const handleTabChange = (tab: TabType) => {
@@ -93,7 +102,7 @@ export default function ProfilePage() {
         if (tab === 'saved') {
             loadSavedPosts();
         } else {
-            loadProfile();
+            loadProfile(); // Reload user's own posts
         }
     };
 
@@ -259,6 +268,7 @@ export default function ProfilePage() {
                                 post={post}
                                 isLiked={likedPosts.has(post.id)}
                                 isSaved={savedPosts.has(post.id)}
+                                onDelete={handlePostDeleted}
                             />
                         ))}
                     </div>
