@@ -21,18 +21,33 @@ export interface Post {
     likes: number;
     saves: number;
     comments: number;
-    createdAt: string; // Added missing createdAt property
+    createdAt: string;
 }
 
-export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, type: Post['type'], content: Post['content']): Promise<string> {
+export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, type: Post['type'], postContent: Post['content']): Promise<string> {
     try {
+        // Construct the content object, only adding 'images' if it exists and has elements
+        const contentData: Post['content'] = {
+            text: postContent.text,
+            roadmapId: postContent.roadmapId,
+            roadmapTitle: postContent.roadmapTitle,
+            achievementId: postContent.achievementId,
+            achievementTitle: postContent.achievementTitle,
+            projectId: postContent.projectId,
+            projectTitle: postContent.projectTitle,
+        };
+
+        if (postContent.images && postContent.images.length > 0) {
+            contentData.images = postContent.images;
+        }
+
         const postData = {
             userId,
             username,
             userName,
             userPhoto,
-            type, // Correctly assign type here
-            content,
+            type,
+            content: contentData, // Use the carefully constructed contentData
             likes: 0,
             saves: 0,
             comments: 0,
