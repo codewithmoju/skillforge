@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, PlusCircle, Bell, UserCircle } from "lucide-react";
+import { Home, Users, PlusCircle, Bell, UserCircle, Compass } from "lucide-react"; // Added Compass icon
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
     { name: "Home", href: "/dashboard", icon: Home },
-    { name: "Social", href: "/social", icon: Users },
+    { name: "Explore", href: "/explore", icon: Compass }, // New Explore item
     { name: "Create", href: "/create", icon: PlusCircle },
     { name: "Notifications", href: "/notifications", icon: Bell },
     { name: "Profile", href: "/profile", icon: UserCircle },

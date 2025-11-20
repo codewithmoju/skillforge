@@ -130,6 +130,24 @@ export async function getFeedPosts(followingIds: string[], limitCount: number = 
     }
 }
 
+export async function getTrendingPosts(limitCount: number = 20): Promise<Post[]> {
+    try {
+        // For simplicity, "trending" is defined by most likes in descending order.
+        // In a real application, this might involve more complex logic (e.g., time decay, comments, shares).
+        const q = query(
+            collection(db, 'posts'),
+            orderBy('likes', 'desc'),
+            orderBy('createdAt', 'desc'), // Secondary sort for newer posts with same likes
+            limit(limitCount)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+    } catch (error) {
+        console.error('Error getting trending posts:', error);
+        return [];
+    }
+}
+
 export async function likePost(userId: string, postId: string): Promise<void> {
     try {
         const likeId = `${userId}_${postId}`;

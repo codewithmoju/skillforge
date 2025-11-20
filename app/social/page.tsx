@@ -5,10 +5,10 @@ import { motion } from "framer-motion";
 import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PostCard } from "@/components/social/PostCard";
-import { CreatePost } from "@/components/social/CreatePost";
 import { getFeedPosts, isPostLiked, isPostSaved, Post } from "@/lib/services/posts";
 import { getFollowing } from "@/lib/services/follow";
 import { useAuth } from "@/lib/hooks/useAuth";
+import Link from "next/link"; // Import Link
 
 export default function SocialPage() {
     const { user } = useAuth();
@@ -16,7 +16,6 @@ export default function SocialPage() {
     const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
     const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
-    const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
 
     const loadFeed = async () => {
         if (!user) return;
@@ -78,14 +77,15 @@ export default function SocialPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-6"
                 >
-                    <Button
-                        onClick={() => setIsCreatePostOpen(true)}
-                        className="w-full"
-                        size="lg"
-                    >
-                        <Plus className="w-5 h-5 mr-2" />
-                        Create Post
-                    </Button>
+                    <Link href="/create"> {/* Link to the new create page */}
+                        <Button
+                            className="w-full"
+                            size="lg"
+                        >
+                            <Plus className="w-5 h-5 mr-2" />
+                            Create Post
+                        </Button>
+                    </Link>
                 </motion.div>
 
                 {/* Feed */}
@@ -102,9 +102,11 @@ export default function SocialPage() {
                         <p className="text-slate-400 mb-6">
                             Follow other users or create your first post to get started!
                         </p>
-                        <Button onClick={() => setIsCreatePostOpen(true)}>
-                            Create Your First Post
-                        </Button>
+                        <Link href="/create">
+                            <Button>
+                                Create Your First Post
+                            </Button>
+                        </Link>
                     </div>
                 ) : (
                     <div className="space-y-6">
@@ -119,13 +121,6 @@ export default function SocialPage() {
                         ))}
                     </div>
                 )}
-
-                {/* Create Post Modal */}
-                <CreatePost
-                    isOpen={isCreatePostOpen}
-                    onClose={() => setIsCreatePostOpen(false)}
-                    onPostCreated={loadFeed}
-                />
             </div>
         </div>
     );

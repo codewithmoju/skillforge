@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, LogOut, Sparkles } from "lucide-react";
+import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, LogOut, Sparkles, Compass } from "lucide-react"; // Added Compass icon
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ const navItems = [
     { name: "Roadmap", href: "/roadmap", icon: Map },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Social", href: "/social", icon: Users },
+    { name: "Explore", href: "/explore", icon: Compass }, // New Explore item
 ];
 
 export function Sidebar() {

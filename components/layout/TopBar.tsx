@@ -19,7 +19,7 @@ export function TopBar() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                         type="text"
-                        placeholder="Search skills, projects, or templates..."
+                        placeholder="Search your roadmaps, projects, or posts..." {/* Updated placeholder */}
                         className="w-full bg-slate-900/50 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-indigo focus:ring-1 focus:ring-accent-indigo/50 transition-all placeholder:text-slate-600"
                     />
                 </div>

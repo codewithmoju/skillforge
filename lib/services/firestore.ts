@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 import { UserState } from '../store';
 import { Achievement, shouldIncrementStreak, shouldResetStreak } from '../utils/achievements';
 import { updateLeaderboard } from './leaderboard';
@@ -203,5 +203,47 @@ export async function getUserByUsername(username: string): Promise<FirestoreUser
     } catch (error) {
         console.error('Error getting user by username:', error);
         return null;
+    }
+}
+
+export async function searchUsers(queryText: string, limitCount: number = 10): Promise<FirestoreUserData[]> {
+    try {
+        const usersRef = collection(db, 'users');
+        const lowerCaseQuery = queryText.toLowerCase();
+
+        // Search by username (prefix match)
+        const qUsername = query(
+            usersRef,
+            where('username', '>=', lowerCaseQuery),
+            where('username', '<=', lowerCaseQuery + '\uf8ff'),
+            limit(limitCount)
+        );
+        const usernameSnapshot = await getDocs(qUsername);
+        let users = usernameSnapshot.docs.map(doc => doc.data() as FirestoreUserData);
+
+        // If not enough results, also search by name (prefix match)
+        if (users.length < limitCount) {
+            const qName = query(
+                usersRef,
+                where('name', '>=', queryText),
+                where('name', '<=', queryText + '\uf8ff'),
+                limit(limitCount)
+            );
+            const nameSnapshot = await getDocs(qName);
+            const nameUsers = nameSnapshot.docs.map(doc => doc.data() as FirestoreUserData);
+
+            // Merge and deduplicate
+            const existingUids = new Set(users.map(u => u.uid));
+            nameUsers.forEach(u => {
+                if (!existingUids.has(u.uid)) {
+                    users.push(u);
+                }
+            });
+        }
+
+        return users.slice(0, limitCount);
+    } catch (error) {
+        console.error('Error searching users:', error);
+        return [];
     }
 }
