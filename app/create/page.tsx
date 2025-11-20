@@ -47,12 +47,10 @@ export default function CreatePage() {
                 userData.username,
                 userData.name,
                 userData.profilePicture,
+                'text', // Pass 'type' as a separate argument
                 {
-                    type: 'text',
-                    content: {
-                        text: text.trim(),
-                        images: images.length > 0 ? images : undefined,
-                    },
+                    text: text.trim(),
+                    images: images.length > 0 ? images : undefined,
                 }
             );
 

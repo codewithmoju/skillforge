@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, setDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment, addDoc } from 'firebase/firestore';
 
 export interface Post {
     id: string;
@@ -24,14 +24,14 @@ export interface Post {
     createdAt: string; // Added missing createdAt property
 }
 
-export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, content: Post['content']): Promise<string> {
+export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, type: Post['type'], content: Post['content']): Promise<string> {
     try {
         const postData = {
             userId,
             username,
             userName,
             userPhoto,
-            type: content.type,
+            type, // Correctly assign type here
             content,
             likes: 0,
             saves: 0,
