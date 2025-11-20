@@ -105,7 +105,7 @@ export async function getUserPosts(userId: string, limitCount: number = 50): Pro
             limit(limitCount)
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as Post);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
     } catch (error) {
         console.error('Error getting user posts:', error);
         return [];
@@ -123,7 +123,7 @@ export async function getFeedPosts(followingIds: string[], limitCount: number = 
             limit(limitCount)
         );
         const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as Post);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
     } catch (error) {
         console.error('Error getting feed posts:', error);
         return [];
@@ -223,7 +223,7 @@ export async function getSavedPosts(userId: string): Promise<Post[]> {
         for (const postId of postIds) {
             const postDoc = await getDoc(doc(db, 'posts', postId));
             if (postDoc.exists()) {
-                posts.push(postDoc.data() as Post);
+                posts.push({ id: postDoc.id, ...postDoc.data() } as Post);
             }
         }
 
