@@ -26,17 +26,30 @@ export interface Post {
 
 export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, type: Post['type'], postContent: Post['content']): Promise<string> {
     try {
-        // Construct the content object, only adding 'images' if it exists and has elements
-        const contentData: Post['content'] = {
-            text: postContent.text,
-            roadmapId: postContent.roadmapId,
-            roadmapTitle: postContent.roadmapTitle,
-            achievementId: postContent.achievementId,
-            achievementTitle: postContent.achievementTitle,
-            projectId: postContent.projectId,
-            projectTitle: postContent.projectTitle,
-        };
+        // Construct the content object, only adding fields if they exist and have a value
+        const contentData: Post['content'] = {};
 
+        if (postContent.text) {
+            contentData.text = postContent.text;
+        }
+        if (postContent.roadmapId) {
+            contentData.roadmapId = postContent.roadmapId;
+        }
+        if (postContent.roadmapTitle) {
+            contentData.roadmapTitle = postContent.roadmapTitle;
+        }
+        if (postContent.achievementId) {
+            contentData.achievementId = postContent.achievementId;
+        }
+        if (postContent.achievementTitle) {
+            contentData.achievementTitle = postContent.achievementTitle;
+        }
+        if (postContent.projectId) {
+            contentData.projectId = postContent.projectId;
+        }
+        if (postContent.projectTitle) {
+            contentData.projectTitle = postContent.projectTitle;
+        }
         if (postContent.images && postContent.images.length > 0) {
             contentData.images = postContent.images;
         }
