@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion"; // Added AnimatePresence import
 import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2, Loader2 } from "lucide-react";
 import { Post, likePost, savePost, deletePost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
