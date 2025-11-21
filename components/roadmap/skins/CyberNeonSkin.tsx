@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Lock, Star } from "lucide-react";
+import { Check, Lock, Star, Zap, Cpu } from "lucide-react";
 import { BaseSkin, BaseSkinProps } from "./BaseSkin";
 import { cn } from "@/lib/utils";
 
@@ -17,11 +17,29 @@ export function CyberNeonSkin(props: BaseSkinProps) {
 
     return (
         <BaseSkin {...props}>
-            {/* Background Grid */}
-            <div 
-                className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"
-                style={{ opacity: 0.3 }}
-            />
+            {/* Background Grid with Scanline */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div
+                    className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"
+                    style={{ opacity: 0.3 }}
+                />
+                {/* Moving Scanline */}
+                <motion.div
+                    className="absolute inset-0 w-full h-full bg-gradient-to-b from-transparent via-primary/10 to-transparent"
+                    style={{
+                        background: `linear-gradient(to bottom, transparent 0%, ${skinConfig.colors.primary}10 50%, transparent 100%)`,
+                        height: "200%",
+                    }}
+                    animate={{
+                        y: ["-100%", "0%"],
+                    }}
+                    transition={{
+                        duration: 10,
+                        repeat: Infinity,
+                        ease: "linear",
+                    }}
+                />
+            </div>
 
             {/* Animated Glow Orbs */}
             <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
@@ -30,6 +48,31 @@ export function CyberNeonSkin(props: BaseSkinProps) {
             <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-20"
                 style={{ backgroundColor: skinConfig.colors.accent }}
             />
+
+            {/* Floating Tech Particles (Binary/Squares) */}
+            {Array.from({ length: 15 }).map((_, i) => (
+                <motion.div
+                    key={`tech-particle-${i}`}
+                    className="absolute text-[10px] font-mono font-bold opacity-20 select-none pointer-events-none"
+                    style={{
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        color: i % 2 === 0 ? skinConfig.colors.primary : skinConfig.colors.accent,
+                    }}
+                    animate={{
+                        y: [0, -50],
+                        opacity: [0, 0.5, 0],
+                    }}
+                    transition={{
+                        duration: 3 + Math.random() * 4,
+                        repeat: Infinity,
+                        delay: Math.random() * 5,
+                        ease: "linear",
+                    }}
+                >
+                    {Math.random() > 0.5 ? "1" : "0"}
+                </motion.div>
+            ))}
 
             {/* Premium Glowing Path - Vertical Timeline */}
             <div className="absolute inset-0 flex justify-center" style={{ zIndex: 0 }}>
@@ -52,35 +95,43 @@ export function CyberNeonSkin(props: BaseSkinProps) {
                         animate={{ height: `${progressPercentage}%` }}
                         transition={{ duration: 1.5, ease: "easeInOut" }}
                     />
-                    {/* Animated particles along the path */}
-                    {roadmapDefinitions.map((def, index) => {
-                        const nodeState = roadmapProgress[def.id];
-                        const isActive = nodeState?.status === "active" || nodeState?.status === "completed";
-                        if (!isActive) return null;
-                        
-                        const position = (index / (roadmapDefinitions.length - 1)) * progressPercentage;
-                        
-                        return (
-                            <motion.div
-                                key={`particle-${def.id}`}
-                                className="absolute left-1/2 -translate-x-1/2 w-3 h-3 rounded-full"
-                                style={{
-                                    top: `${position}%`,
-                                    backgroundColor: skinConfig.colors.accent,
-                                    boxShadow: `0 0 10px ${skinConfig.colors.accent}`,
-                                }}
-                                animate={{
-                                    scale: [1, 1.5, 1],
-                                    opacity: [0.5, 1, 0.5],
-                                }}
-                                transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    delay: index * 0.2,
-                                }}
-                            />
-                        );
-                    })}
+
+                    {/* Data Packets Moving Down */}
+                    <motion.div
+                        className="absolute w-2 h-4 rounded-full"
+                        style={{
+                            left: "-2px",
+                            backgroundColor: skinConfig.colors.textPrimary,
+                            boxShadow: `0 0 15px ${skinConfig.colors.textPrimary}`,
+                        }}
+                        animate={{
+                            top: ["0%", "100%"],
+                            opacity: [0, 1, 0],
+                        }}
+                        transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: "linear",
+                        }}
+                    />
+                    <motion.div
+                        className="absolute w-2 h-4 rounded-full"
+                        style={{
+                            left: "-2px",
+                            backgroundColor: skinConfig.colors.accent,
+                            boxShadow: `0 0 15px ${skinConfig.colors.accent}`,
+                        }}
+                        animate={{
+                            top: ["0%", "100%"],
+                            opacity: [0, 1, 0],
+                        }}
+                        transition={{
+                            duration: 4.5,
+                            repeat: Infinity,
+                            delay: 2,
+                            ease: "linear",
+                        }}
+                    />
                 </div>
             </div>
 
@@ -101,7 +152,7 @@ export function CyberNeonSkin(props: BaseSkinProps) {
                             <button
                                 onClick={() => onNodeSelect(def.id)}
                                 className={cn(
-                                    "relative z-10 w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center border-4 transition-all duration-300 hover:scale-110 active:scale-95",
+                                    "relative z-10 w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl flex items-center justify-center border-4 transition-all duration-300 hover:scale-110 active:scale-95 group",
                                     nodeState.status === "locked" && "grayscale"
                                 )}
                                 style={{
@@ -123,12 +174,18 @@ export function CyberNeonSkin(props: BaseSkinProps) {
                                         : `0 0 10px ${skinConfig.colors.nodeLocked}20`,
                                 }}
                             >
+                                {/* Corner Accents */}
+                                <div className="absolute -top-1 -left-1 w-2 h-2 border-t-2 border-l-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ borderColor: skinConfig.colors.textPrimary }} />
+                                <div className="absolute -top-1 -right-1 w-2 h-2 border-t-2 border-r-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ borderColor: skinConfig.colors.textPrimary }} />
+                                <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b-2 border-l-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ borderColor: skinConfig.colors.textPrimary }} />
+                                <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b-2 border-r-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ borderColor: skinConfig.colors.textPrimary }} />
+
                                 {nodeState.status === "completed" ? (
                                     <Check className="w-6 h-6 md:w-8 md:h-8" />
                                 ) : nodeState.status === "locked" ? (
                                     <Lock className="w-5 h-5 md:w-6 md:h-6 opacity-70" />
                                 ) : (
-                                    <Star className="w-6 h-6 md:w-8 md:h-8 fill-white" />
+                                    <Cpu className="w-6 h-6 md:w-8 md:h-8 text-white animate-pulse" />
                                 )}
 
                                 {/* Premium Glow effect for active nodes */}
@@ -151,6 +208,20 @@ export function CyberNeonSkin(props: BaseSkinProps) {
                                             animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.1, 1] }}
                                             transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                                         />
+                                        {/* Glitch Effect Element */}
+                                        <motion.div
+                                            className="absolute inset-0 rounded-xl md:rounded-2xl opacity-50 mix-blend-screen"
+                                            style={{ backgroundColor: skinConfig.colors.accent }}
+                                            animate={{
+                                                x: [0, -2, 2, 0],
+                                                opacity: [0, 0.5, 0],
+                                            }}
+                                            transition={{
+                                                duration: 0.2,
+                                                repeat: Infinity,
+                                                repeatDelay: 3 + Math.random() * 2
+                                            }}
+                                        />
                                     </>
                                 )}
 
@@ -160,16 +231,17 @@ export function CyberNeonSkin(props: BaseSkinProps) {
                                     isSelected ? "opacity-100 translate-x-0" : "opacity-60 translate-x-[-5px] md:translate-x-[-10px]"
                                 )}>
                                     <div 
-                                        className="text-sm md:text-lg font-bold truncate"
-                                        style={{ color: skinConfig.colors.textPrimary }}
+                                        className="text-sm md:text-lg font-bold truncate flex items-center gap-2"
+                                        style={{ color: skinConfig.colors.textPrimary, textShadow: `0 0 10px ${skinConfig.colors.primary}80` }}
                                     >
                                         {def.title}
+                                        {nodeState.status === "active" && <Zap className="w-3 h-3 md:w-4 md:h-4 animate-bounce" style={{ color: skinConfig.colors.warning }} />}
                                     </div>
                                     <div 
-                                        className="text-xs md:text-xs"
+                                        className="text-xs md:text-xs font-mono"
                                         style={{ color: skinConfig.colors.textSecondary }}
                                     >
-                                        Level {def.level}
+                                        SYSTEM.LEVEL.{def.level}
                                     </div>
                                 </div>
                             </button>
@@ -180,4 +252,3 @@ export function CyberNeonSkin(props: BaseSkinProps) {
         </BaseSkin>
     );
 }
-
