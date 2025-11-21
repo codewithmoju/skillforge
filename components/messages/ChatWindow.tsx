@@ -12,6 +12,10 @@ import {
     addReaction,
     removeReaction,
     updateTypingStatus,
+    editMessage,
+    deleteMessage,
+    pinMessage,
+    unpinMessage,
 } from '@/lib/services/messages';
 import {
     getConversationStats,
@@ -20,17 +24,20 @@ import {
     MessageAchievement
 } from '@/lib/services/conversationStats';
 import { updateChallengeProgress } from '@/lib/services/challenges';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Smile, Image, Pencil, Trash2, Reply, Search, Pin } from 'lucide-react';
 import { TypingIndicator } from './TypingIndicator';
 import { OnlineStatus } from './OnlineStatus';
+import { AchievementModal } from './AchievementModal';
+import { EmojiPicker } from './EmojiPicker';
+import { GifPicker } from './GifPicker';
+import { VoiceRecorder } from './VoiceRecorder';
+import { onSnapshot, doc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { uploadFile } from '@/lib/services/storage';
 import { MessageReactions } from './MessageReactions';
 import { StreakIndicator } from './StreakIndicator';
 import { ConversationLevelBadge } from './ConversationLevelBadge';
 import { XPNotification } from './XPNotification';
-import { AchievementModal } from './AchievementModal';
-import { onSnapshot, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-
 
 interface ChatWindowProps {
     conversationId: string;
@@ -68,6 +75,15 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
     const [xpNotification, setXpNotification] = useState<{ amount: number; reason?: string } | null>(null);
     const [achievementModal, setAchievementModal] = useState<MessageAchievement | null>(null);
 
+    // UI State
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [showGifPicker, setShowGifPicker] = useState(false);
+    const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+    const [showSearch, setShowSearch] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
+
     // Subscribe to messages
     useEffect(() => {
         if (!conversationId || !user) return;
@@ -80,7 +96,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         return () => unsubscribe();
     }, [conversationId, user]);
 
-    // Subscribe to conversation for presence and typing
+    // Subscribe to conversation for presence, typing, and pinned message
     useEffect(() => {
         if (!conversationId || !user) return;
 
@@ -92,6 +108,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                 if (otherUserId) {
                     setRecipientDetails(data.participantDetails[otherUserId]);
                 }
+                setPinnedMessageId(data.pinnedMessageId || null);
             }
         });
 
@@ -109,14 +126,24 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    const handleSend = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMessage.trim() || !user || sending) return;
+    const sendMessageInternal = async (text: string, media?: { type: 'image' | 'video' | 'audio'; url: string; duration?: number }) => {
+        if (!user || sending) return;
 
         setSending(true);
         try {
-            await sendMessage(conversationId, user.uid, newMessage.trim());
-            setNewMessage('');
+            const replyToData = replyingTo ? {
+                messageId: replyingTo.id,
+                text: replyingTo.text,
+                senderId: replyingTo.senderId,
+                senderName: replyingTo.senderId === user.uid ? 'You' : recipientName
+            } : undefined;
+
+            await sendMessage(conversationId, user.uid, text, replyToData, media);
+
+            if (!media) {
+                setNewMessage('');
+            }
+            setReplyingTo(null);
 
             // Update Stats & Gamification
             const result = await updateStatsOnMessage(conversationId, user.uid);
@@ -133,7 +160,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
 
             // Show Achievement Modal
             if (result.achievementsUnlocked.length > 0) {
-                setAchievementModal(result.achievementsUnlocked[0]); // Show first one if multiple
+                setAchievementModal(result.achievementsUnlocked[0]);
             }
 
             // Update local stats
@@ -154,6 +181,16 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         } finally {
             setSending(false);
         }
+    };
+
+    const handleSend = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMessage.trim()) return;
+        await sendMessageInternal(newMessage.trim());
+    };
+
+    const handleSendGif = async (url: string) => {
+        await sendMessageInternal('GIF', { type: 'image', url });
     };
 
     const handleTyping = (value: string) => {
@@ -202,6 +239,73 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         }
     };
 
+    const handleVoiceRecording = async (blob: Blob) => {
+        if (!user) return;
+
+        const duration = Math.ceil(blob.size / 4000); // Rough estimate
+        const path = `voice-messages/${conversationId}/${user.uid}/${Date.now()}.webm`;
+
+        try {
+            const url = await uploadFile(blob, path);
+            await sendMessageInternal('🎤 Voice Message', { type: 'audio', url, duration });
+        } catch (error) {
+            console.error('Error sending voice message:', error);
+        }
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingMessageId || !newMessage.trim() || !user) return;
+
+        try {
+            await editMessage(editingMessageId, newMessage.trim());
+            setEditingMessageId(null);
+            setNewMessage('');
+        } catch (error) {
+            console.error('Error editing message:', error);
+        }
+    };
+
+    const startEditing = (message: Message) => {
+        setEditingMessageId(message.id);
+        setNewMessage(message.text);
+        // Focus input?
+    };
+
+    const cancelEditing = () => {
+        setEditingMessageId(null);
+        setNewMessage('');
+    };
+
+    const handleDeleteMessage = async (messageId: string) => {
+        if (!confirm('Are you sure you want to delete this message?')) return;
+        try {
+            await deleteMessage(conversationId, messageId);
+        } catch (error) {
+            console.error('Error deleting message:', error);
+        }
+    };
+
+    const handleReply = (message: Message) => {
+        setReplyingTo(message);
+        // Focus input?
+    };
+
+    const handlePin = async (messageId: string) => {
+        try {
+            await pinMessage(conversationId, messageId);
+        } catch (error) {
+            console.error('Error pinning message:', error);
+        }
+    };
+
+    const handleUnpin = async () => {
+        try {
+            await unpinMessage(conversationId);
+        } catch (error) {
+            console.error('Error unpinning message:', error);
+        }
+    };
+
     return (
         <div className="flex flex-col h-full bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden relative">
             {/* Header */}
@@ -231,36 +335,129 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                     </div>
                     <OnlineStatus online={recipientDetails?.online} lastSeen={recipientDetails?.lastSeen} />
                 </div>
+
+                {/* Search Toggle */}
+                <div className="relative">
+                    {showSearch ? (
+                        <div className="flex items-center bg-slate-800 rounded-full px-3 py-1 animate-in fade-in slide-in-from-right-5">
+                            <Search className="w-4 h-4 text-slate-400 mr-2" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search..."
+                                className="bg-transparent border-none text-sm text-white placeholder-slate-500 focus:outline-none w-32"
+                                autoFocus
+                            />
+                            <button
+                                onClick={() => {
+                                    setShowSearch(false);
+                                    setSearchQuery('');
+                                }}
+                                className="ml-2 text-slate-400 hover:text-white"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            onClick={() => setShowSearch(true)}
+                            className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"
+                        >
+                            <Search className="w-5 h-5" />
+                        </button>
+                    )}
+                </div>
             </div>
+
+            {/* Pinned Message Banner */}
+            {pinnedMessageId && (
+                <div className="bg-slate-800/80 backdrop-blur-sm border-b border-slate-700 px-4 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                        <Pin className="w-4 h-4 text-accent-indigo flex-shrink-0" />
+                        <div className="flex flex-col overflow-hidden">
+                            <span className="text-xs text-accent-indigo font-bold">Pinned Message</span>
+                            <span className="text-xs text-slate-300 truncate">
+                                {messages.find(m => m.id === pinnedMessageId)?.text || 'Loading...'}
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleUnpin}
+                        className="text-slate-400 hover:text-white p-1"
+                        title="Unpin"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, index) => {
+                {messages.filter(msg =>
+                    !searchQuery || msg.text.toLowerCase().includes(searchQuery.toLowerCase())
+                ).map((msg, index) => {
                     const isOwn = msg.senderId === user?.uid;
                     return (
                         <div
                             key={msg.id}
-                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-slideUp`}
+                            className={`flex ${isOwn ? 'justify-end' : 'justify-start'} animate-slideUp group`}
                             style={{ animationDelay: `${index * 0.05}s` }}
                         >
                             <div className="flex flex-col max-w-[70%]">
                                 <div
                                     className={`rounded-2xl px-4 py-2 transition-all hover:shadow-lg ${isOwn
-                                            ? 'bg-gradient-to-br from-accent-indigo to-accent-violet text-white rounded-tr-none'
-                                            : 'bg-slate-800 text-slate-200 rounded-tl-none'
+                                        ? 'bg-gradient-to-br from-accent-indigo to-accent-violet text-white rounded-tr-none'
+                                        : 'bg-slate-800 text-slate-200 rounded-tl-none'
                                         }`}
                                 >
                                     <p>{msg.text}</p>
+                                    {msg.type === 'audio' && msg.mediaUrl && (
+                                        <audio controls src={msg.mediaUrl} className="mt-2 w-full" />
+                                    )}
+                                    {msg.type === 'image' && msg.mediaUrl && (
+                                        <img src={msg.mediaUrl} alt="GIF" className="mt-2 rounded-lg max-w-full" />
+                                    )}
                                     <div className="flex items-center gap-2 mt-1">
                                         <p className={`text-[10px] ${isOwn ? 'text-indigo-200' : 'text-slate-500'}`}>
                                             {timeAgo(msg.createdAt)}
                                             {msg.edited && ' (edited)'}
                                         </p>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => handleReply(msg)}
+                                                className={`p-1 hover:bg-white/10 rounded ${isOwn ? 'text-indigo-200 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                                title="Reply"
+                                            >
+                                                <Reply className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                                onClick={() => handlePin(msg.id)}
+                                                className={`p-1 hover:bg-white/10 rounded ${isOwn ? 'text-indigo-200 hover:text-white' : 'text-slate-400 hover:text-slate-600'}`}
+                                                title="Pin Message"
+                                            >
+                                                <Pin className="w-3 h-3" />
+                                            </button>
+                                            {isOwn && (
+                                                <>
+                                                    <button
+                                                        onClick={() => startEditing(msg)}
+                                                        className="p-1 hover:bg-white/10 rounded text-indigo-200 hover:text-white"
+                                                        title="Edit"
+                                                    >
+                                                        <Pencil className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteMessage(msg.id)}
+                                                        className="p-1 hover:bg-white/10 rounded text-indigo-200 hover:text-red-300"
+                                                        title="Delete"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-
-                                {/* Reactions */}
-                                <div className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                                     <MessageReactions
                                         messageId={msg.id}
                                         reactions={msg.reactions}
@@ -283,22 +480,109 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className="p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm">
-                <div className="flex gap-2">
+            <form onSubmit={editingMessageId ? (e) => { e.preventDefault(); handleSaveEdit(); } : handleSend} className="p-4 border-t border-slate-800 bg-slate-900/80 backdrop-blur-sm relative">
+                {replyingTo && (
+                    <div className="flex items-center justify-between bg-slate-800/50 p-2 rounded-lg mb-2 border-l-2 border-accent-indigo">
+                        <div className="flex flex-col">
+                            <span className="text-xs text-accent-indigo font-semibold">
+                                Replying to {replyingTo.senderId === user?.uid ? 'You' : recipientName}
+                            </span>
+                            <span className="text-xs text-slate-400 truncate max-w-[200px]">
+                                {replyingTo.text}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setReplyingTo(null)}
+                            className="text-slate-400 hover:text-white"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
+
+                {showEmojiPicker && (
+                    <EmojiPicker
+                        onEmojiClick={(emojiData) => {
+                            setNewMessage(prev => prev + emojiData.emoji);
+                        }}
+                        onClose={() => setShowEmojiPicker(false)}
+                    />
+                )}
+
+                {showGifPicker && (
+                    <GifPicker
+                        onGifClick={(gif, e) => {
+                            e.preventDefault();
+                            handleSendGif(gif.images.fixed_height.url);
+                            setShowGifPicker(false);
+                        }}
+                        onClose={() => setShowGifPicker(false)}
+                    />
+                )}
+
+                <div className="flex gap-2 items-center">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowEmojiPicker(!showEmojiPicker);
+                            setShowGifPicker(false);
+                        }}
+                        className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'text-accent-indigo bg-accent-indigo/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                    >
+                        <Smile className="w-6 h-6" />
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setShowGifPicker(!showGifPicker);
+                            setShowEmojiPicker(false);
+                        }}
+                        className={`p-2 rounded-full transition-colors ${showGifPicker ? 'text-accent-indigo bg-accent-indigo/10' : 'text-slate-400 hover:text-white hover:bg-slate-800'}`}
+                    >
+                        <Image className="w-6 h-6" />
+                    </button>
+
+                    <VoiceRecorder
+                        onRecordingComplete={handleVoiceRecording}
+                        onCancel={() => { }}
+                    />
+
                     <input
                         type="text"
                         value={newMessage}
                         onChange={(e) => handleTyping(e.target.value)}
-                        placeholder="Type a message..."
-                        className="flex-1 bg-slate-800 border-none rounded-full px-4 py-2 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none transition-all"
+                        placeholder={editingMessageId ? "Edit message..." : "Type a message..."}
+                        className={`flex-1 bg-slate-800 border-none rounded-full px-4 py-2 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none transition-all ${editingMessageId ? 'ring-2 ring-yellow-500/50' : ''}`}
                     />
-                    <button
-                        type="submit"
-                        disabled={!newMessage.trim() || sending}
-                        className="p-2 bg-gradient-to-br from-accent-indigo to-accent-violet text-white rounded-full hover:scale-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-accent-indigo/50"
-                    >
-                        {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                    </button>
+
+                    {editingMessageId ? (
+                        <div className="flex gap-1">
+                            <button
+                                type="button"
+                                onClick={cancelEditing}
+                                className="p-2 bg-slate-700 text-slate-300 rounded-full hover:bg-slate-600 transition-all"
+                            >
+                                <span className="text-xs font-bold">✕</span>
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={!newMessage.trim()}
+                                className="p-2 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 transition-all shadow-lg"
+                            >
+                                <span className="text-xs font-bold">✓</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            type="submit"
+                            disabled={!newMessage.trim() || sending}
+                            className="p-2 bg-gradient-to-br from-accent-indigo to-accent-violet text-white rounded-full hover:scale-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-accent-indigo/50"
+                        >
+                            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                        </button>
+                    )}
                 </div>
             </form>
 
