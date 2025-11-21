@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Lock, Star, Droplet } from "lucide-react";
+import { Check, Lock, Star, Droplet, Anchor, Shell } from "lucide-react";
 import { BaseSkin, BaseSkinProps } from "./BaseSkin";
 import { cn } from "@/lib/utils";
 
@@ -21,54 +21,81 @@ export function OceanDepthsSkin(props: BaseSkinProps) {
         };
     };
 
-    // Generate wave path for SVG
-    const generateWavePath = (definitions: typeof roadmapDefinitions) => {
-        if (definitions.length === 0) return "";
-        
-        const points = definitions.map((_, index) => {
-            const pos = getWavePosition(index, definitions.length);
-            return `${pos.x + 400},${pos.y + 200}`;
-        });
-        
-        return `M ${points.join(" L ")}`;
-    };
-
     return (
         <BaseSkin {...props}>
-            {/* Ocean Background with Depth Gradient */}
+            {/* Ocean Background with Caustics */}
             <div 
-                className="absolute inset-0"
+                className="absolute inset-0 overflow-hidden"
                 style={{
-                    background: `linear-gradient(to bottom, 
-                        ${skinConfig.colors.primary}10 0%, 
-                        ${skinConfig.colors.secondary}15 50%, 
-                        ${skinConfig.colors.accent}10 100%)`,
+                    background: `linear-gradient(to bottom, #023e8a 0%, #0077b6 40%, #0096c7 80%, #48cae4 100%)`,
                 }}
-            />
+            >
+                {/* Caustic Overlay */}
+                <div
+                    className="absolute inset-0 opacity-20 mix-blend-overlay"
+                    style={{
+                        backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.005' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+                        backgroundSize: "cover",
+                    }}
+                />
+                <motion.div
+                    className="absolute inset-0 opacity-10"
+                     style={{
+                        background: "linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.4) 45%, transparent 50%)",
+                        backgroundSize: "200% 200%"
+                     }}
+                     animate={{ backgroundPosition: ["0% 0%", "100% 100%"] }}
+                     transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+                />
+            </div>
 
             {/* Animated Bubble Particles */}
-            {Array.from({ length: 20 }).map((_, i) => (
+            {Array.from({ length: 25 }).map((_, i) => (
                 <motion.div
                     key={`bubble-${i}`}
-                    className="absolute rounded-full"
+                    className="absolute rounded-full border border-white/30 bg-white/10 backdrop-blur-sm"
                     style={{
-                        left: `${10 + (i % 5) * 20}%`,
-                        bottom: `${5 + Math.floor(i / 5) * 15}%`,
-                        width: `${Math.random() * 8 + 4}px`,
-                        height: `${Math.random() * 8 + 4}px`,
-                        backgroundColor: skinConfig.colors.accent,
-                        opacity: 0.4,
+                        left: `${Math.random() * 100}%`,
+                        bottom: "-10%",
+                        width: `${Math.random() * 12 + 4}px`,
+                        height: `${Math.random() * 12 + 4}px`,
                     }}
                     animate={{
-                        y: [0, -400],
-                        opacity: [0.4, 0],
-                        scale: [1, 1.5],
+                        y: ["0vh", "-120vh"],
+                        x: [0, Math.sin(i) * 50], // Wobbly ascent
+                        opacity: [0, 0.6, 0],
+                        scale: [1, 1.2],
                     }}
                     transition={{
-                        duration: 3 + Math.random() * 2,
+                        duration: 8 + Math.random() * 10,
                         repeat: Infinity,
-                        delay: Math.random() * 3,
-                        ease: "easeOut",
+                        delay: Math.random() * 10,
+                        ease: "linear",
+                    }}
+                />
+            ))}
+
+            {/* Seaweed / Plants (Decorative) */}
+            {Array.from({ length: 6 }).map((_, i) => (
+                <motion.div
+                    key={`seaweed-${i}`}
+                    className="absolute bottom-0 w-8 origin-bottom opacity-30"
+                    style={{
+                        left: `${10 + i * 15}%`,
+                        height: `${200 + Math.random() * 100}px`,
+                        backgroundColor: "#006d77",
+                        borderRadius: "50% 50% 0 0",
+                        filter: "blur(2px)"
+                    }}
+                    animate={{
+                        skewX: [-5, 5, -5],
+                        scaleY: [1, 1.05, 1]
+                    }}
+                    transition={{
+                        duration: 4 + Math.random() * 2,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.5
                     }}
                 />
             ))}
@@ -97,46 +124,44 @@ export function OceanDepthsSkin(props: BaseSkinProps) {
                                 left: `${currentPos.x + 300}px`,
                                 top: `${currentPos.y + 100}px`,
                                 width: `${length}px`,
-                                height: "5px",
+                                height: "6px",
                                 transformOrigin: "0 50%",
                                 transform: `translate(20px, 20px) rotate(${angle}deg)`,
                             }}
                         >
-                            {/* Background track */}
+                            {/* Water Pipe / Stream Background */}
                             <div
                                 className="absolute inset-0 rounded-full"
                                 style={{
-                                    backgroundColor: `${skinConfig.colors.nodeLocked}30`,
+                                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                                    border: "1px solid rgba(255, 255, 255, 0.2)"
                                 }}
                             />
-                            {/* Active glowing wave */}
+                            {/* Active glowing water flow */}
                             {isPathActive && (
                                 <motion.div
-                                    className="absolute inset-0 rounded-full"
+                                    className="absolute inset-0 rounded-full overflow-hidden"
                                     style={{
-                                        background: `linear-gradient(90deg, ${skinConfig.colors.primary}, ${skinConfig.colors.accent}, ${skinConfig.colors.secondary})`,
-                                        boxShadow: `0 0 20px ${skinConfig.colors.primary}60, 0 0 40px ${skinConfig.colors.accent}40`,
+                                        background: `linear-gradient(90deg, ${skinConfig.colors.primary}, ${skinConfig.colors.accent})`,
+                                        boxShadow: `0 0 15px ${skinConfig.colors.accent}`,
                                     }}
                                     initial={{ scaleX: 0 }}
                                     animate={{ scaleX: 1 }}
                                     transition={{ duration: 0.8, delay: index * 0.1 }}
-                                />
-                            )}
-                            {/* Dashed locked path */}
-                            {!isPathActive && (
-                                <div
-                                    className="absolute inset-0 rounded-full"
-                                    style={{
-                                        background: `repeating-linear-gradient(90deg, ${skinConfig.colors.nodeLocked}50 0px, ${skinConfig.colors.nodeLocked}50 8px, transparent 8px, transparent 16px)`,
-                                    }}
-                                />
+                                >
+                                    <motion.div
+                                        className="absolute inset-0 bg-white/30"
+                                        animate={{ x: ["-100%", "100%"] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                                    />
+                                </motion.div>
                             )}
                         </div>
                     );
                 })}
             </div>
 
-            {/* Nodes as Underwater Treasures */}
+            {/* Nodes as Underwater Treasures/Pearls */}
             <div className="relative z-10 w-full h-full flex items-start justify-center pt-10">
                 <div className="relative" style={{ width: "100%", maxWidth: "800px", minHeight: "800px" }}>
                     {roadmapDefinitions.map((def, index) => {
@@ -176,33 +201,25 @@ export function OceanDepthsSkin(props: BaseSkinProps) {
                                     <button
                                         onClick={() => onNodeSelect(def.id)}
                                         className={cn(
-                                            "relative z-10 w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all duration-300 hover:scale-125",
-                                            nodeState.status === "active" && "animate-pulse"
+                                            "relative z-10 w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all duration-300 hover:scale-125 backdrop-blur-md",
+                                            nodeState.status === "active" && "animate-pulse ring-4 ring-cyan-400/30"
                                         )}
                                         style={{
-                                            backgroundColor: nodeState.status === "completed"
-                                                ? skinConfig.colors.nodeCompleted
+                                            background: nodeState.status === "completed"
+                                                ? "radial-gradient(circle at 30% 30%, #ccfbf1, #0f766e)" // Pearl look
                                                 : nodeState.status === "active"
-                                                ? skinConfig.colors.nodeActive
-                                                : skinConfig.colors.nodeLocked,
-                                            borderColor: nodeState.status === "completed"
-                                                ? skinConfig.colors.nodeCompleted
-                                                : nodeState.status === "active"
-                                                ? skinConfig.colors.nodeActive
-                                                : skinConfig.colors.nodeLocked,
-                                            boxShadow: nodeState.status === "completed"
-                                                ? `0 0 30px ${skinConfig.colors.nodeCompleted}50, inset 0 0 20px ${skinConfig.colors.nodeCompleted}30`
-                                                : nodeState.status === "active"
-                                                ? `0 0 40px ${skinConfig.colors.nodeActive}70, inset 0 0 25px ${skinConfig.colors.nodeActive}40`
-                                                : undefined,
+                                                ? "radial-gradient(circle at 30% 30%, #a5f3fc, #0891b2)" // Blue pearl
+                                                : "radial-gradient(circle at 30% 30%, #94a3b8, #334155)", // Grey stone
+                                            borderColor: "rgba(255,255,255,0.4)",
+                                            boxShadow: "0 10px 20px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,255,255,0.5)"
                                         }}
                                     >
                                         {nodeState.status === "completed" ? (
-                                            <Check className="w-10 h-10 text-white" />
+                                            <Check className="w-10 h-10 text-teal-800" />
                                         ) : nodeState.status === "locked" ? (
-                                            <Lock className="w-8 h-8 text-white opacity-50" />
+                                            <Anchor className="w-8 h-8 text-slate-400 opacity-50" />
                                         ) : (
-                                            <Star className="w-10 h-10 text-white fill-white" />
+                                            <Shell className="w-10 h-10 text-cyan-900 fill-cyan-100 animate-pulse" />
                                         )}
 
                                         {/* Ripple effect for active nodes */}
@@ -210,37 +227,23 @@ export function OceanDepthsSkin(props: BaseSkinProps) {
                                             <>
                                                 <motion.div
                                                     className="absolute inset-0 rounded-full border-2"
-                                                    style={{ borderColor: skinConfig.colors.nodeActive }}
+                                                    style={{ borderColor: "rgba(255,255,255,0.5)" }}
                                                     animate={{ 
-                                                        scale: [1, 1.5, 2],
-                                                        opacity: [0.6, 0.3, 0],
+                                                        scale: [1, 1.8],
+                                                        opacity: [0.6, 0],
                                                     }}
                                                     transition={{ duration: 2, repeat: Infinity }}
                                                 />
                                                 <motion.div
                                                     className="absolute inset-0 rounded-full border-2"
-                                                    style={{ borderColor: skinConfig.colors.nodeActive }}
+                                                    style={{ borderColor: "rgba(255,255,255,0.3)" }}
                                                     animate={{ 
-                                                        scale: [1, 1.5, 2],
-                                                        opacity: [0.6, 0.3, 0],
+                                                        scale: [1, 1.8],
+                                                        opacity: [0.6, 0],
                                                     }}
                                                     transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}
                                                 />
                                             </>
-                                        )}
-
-                                        {/* Bubble decoration for completed nodes */}
-                                        {nodeState.status === "completed" && (
-                                            <motion.div
-                                                className="absolute -top-1 -right-1"
-                                                animate={{ 
-                                                    y: [0, -5, 0],
-                                                    opacity: [0.7, 1, 0.7],
-                                                }}
-                                                transition={{ duration: 2, repeat: Infinity }}
-                                            >
-                                                <Droplet className="w-5 h-5" style={{ color: skinConfig.colors.accent }} />
-                                            </motion.div>
                                         )}
                                     </button>
                                 </motion.div>
@@ -251,16 +254,14 @@ export function OceanDepthsSkin(props: BaseSkinProps) {
                                     isSelected ? "opacity-100 scale-110" : "opacity-70 scale-100"
                                 )}>
                                     <div 
-                                        className="text-base font-bold mb-1"
-                                        style={{ color: skinConfig.colors.textPrimary }}
+                                        className="text-base font-bold mb-1 text-cyan-100 drop-shadow-md"
                                     >
                                         {def.title}
                                     </div>
                                     <div 
-                                        className="text-xs"
-                                        style={{ color: skinConfig.colors.textSecondary }}
+                                        className="text-xs text-cyan-300"
                                     >
-                                        Level {def.level}
+                                        Depth {def.level}
                                     </div>
                                 </div>
                             </motion.div>
@@ -271,4 +272,3 @@ export function OceanDepthsSkin(props: BaseSkinProps) {
         </BaseSkin>
     );
 }
-

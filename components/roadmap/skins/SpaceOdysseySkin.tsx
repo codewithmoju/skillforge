@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Check, Lock, Star } from "lucide-react";
+import { Check, Lock, Star, Rocket, Sparkles } from "lucide-react";
 import { BaseSkin, BaseSkinProps } from "./BaseSkin";
 import { cn } from "@/lib/utils";
 
@@ -27,39 +27,84 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
 
     return (
         <BaseSkin {...props}>
-            {/* Starfield Background */}
-            <div className="absolute inset-0 overflow-hidden">
-                {Array.from({ length: 50 }).map((_, i) => (
+            {/* Parallax Starfield Background */}
+            <div className="absolute inset-0 overflow-hidden bg-black">
+                {/* Distant Stars */}
+                {Array.from({ length: 100 }).map((_, i) => (
                     <motion.div
-                        key={`star-${i}`}
-                        className="absolute rounded-full"
+                        key={`star-dist-${i}`}
+                        className="absolute rounded-full bg-white opacity-20"
                         style={{
                             left: `${Math.random() * 100}%`,
                             top: `${Math.random() * 100}%`,
-                            width: `${Math.random() * 3 + 1}px`,
-                            height: `${Math.random() * 3 + 1}px`,
-                            backgroundColor: skinConfig.colors.textPrimary,
+                            width: "1px",
+                            height: "1px",
                         }}
                         animate={{
-                            opacity: [0.3, 1, 0.3],
-                            scale: [1, 1.5, 1],
+                            opacity: [0.2, 0.5, 0.2],
                         }}
                         transition={{
-                            duration: 2 + Math.random() * 2,
+                            duration: 3 + Math.random() * 5,
                             repeat: Infinity,
-                            delay: Math.random() * 2,
                         }}
                     />
                 ))}
+                 {/* Moving Stars (Parallax Effect) */}
+                 {Array.from({ length: 30 }).map((_, i) => (
+                    <motion.div
+                        key={`star-move-${i}`}
+                        className="absolute rounded-full bg-white"
+                        style={{
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                            width: `${Math.random() * 2 + 1}px`,
+                            height: `${Math.random() * 2 + 1}px`,
+                            opacity: Math.random() * 0.5 + 0.3,
+                        }}
+                        animate={{
+                            y: [0, -20],
+                            opacity: [0.3, 0.8, 0.3],
+                        }}
+                        transition={{
+                            y: {
+                                duration: 10 + Math.random() * 10,
+                                repeat: Infinity,
+                                repeatType: "reverse",
+                                ease: "easeInOut"
+                            },
+                            opacity: {
+                                duration: 2 + Math.random() * 3,
+                                repeat: Infinity
+                            }
+                        }}
+                    />
+                ))}
+
+                {/* Shooting Star */}
+                <motion.div
+                    className="absolute w-[100px] h-[2px] bg-gradient-to-r from-transparent via-white to-transparent"
+                    style={{ top: "20%", left: "-10%" }}
+                    animate={{
+                        x: ["0vw", "120vw"],
+                        y: ["0vh", "50vh"],
+                        opacity: [0, 1, 0],
+                    }}
+                    transition={{
+                        duration: 2,
+                        repeat: Infinity,
+                        repeatDelay: 5 + Math.random() * 10,
+                        ease: "easeIn",
+                    }}
+                />
             </div>
 
             {/* Nebula Effects */}
             <div 
-                className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-30"
+                className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[100px] opacity-20 mix-blend-screen"
                 style={{ backgroundColor: skinConfig.colors.primary }}
             />
             <div 
-                className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-30"
+                className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[100px] opacity-20 mix-blend-screen"
                 style={{ backgroundColor: skinConfig.colors.accent }}
             />
 
@@ -77,17 +122,13 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
                     return (
                         <div
                             key={`orbit-${orbitIndex}`}
-                            className="absolute rounded-full"
+                            className="absolute rounded-full transition-all duration-1000"
                             style={{
                                 width: `${radius * 2}px`,
                                 height: `${radius * 2}px`,
-                                border: isOrbitUnlocked ? `3px solid ${skinConfig.colors.primary}` : `2px dashed ${skinConfig.colors.nodeLocked}`,
-                                borderColor: isOrbitUnlocked 
-                                    ? skinConfig.colors.primary 
-                                    : `${skinConfig.colors.nodeLocked}40`,
-                                opacity: isOrbitUnlocked ? 0.6 : 0.2,
+                                border: isOrbitUnlocked ? `1px solid ${skinConfig.colors.primary}40` : `1px dashed ${skinConfig.colors.nodeLocked}30`,
                                 boxShadow: isOrbitUnlocked 
-                                    ? `0 0 30px ${skinConfig.colors.primary}50, inset 0 0 30px ${skinConfig.colors.accent}30`
+                                    ? `0 0 40px ${skinConfig.colors.primary}20, inset 0 0 40px ${skinConfig.colors.primary}10`
                                     : "none",
                             }}
                         >
@@ -95,16 +136,17 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
                                 <motion.div
                                     className="absolute inset-0 rounded-full"
                                     style={{
-                                        border: `2px solid ${skinConfig.colors.accent}`,
-                                        boxShadow: `0 0 20px ${skinConfig.colors.accent}60`,
+                                        border: `1px solid ${skinConfig.colors.accent}60`,
+                                        borderTopColor: "transparent",
+                                        borderBottomColor: "transparent",
                                     }}
                                     animate={{
                                         rotate: 360,
-                                        opacity: [0.4, 0.8, 0.4],
                                     }}
                                     transition={{
-                                        rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-                                        opacity: { duration: 3, repeat: Infinity },
+                                        duration: 30 + orbitIndex * 10,
+                                        repeat: Infinity,
+                                        ease: "linear",
                                     }}
                                 />
                             )}
@@ -112,6 +154,7 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
                     );
                 })}
             </div>
+
             {/* Connection lines between nodes */}
             <div className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
                 {roadmapDefinitions.map((def, index) => {
@@ -141,7 +184,7 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
                                 left: `calc(${centerX}% + ${prevPos.x}px)`,
                                 top: `calc(${centerY}% + ${prevPos.y}px)`,
                                 width: `${length}px`,
-                                height: "3px",
+                                height: "2px",
                                 transformOrigin: "0 50%",
                                 transform: `rotate(${angle}deg)`,
                             }}
@@ -150,11 +193,25 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
                                 className="absolute inset-0 rounded-full"
                                 style={{
                                     background: `linear-gradient(90deg, ${skinConfig.colors.accent}, ${skinConfig.colors.primary})`,
-                                    boxShadow: `0 0 10px ${skinConfig.colors.accent}60`,
+                                    boxShadow: `0 0 10px ${skinConfig.colors.accent}80`,
                                 }}
                                 initial={{ scaleX: 0 }}
                                 animate={{ scaleX: 1 }}
                                 transition={{ duration: 0.8, delay: index * 0.1 }}
+                            />
+                            {/* Moving light along connection */}
+                            <motion.div
+                                className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white blur-[2px]"
+                                animate={{
+                                    left: ["0%", "100%"],
+                                    opacity: [0, 1, 0]
+                                }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "linear",
+                                    delay: Math.random() * 2
+                                }}
                             />
                         </div>
                     );
@@ -182,88 +239,108 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
                                     transform: "translate(-50%, -50%)",
                                 }}
                             >
-                                {/* Orbital Animation */}
-                                <motion.div
-                                    animate={{
-                                        rotate: [0, 360],
-                                    }}
-                                    transition={{
-                                        duration: 20 + index * 2,
-                                        repeat: Infinity,
-                                        ease: "linear",
-                                    }}
-                                    style={{
-                                        transformOrigin: "50% 50%",
-                                    }}
-                                >
-                                    <button
-                                        onClick={() => onNodeSelect(def.id)}
-                                        className={cn(
-                                            "relative z-10 w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all duration-300 hover:scale-125",
-                                            nodeState.status === "active" && "animate-pulse"
-                                        )}
-                                        style={{
-                                            backgroundColor: nodeState.status === "completed"
-                                                ? skinConfig.colors.nodeCompleted
-                                                : nodeState.status === "active"
-                                                ? skinConfig.colors.nodeActive
-                                                : skinConfig.colors.nodeLocked,
-                                            borderColor: nodeState.status === "completed"
-                                                ? skinConfig.colors.nodeCompleted
-                                                : nodeState.status === "active"
-                                                ? skinConfig.colors.nodeActive
-                                                : skinConfig.colors.nodeLocked,
-                                            boxShadow: nodeState.status === "completed"
-                                                ? `0 0 30px ${skinConfig.colors.nodeCompleted}60, inset 0 0 20px ${skinConfig.colors.nodeCompleted}40`
-                                                : nodeState.status === "active"
-                                                ? `0 0 40px ${skinConfig.colors.nodeActive}70, inset 0 0 25px ${skinConfig.colors.nodeActive}50`
-                                                : undefined,
+                                {/* Orbital Animation Container - Makes the planet rotate slowly */}
+                                <div className="relative">
+                                    <motion.div
+                                        animate={{
+                                            rotate: [0, 360],
                                         }}
+                                        transition={{
+                                            duration: 40 + index * 5,
+                                            repeat: Infinity,
+                                            ease: "linear",
+                                        }}
+                                        className="relative"
                                     >
-                                        {nodeState.status === "completed" ? (
-                                            <Check className="w-10 h-10 text-white" />
-                                        ) : nodeState.status === "locked" ? (
-                                            <Lock className="w-8 h-8 text-white opacity-50" />
-                                        ) : (
-                                            <Star className="w-10 h-10 text-white fill-white" />
-                                        )}
+                                        <button
+                                            onClick={() => onNodeSelect(def.id)}
+                                            className={cn(
+                                                "relative z-10 w-20 h-20 rounded-full flex items-center justify-center border-none transition-all duration-300 hover:scale-125",
+                                                nodeState.status === "active" && "animate-pulse"
+                                            )}
+                                            style={{
+                                                background: nodeState.status === "completed"
+                                                    ? `radial-gradient(circle at 30% 30%, ${skinConfig.colors.nodeCompleted}, ${skinConfig.colors.backgroundCard})`
+                                                    : nodeState.status === "active"
+                                                    ? `radial-gradient(circle at 30% 30%, ${skinConfig.colors.nodeActive}, ${skinConfig.colors.backgroundCard})`
+                                                    : `radial-gradient(circle at 30% 30%, ${skinConfig.colors.nodeLocked}, #000)`,
+                                                boxShadow: nodeState.status === "completed"
+                                                    ? `0 0 30px ${skinConfig.colors.nodeCompleted}60`
+                                                    : nodeState.status === "active"
+                                                    ? `0 0 40px ${skinConfig.colors.nodeActive}70`
+                                                    : `inset 0 0 20px #000`,
+                                            }}
+                                        >
+                                            {/* Planet surface texture effect */}
+                                            <div className="absolute inset-0 rounded-full opacity-30"
+                                                style={{
+                                                    backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.2' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E\")",
+                                                    backgroundSize: "10px 10px"
+                                                }}
+                                            />
 
-                                        {/* Planet Rings for active nodes */}
-                                        {nodeState.status === "active" && (
-                                            <>
-                                                <motion.div
-                                                    className="absolute inset-0 rounded-full border-2"
-                                                    style={{ borderColor: skinConfig.colors.nodeActive }}
-                                                    animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
-                                                    transition={{ duration: 2, repeat: Infinity }}
-                                                />
-                                                <motion.div
-                                                    className="absolute inset-0 rounded-full border-2"
-                                                    style={{ borderColor: skinConfig.colors.nodeActive }}
-                                                    animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
-                                                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                                                />
-                                            </>
-                                        )}
-                                    </button>
-                                </motion.div>
+                                            {/* Counter-rotate icon so it stays upright */}
+                                            <motion.div
+                                                animate={{ rotate: [0, -360] }}
+                                                transition={{ duration: 40 + index * 5, repeat: Infinity, ease: "linear" }}
+                                                className="relative z-20"
+                                            >
+                                                {nodeState.status === "completed" ? (
+                                                    <Check className="w-10 h-10 text-white drop-shadow-md" />
+                                                ) : nodeState.status === "locked" ? (
+                                                    <Lock className="w-8 h-8 text-white opacity-50" />
+                                                ) : (
+                                                    <Rocket className="w-10 h-10 text-white fill-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                                                )}
+                                            </motion.div>
 
-                                {/* Label */}
-                                <div className={cn(
-                                    "absolute top-full mt-4 left-1/2 -translate-x-1/2 w-48 text-center transition-all whitespace-nowrap",
-                                    isSelected ? "opacity-100 scale-110" : "opacity-70 scale-100"
-                                )}>
-                                    <div 
-                                        className="text-base font-bold mb-1"
-                                        style={{ color: skinConfig.colors.textPrimary }}
-                                    >
-                                        {def.title}
-                                    </div>
-                                    <div 
-                                        className="text-xs"
-                                        style={{ color: skinConfig.colors.textSecondary }}
-                                    >
-                                        Level {def.level}
+                                            {/* Planet Rings for active nodes */}
+                                            {nodeState.status === "active" && (
+                                                <>
+                                                    <motion.div
+                                                        className="absolute -inset-4 rounded-full border-[3px]"
+                                                        style={{
+                                                            borderColor: skinConfig.colors.nodeActive,
+                                                            borderLeftColor: "transparent",
+                                                            borderRightColor: "transparent",
+                                                        }}
+                                                        animate={{ rotate: 360 }}
+                                                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                                                    />
+                                                    <motion.div
+                                                        className="absolute -inset-8 rounded-full border-[1px]"
+                                                        style={{
+                                                            borderColor: skinConfig.colors.accent,
+                                                            borderTopColor: "transparent",
+                                                            borderBottomColor: "transparent",
+                                                            opacity: 0.5
+                                                        }}
+                                                        animate={{ rotate: -360 }}
+                                                        transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
+                                                    />
+                                                </>
+                                            )}
+                                        </button>
+                                    </motion.div>
+
+                                    {/* Label - Moved outside the rotating container */}
+                                    <div className={cn(
+                                        "absolute top-full mt-6 left-1/2 -translate-x-1/2 w-48 text-center transition-all whitespace-nowrap z-30",
+                                        isSelected ? "opacity-100 scale-110" : "opacity-70 scale-100"
+                                    )}>
+                                        <div
+                                            className="text-base font-bold mb-1 flex items-center justify-center gap-1"
+                                            style={{ color: skinConfig.colors.textPrimary, textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}
+                                        >
+                                            {def.title}
+                                            {isSelected && <Sparkles className="w-3 h-3 text-yellow-400 animate-pulse" />}
+                                        </div>
+                                        <div
+                                            className="text-xs font-mono bg-black/50 px-2 py-0.5 rounded-full inline-block"
+                                            style={{ color: skinConfig.colors.textSecondary }}
+                                        >
+                                            Sector {def.level}
+                                        </div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -274,4 +351,3 @@ export function SpaceOdysseySkin(props: BaseSkinProps) {
         </BaseSkin>
     );
 }
-
