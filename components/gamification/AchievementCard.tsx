@@ -1,9 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { Achievement } from "@/lib/types/gamification";
-import { getTotalStarsEarned, getNextStarRequirement } from "@/lib/utils/achievementSystem";
-import { Star, Lock, Award } from "lucide-react";
+import { getTotalStarsEarned, getNextStarRequirement, getAchievementGuidance } from "@/lib/utils/achievementSystem";
+import { Star, Lock, Award, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AchievementCardProps {
@@ -26,11 +27,13 @@ const rarityGlow = {
 };
 
 export function AchievementCard({ achievement, onClick }: AchievementCardProps) {
+    const [showTooltip, setShowTooltip] = useState(false);
     const totalStars = getTotalStarsEarned(achievement);
     const nextStar = getNextStarRequirement(achievement);
     const progressPercentage = nextStar
         ? (achievement.currentProgress / nextStar.requirement) * 100
         : 100;
+    const guidance = getAchievementGuidance(achievement);
 
     const isLocked = totalStars === 0 && achievement.currentProgress === 0;
 
@@ -56,16 +59,96 @@ export function AchievementCard({ achievement, onClick }: AchievementCardProps) 
                 </div>
             )}
 
-            {/* Rarity Badge */}
-            <div
-                className={cn(
-                    "absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                    isLocked
-                        ? "bg-slate-800 text-slate-600"
-                        : `bg-gradient-to-r ${rarityColors[achievement.rarity]} text-white`
-                )}
-            >
-                {achievement.rarity}
+            {/* Info Icon with Tooltip */}
+            <div className="absolute top-4 right-4 flex items-center gap-2">
+                <div
+                    className="relative"
+                    onMouseEnter={() => setShowTooltip(true)}
+                    onMouseLeave={() => setShowTooltip(false)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setShowTooltip(!showTooltip);
+                    }}
+                >
+                    <button
+                        className={cn(
+                            "p-1.5 rounded-full transition-all duration-200",
+                            isLocked
+                                ? "bg-slate-800/50 text-slate-500 hover:bg-slate-800 hover:text-slate-400"
+                                : "bg-slate-800/50 text-slate-400 hover:bg-slate-700 hover:text-accent-cyan"
+                        )}
+                        aria-label="Achievement information"
+                    >
+                        <Info className="w-4 h-4" />
+                    </button>
+
+                    {/* Tooltip */}
+                    <AnimatePresence>
+                        {showTooltip && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] sm:max-w-none z-50 pointer-events-none"
+                            >
+                                <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-2xl pointer-events-auto">
+                                    <div className="flex items-start gap-3 mb-2">
+                                        <div className={cn(
+                                            "w-8 h-8 rounded-lg flex items-center justify-center text-lg flex-shrink-0",
+                                            `bg-gradient-to-br ${rarityColors[achievement.rarity]}`
+                                        )}>
+                                            {achievement.icon}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-1">
+                                                {achievement.name}
+                                            </h4>
+                                            <p className="text-xs text-slate-400 mb-2">
+                                                {achievement.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="border-t border-slate-700 pt-3">
+                                        <p className="text-xs text-slate-300 leading-relaxed">
+                                            {guidance}
+                                        </p>
+                                    </div>
+                                    {nextStar && (
+                                        <div className="mt-3 pt-3 border-t border-slate-700">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-slate-400">Next Star:</span>
+                                                <span className="text-accent-cyan font-semibold">
+                                                    {nextStar.star}★ - {nextStar.xpReward.toLocaleString()} XP
+                                                </span>
+                                            </div>
+                                            <div className="mt-2 flex items-center justify-between text-xs">
+                                                <span className="text-slate-400">Progress:</span>
+                                                <span className="text-white font-semibold">
+                                                    {achievement.currentProgress} / {nextStar.requirement}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Arrow */}
+                                <div className="absolute -top-1 right-4 w-2 h-2 bg-slate-800 border-l border-t border-slate-700 rotate-45" />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Rarity Badge */}
+                <div
+                    className={cn(
+                        "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
+                        isLocked
+                            ? "bg-slate-800 text-slate-600"
+                            : `bg-gradient-to-r ${rarityColors[achievement.rarity]} text-white`
+                    )}
+                >
+                    {achievement.rarity}
+                </div>
             </div>
 
             {/* Achievement Icon */}

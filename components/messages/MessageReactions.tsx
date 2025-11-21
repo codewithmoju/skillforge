@@ -50,8 +50,8 @@ export function MessageReactions({
                                 key={reaction.emoji}
                                 onClick={() => handleReactionClick(reaction.emoji)}
                                 className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs transition-all hover:scale-110 ${hasReacted
-                                        ? 'bg-accent-indigo/30 border border-accent-indigo'
-                                        : 'bg-slate-800/50 border border-slate-700 hover:bg-slate-700'
+                                    ? 'bg-accent-indigo/30 border border-accent-indigo'
+                                    : 'bg-slate-800/50 border border-slate-700 hover:bg-slate-700'
                                     }`}
                             >
                                 <span>{reaction.emoji}</span>
@@ -63,7 +63,7 @@ export function MessageReactions({
             )}
 
             {/* Add reaction button */}
-            <div className="relative inline-block">
+            <div className={`relative inline-block transition-opacity duration-200 ${showPicker ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                 <button
                     onClick={() => setShowPicker(!showPicker)}
                     className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded hover:bg-slate-800/50"

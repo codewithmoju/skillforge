@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useUserStore } from '@/lib/store';
 import { getChallenge, joinChallenge, Challenge } from '@/lib/services/challenges';
 import { Loader2, Trophy, Calendar, Users, CheckCircle, Clock } from 'lucide-react';
 
 export default function ChallengeDetailsPage() {
     const { challengeId } = useParams();
     const { user } = useAuth();
+    const incrementChallengesJoined = useUserStore((state) => state.incrementChallengesJoined);
     const [challenge, setChallenge] = useState<Challenge | null>(null);
     const [loading, setLoading] = useState(true);
     const [joining, setJoining] = useState(false);
@@ -41,6 +43,9 @@ export default function ChallengeDetailsPage() {
             await joinChallenge(user.uid, challenge.id);
             setIsParticipant(true);
             setChallenge(prev => prev ? { ...prev, participantsCount: prev.participantsCount + 1 } : null);
+            
+            // Update achievement progress
+            incrementChallengesJoined();
         } catch (error) {
             console.error('Error joining challenge:', error);
         } finally {

@@ -13,10 +13,21 @@ import {
     removeReaction,
     updateTypingStatus,
 } from '@/lib/services/messages';
+import {
+    getConversationStats,
+    updateStatsOnMessage,
+    ConversationStats,
+    MessageAchievement
+} from '@/lib/services/conversationStats';
+import { updateChallengeProgress } from '@/lib/services/challenges';
 import { Send, Loader2 } from 'lucide-react';
 import { TypingIndicator } from './TypingIndicator';
 import { OnlineStatus } from './OnlineStatus';
 import { MessageReactions } from './MessageReactions';
+import { StreakIndicator } from './StreakIndicator';
+import { ConversationLevelBadge } from './ConversationLevelBadge';
+import { XPNotification } from './XPNotification';
+import { AchievementModal } from './AchievementModal';
 import { onSnapshot, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -50,7 +61,12 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
     const [sending, setSending] = useState(false);
     const [recipientDetails, setRecipientDetails] = useState<ParticipantDetails | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const typingTimeoutRef = useRef<NodeJS.Timeout>();
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Gamification State
+    const [stats, setStats] = useState<ConversationStats | null>(null);
+    const [xpNotification, setXpNotification] = useState<{ amount: number; reason?: string } | null>(null);
+    const [achievementModal, setAchievementModal] = useState<MessageAchievement | null>(null);
 
     // Subscribe to messages
     useEffect(() => {
@@ -82,6 +98,12 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         return () => unsubscribe();
     }, [conversationId, user]);
 
+    // Fetch stats
+    useEffect(() => {
+        if (!conversationId || !user) return;
+        getConversationStats(conversationId, user.uid).then(setStats);
+    }, [conversationId, user]);
+
     // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,6 +117,36 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         try {
             await sendMessage(conversationId, user.uid, newMessage.trim());
             setNewMessage('');
+
+            // Update Stats & Gamification
+            const result = await updateStatsOnMessage(conversationId, user.uid);
+            const challengeResult = await updateChallengeProgress(user.uid, 'message_count');
+
+            // Show XP Notification
+            const totalXp = result.xpGained + challengeResult.xpGained;
+            if (totalXp > 0) {
+                setXpNotification({
+                    amount: totalXp,
+                    reason: result.levelUp ? 'Level Up Bonus!' : (challengeResult.xpGained > 0 ? 'Challenge Completed!' : 'Message Sent')
+                });
+            }
+
+            // Show Achievement Modal
+            if (result.achievementsUnlocked.length > 0) {
+                setAchievementModal(result.achievementsUnlocked[0]); // Show first one if multiple
+            }
+
+            // Update local stats
+            if (stats) {
+                setStats(prev => prev ? ({
+                    ...prev,
+                    currentStreak: result.achievementsUnlocked.find(a => a.id.includes('streak')) ? prev.currentStreak + 1 : prev.currentStreak,
+                    level: result.newLevel || prev.level,
+                    xp: prev.xp + result.xpGained
+                }) : null);
+                getConversationStats(conversationId, user.uid).then(setStats);
+            }
+
             // Stop typing indicator
             await updateTypingStatus(conversationId, user.uid, false);
         } catch (error) {
@@ -131,6 +183,11 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         if (!user) return;
         try {
             await addReaction(messageId, user.uid, emoji);
+            const challengeResult = await updateChallengeProgress(user.uid, 'reaction_count');
+
+            if (challengeResult.xpGained > 0) {
+                setXpNotification({ amount: challengeResult.xpGained, reason: 'Challenge Completed!' });
+            }
         } catch (error) {
             console.error('Error adding reaction:', error);
         }
@@ -146,7 +203,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
     };
 
     return (
-        <div className="flex flex-col h-full bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden">
+        <div className="flex flex-col h-full bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden relative">
             {/* Header */}
             <div className="p-4 border-b border-slate-800 flex items-center gap-3 bg-slate-900/80 backdrop-blur-sm">
                 <div className="relative">
@@ -163,7 +220,15 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                     )}
                 </div>
                 <div className="flex-1">
-                    <h3 className="font-semibold text-white">{recipientName}</h3>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-white">{recipientName}</h3>
+                        {stats && (
+                            <>
+                                <ConversationLevelBadge level={stats.level} />
+                                <StreakIndicator streak={stats.currentStreak} />
+                            </>
+                        )}
+                    </div>
                     <OnlineStatus online={recipientDetails?.online} lastSeen={recipientDetails?.lastSeen} />
                 </div>
             </div>
@@ -236,6 +301,25 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                     </button>
                 </div>
             </form>
+
+            {/* Gamification Overlays */}
+            {xpNotification && (
+                <XPNotification
+                    amount={xpNotification.amount}
+                    reason={xpNotification.reason}
+                    onComplete={() => setXpNotification(null)}
+                />
+            )}
+
+            {achievementModal && (
+                <AchievementModal
+                    title={achievementModal.title}
+                    description={achievementModal.description}
+                    icon={achievementModal.icon}
+                    xpReward={achievementModal.xpReward}
+                    onClose={() => setAchievementModal(null)}
+                />
+            )}
 
             <style jsx>{`
                 @keyframes slideUp {
