@@ -128,7 +128,7 @@ export default function MessagesPage() {
                         conversations.map((conv) => {
                             const otherUserId = conv.participants.find(id => id !== user?.uid) || '';
                             const otherUser = conv.participantDetails[otherUserId];
-                            const unread = conv.unreadCount[user?.uid || ''] || 0;
+                            const unread = conv.unreadMessages?.[user?.uid || '']?.length || 0;
 
                             return (
                                 <button
@@ -137,26 +137,32 @@ export default function MessagesPage() {
                                     className={`w-full p-4 flex items-center gap-3 hover:bg-slate-800/50 transition-colors border-b border-slate-800/50 ${selectedConversation?.id === conv.id ? 'bg-slate-800/80' : ''
                                         }`}
                                 >
-                                    {otherUser?.photo ? (
-                                        <Image
-                                            src={otherUser.photo}
-                                            alt={otherUser.name}
-                                            width={48}
-                                            height={48}
-                                            className="w-12 h-12 rounded-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
-                                            {otherUser?.name?.charAt(0).toUpperCase()}
-                                        </div>
-                                    )}
+                                    <div className="relative">
+                                        {otherUser?.photo ? (
+                                            <Image
+                                                src={otherUser.photo}
+                                                alt={otherUser.name}
+                                                width={48}
+                                                height={48}
+                                                className="w-12 h-12 rounded-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+                                                {otherUser?.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                        {/* Online indicator */}
+                                        {otherUser?.online && (
+                                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900" />
+                                        )}
+                                    </div>
                                     <div className="flex-1 min-w-0 text-left">
                                         <div className="flex justify-between items-baseline">
                                             <h3 className={`font-semibold truncate ${unread > 0 ? 'text-white' : 'text-slate-300'}`}>
                                                 {otherUser?.name || 'Unknown User'}
                                             </h3>
                                             {unread > 0 && (
-                                                <span className="bg-accent-indigo text-white text-xs px-2 py-0.5 rounded-full">
+                                                <span className="bg-accent-indigo text-white text-xs px-2 py-0.5 rounded-full ml-2 animate-pulse">
                                                     {unread}
                                                 </span>
                                             )}

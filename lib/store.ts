@@ -18,6 +18,7 @@ export interface RoadmapDefinition {
     title: string;
     level: number;
     lessons: number;
+    lessonTitles?: string[];
     position: { x: number; y: number };
     description?: string;
 }

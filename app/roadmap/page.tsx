@@ -16,10 +16,11 @@ import { RoadmapGenerationHero } from "@/components/roadmap/RoadmapGenerationHer
 import RoadmapLoading from "@/components/roadmap/RoadmapLoading";
 import { calculateUserLevel } from "@/lib/utils/levelSystem";
 import Link from "next/link";
-import { LessonModal } from "@/components/roadmap/LessonModal";
+import { useRouter } from "next/navigation";
 
 export default function RoadmapPage() {
-    const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic, xp, streakData, updateStreak, prefetchLesson } = useUserStore();
+    const router = useRouter();
+    const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic, xp, streakData, updateStreak } = useUserStore();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -47,23 +48,9 @@ export default function RoadmapPage() {
         }
     }, [roadmapDefinitions, roadmapProgress, selectedNodeId]);
 
+
     const selectedNodeDef = selectedNodeId ? roadmapDefinitions.find(n => n.id === selectedNodeId) : null;
     const selectedNodeProgress = selectedNodeId ? roadmapProgress[selectedNodeId] : null;
-
-    // Prefetch first lesson when module is selected
-    useEffect(() => {
-        if (selectedNodeDef && selectedNodeProgress) {
-            const nextLesson = selectedNodeProgress.completedLessons + 1;
-            if (nextLesson <= selectedNodeDef.lessons) {
-                prefetchLesson(
-                    currentTopic,
-                    selectedNodeDef.title,
-                    `Lesson ${nextLesson}`,
-                    userLevel.toString()
-                );
-            }
-        }
-    }, [selectedNodeId, selectedNodeDef, selectedNodeProgress, currentTopic, userLevel, prefetchLesson]);
 
     const handleGenerate = async (topic: string) => {
         if (!topic.trim()) return;
@@ -260,11 +247,16 @@ export default function RoadmapPage() {
                                     {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
                                         const lessonNum = i + 1;
                                         const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
+                                        const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
 
                                         return (
                                             <div
                                                 key={lessonNum}
-                                                onClick={() => !isCompleted && setSelectedLesson(lessonNum)}
+                                                onClick={() => {
+                                                    if (!isCompleted) {
+                                                        router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
+                                                    }
+                                                }}
                                                 className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-700/50 hover:border-accent-indigo/50 transition-colors cursor-pointer group"
                                             >
                                                 <div className={cn(
@@ -273,12 +265,17 @@ export default function RoadmapPage() {
                                                 )}>
                                                     {isCompleted ? <Check className="w-3 h-3" /> : lessonNum}
                                                 </div>
-                                                <span className={cn(
-                                                    "text-sm transition-colors",
-                                                    isCompleted ? "text-slate-400 line-through" : "text-slate-200 group-hover:text-white"
-                                                )}>
-                                                    Lesson {lessonNum}: {isCompleted ? "Completed" : "Start Learning"}
-                                                </span>
+                                                <div className="flex-1">
+                                                    <span className={cn(
+                                                        "text-sm font-medium transition-colors block",
+                                                        isCompleted ? "text-slate-400 line-through" : "text-slate-200 group-hover:text-white"
+                                                    )}>
+                                                        {lessonTitle}
+                                                    </span>
+                                                    {isCompleted && (
+                                                        <span className="text-xs text-status-success">✓ Completed</span>
+                                                    )}
+                                                </div>
                                                 <ChevronRight className="w-4 h-4 text-slate-600 ml-auto group-hover:text-white" />
                                             </div>
                                         );
@@ -318,20 +315,6 @@ export default function RoadmapPage() {
                             topic={selectedNodeDef.title}
                             level={selectedNodeDef.level}
                             nodeId={selectedNodeDef.id}
-                        />
-                        <LessonModal
-                            isOpen={!!selectedLesson}
-                            onClose={() => setSelectedLesson(null)}
-                            onComplete={() => {
-                                if (selectedLesson && selectedNodeId) {
-                                    completeLesson(selectedNodeId);
-                                    setSelectedLesson(null);
-                                }
-                            }}
-                            topic={currentTopic}
-                            moduleTitle={selectedNodeDef.title}
-                            lessonTitle={selectedLesson ? `Lesson ${selectedLesson}` : ""}
-                            lessonIndex={selectedLesson || 1}
                         />
                     </>
                 )
