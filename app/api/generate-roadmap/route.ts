@@ -39,6 +39,14 @@ Return ONLY a valid JSON object with this exact structure:
       "title": "Epic, Specific Module Title (e.g., 'Variables & Data Types Mastery', 'Async Programming Citadel')",
       "level": 1,
       "lessons": 6,
+      "lessonTitles": [
+        "Engaging Lesson Title 1",
+        "Engaging Lesson Title 2",
+        "Engaging Lesson Title 3",
+        "Engaging Lesson Title 4",
+        "Engaging Lesson Title 5",
+        "Engaging Lesson Title 6"
+      ],
       "description": "Detailed 2-3 sentence description explaining EXACTLY what concepts will be covered, why they're important, and how they fit into the bigger picture",
       "topics": [
         "Specific Concept 1 (be very specific)",

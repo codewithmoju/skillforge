@@ -63,9 +63,11 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
 
     const fetchContent = async () => {
         const cacheKey = `${topic}-${moduleTitle}-${lessonTitle}`;
+        console.log('Fetching lesson content:', { topic, moduleTitle, lessonTitle, cacheKey });
 
         // Check cache first for instant load
         if (lessonCache[cacheKey]) {
+            console.log('Loading from cache:', cacheKey);
             setContent(lessonCache[cacheKey].content);
             setIsLoading(false);
             return;
@@ -73,21 +75,30 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
 
         setIsLoading(true);
         try {
+            console.log('Making API request to /api/generate-lesson');
             const res = await fetch('/api/generate-lesson', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic, moduleTitle, lessonTitle, userLevel: '1' }),
             });
             const data = await res.json();
-            if (data.content) {
+            console.log('API Response:', data);
+
+            if (data.content && data.content.missionBriefing && data.content.realWorldAnalogy &&
+                data.content.powerUps && data.content.interactiveDemo && data.content.bossChallenge) {
+                console.log('Content validated successfully');
                 setContent(data.content);
 
                 // Prefetch next lesson
                 const nextLessonNum = lessonIndex + 1;
                 prefetchLesson(topic, moduleTitle, `Lesson ${nextLessonNum}`, '1');
+            } else {
+                console.error('Invalid lesson content structure:', data);
+                setContent(null);
             }
         } catch (error) {
             console.error("Failed to load lesson:", error);
+            setContent(null);
         } finally {
             setIsLoading(false);
         }
@@ -160,7 +171,7 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                     <p className="text-slate-400">Crafting the perfect learning experience</p>
                                 </div>
                             </div>
-                        ) : content ? (
+                        ) : content && content.missionBriefing ? (
                             <div className="space-y-8">
                                 {/* Mission Briefing */}
                                 {step === 'briefing' && (
@@ -174,7 +185,7 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                     </div>
                                                     <h3 className="text-2xl font-bold text-white">Mission Briefing</h3>
                                                 </div>
-                                                <p className="text-lg text-slate-200 leading-relaxed">{content.missionBriefing}</p>
+                                                <p className="text-lg text-slate-200 leading-relaxed">{content?.missionBriefing}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-end">
@@ -193,15 +204,15 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                 <div className="p-3 bg-amber-500/20 rounded-xl">
                                                     <Lightbulb className="w-6 h-6 text-amber-400" />
                                                 </div>
-                                                <h3 className="text-2xl font-bold text-white">{content.realWorldAnalogy.title}</h3>
+                                                <h3 className="text-2xl font-bold text-white">{content?.realWorldAnalogy?.title || "The 'Aha!' Moment"}</h3>
                                             </div>
                                             <div className="space-y-4">
                                                 <div className="bg-slate-900/50 p-6 rounded-xl border border-slate-700">
-                                                    <p className="text-lg text-slate-200 leading-relaxed italic">{content.realWorldAnalogy.analogy}</p>
+                                                    <p className="text-lg text-slate-200 leading-relaxed italic">{content?.realWorldAnalogy?.analogy}</p>
                                                 </div>
                                                 <div className="flex items-start gap-3 p-4 bg-amber-500/5 rounded-lg border border-amber-500/20">
                                                     <Sparkles className="w-5 h-5 text-amber-400 mt-1 flex-shrink-0" />
-                                                    <p className="text-slate-300">{content.realWorldAnalogy.connection}</p>
+                                                    <p className="text-slate-300">{content?.realWorldAnalogy?.connection}</p>
                                                 </div>
                                             </div>
                                         </Card>
@@ -221,7 +232,7 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                             <p className="text-slate-400">Master these key concepts</p>
                                         </div>
                                         <div className="grid gap-4">
-                                            {content.powerUps.map((powerUp, idx) => (
+                                            {content?.powerUps?.map((powerUp, idx) => (
                                                 <motion.div
                                                     key={idx}
                                                     initial={{ opacity: 0, x: -20 }}
@@ -254,9 +265,9 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                 <div className="p-3 bg-purple-500/20 rounded-xl">
                                                     <Code className="w-6 h-6 text-purple-400" />
                                                 </div>
-                                                <h3 className="text-2xl font-bold text-white">{content.interactiveDemo.title}</h3>
+                                                <h3 className="text-2xl font-bold text-white">{content?.interactiveDemo?.title || "Hands-On Challenge"}</h3>
                                             </div>
-                                            <p className="text-slate-300 mb-6">{content.interactiveDemo.description}</p>
+                                            <p className="text-slate-300 mb-6">{content?.interactiveDemo?.description}</p>
 
                                             <div className="bg-slate-950 rounded-xl overflow-hidden border border-slate-800">
                                                 <div className="bg-slate-900 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
@@ -266,12 +277,12 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                     <span className="ml-2 text-xs text-slate-500 font-mono">code.js</span>
                                                 </div>
                                                 <pre className="p-6 overflow-x-auto text-sm font-mono text-green-400">
-                                                    {content.interactiveDemo.code}
+                                                    {content?.interactiveDemo?.code}
                                                 </pre>
                                             </div>
 
                                             <div className="mt-6 p-4 bg-slate-900/50 rounded-xl border border-slate-700">
-                                                <p className="text-sm text-slate-300 leading-relaxed">{content.interactiveDemo.explanation}</p>
+                                                <p className="text-sm text-slate-300 leading-relaxed">{content?.interactiveDemo?.explanation}</p>
                                             </div>
                                         </div>
                                         <div className="flex justify-end">
@@ -300,9 +311,9 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                         </div>
 
                                         <Card className="p-8 bg-gradient-to-br from-red-500/5 to-orange-500/5 border-2 border-red-500/30">
-                                            <h4 className="text-xl font-medium text-white mb-6">{content.bossChallenge.question}</h4>
+                                            <h4 className="text-xl font-medium text-white mb-6">{content?.bossChallenge?.question}</h4>
                                             <div className="space-y-3">
-                                                {content.bossChallenge.options.map((option, idx) => (
+                                                {content?.bossChallenge?.options?.map((option, idx) => (
                                                     <motion.button
                                                         key={idx}
                                                         whileHover={{ scale: isQuizSubmitted ? 1 : 1.02 }}
@@ -310,22 +321,22 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                         onClick={() => !isQuizSubmitted && setSelectedOption(idx)}
                                                         disabled={isQuizSubmitted}
                                                         className={`w-full p-5 rounded-xl text-left transition-all border-2 ${isQuizSubmitted
-                                                                ? idx === content.bossChallenge.correctAnswer
-                                                                    ? "bg-green-500/20 border-green-500 text-green-200 shadow-lg shadow-green-500/20"
-                                                                    : idx === selectedOption
-                                                                        ? "bg-red-500/20 border-red-500 text-red-200"
-                                                                        : "bg-slate-900/30 border-slate-800 text-slate-500"
-                                                                : selectedOption === idx
-                                                                    ? "bg-accent-indigo/20 border-accent-indigo text-white shadow-lg shadow-accent-indigo/20"
-                                                                    : "bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600"
+                                                            ? idx === content?.bossChallenge?.correctAnswer
+                                                                ? "bg-green-500/20 border-green-500 text-green-200 shadow-lg shadow-green-500/20"
+                                                                : idx === selectedOption
+                                                                    ? "bg-red-500/20 border-red-500 text-red-200"
+                                                                    : "bg-slate-900/30 border-slate-800 text-slate-500"
+                                                            : selectedOption === idx
+                                                                ? "bg-accent-indigo/20 border-accent-indigo text-white shadow-lg shadow-accent-indigo/20"
+                                                                : "bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600"
                                                             }`}
                                                     >
                                                         <div className="flex items-center justify-between">
                                                             <span className="text-lg">{option}</span>
-                                                            {isQuizSubmitted && idx === content.bossChallenge.correctAnswer && (
+                                                            {isQuizSubmitted && idx === content?.bossChallenge?.correctAnswer && (
                                                                 <CheckCircle className="w-6 h-6 text-green-500" />
                                                             )}
-                                                            {isQuizSubmitted && idx === selectedOption && idx !== content.bossChallenge.correctAnswer && (
+                                                            {isQuizSubmitted && idx === selectedOption && idx !== content?.bossChallenge?.correctAnswer && (
                                                                 <XCircle className="w-6 h-6 text-red-500" />
                                                             )}
                                                         </div>
@@ -344,7 +355,7 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                     <Lightbulb className="w-5 h-5 text-accent-cyan mt-1" />
                                                     <span className="font-bold text-white">Explanation:</span>
                                                 </div>
-                                                <p className="text-slate-300 leading-relaxed ml-8">{content.bossChallenge.explanation}</p>
+                                                <p className="text-slate-300 leading-relaxed ml-8">{content?.bossChallenge?.explanation}</p>
                                             </motion.div>
                                         )}
 
@@ -359,7 +370,7 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
                                                     Victory Rewards
                                                 </h4>
                                                 <ul className="space-y-2">
-                                                    {content.victoryRewards.map((reward, idx) => (
+                                                    {content?.victoryRewards?.map((reward, idx) => (
                                                         <motion.li
                                                             key={idx}
                                                             initial={{ opacity: 0, x: -10 }}
