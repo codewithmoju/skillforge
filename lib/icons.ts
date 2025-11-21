@@ -23,6 +23,7 @@ export {
     Grid,
     Heart,
     Home,
+    Info,
     Image,
     LayoutDashboard,
     Link,

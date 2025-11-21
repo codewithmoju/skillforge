@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { UserPlus, UserMinus, Clock, Loader2 } from "lucide-react";
 import { followUser, unfollowUser, getFollowStatus } from "@/lib/services/follow";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useUserStore } from "@/lib/store";
 
 interface FollowButtonProps {
     targetUserId: string;
@@ -15,6 +16,7 @@ interface FollowButtonProps {
 
 export function FollowButton({ targetUserId, isPrivate, className, onFollowChange }: FollowButtonProps) {
     const { user } = useAuth();
+    const incrementFollowing = useUserStore((state) => state.incrementFollowing);
     const [status, setStatus] = useState<'none' | 'pending' | 'following'>('none');
     const [loading, setLoading] = useState(false);
 
@@ -34,6 +36,12 @@ export function FollowButton({ targetUserId, isPrivate, className, onFollowChang
                 photo: user.photoURL || undefined
             });
             setStatus(isPrivate ? 'pending' : 'following');
+            
+            // Update achievement progress (only for accepted follows)
+            if (!isPrivate) {
+                incrementFollowing();
+            }
+            
             if (!isPrivate && onFollowChange) {
                 onFollowChange(true);
             }

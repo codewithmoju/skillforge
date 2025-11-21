@@ -10,6 +10,7 @@ import { MobileDrawer } from "@/components/layout/MobileDrawer";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ProfileCompletionModal } from "@/components/features/ProfileCompletionModal";
 import { useFirestoreSync } from "@/lib/hooks/useFirestoreSync";
+import { SkinProvider } from "@/lib/contexts/SkinContext";
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -36,29 +37,31 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
             )}
 
             <ProtectedRoute>
-                {/* Mobile Header */}
-                <MobileHeader onMenuClick={() => setIsDrawerOpen(true)} />
+                <SkinProvider>
+                    {/* Mobile Header */}
+                    <MobileHeader onMenuClick={() => setIsDrawerOpen(true)} />
 
-                {/* Mobile Drawer */}
-                <MobileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
+                    {/* Mobile Drawer */}
+                    <MobileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
 
-                <div className="flex min-h-screen">
-                    {/* Desktop Sidebar */}
-                    <Sidebar />
+                    <div className="flex min-h-screen">
+                        {/* Desktop Sidebar */}
+                        <Sidebar />
 
-                    <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
-                        {/* Desktop TopBar */}
-                        <TopBar />
+                        <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+                            {/* Desktop TopBar */}
+                            <TopBar />
 
-                        {/* Main Content */}
-                        <main className="flex-1 p-4 md:p-8 pt-16 md:pt-0 pb-20 md:pb-8 overflow-y-auto">
-                            {children}
-                        </main>
+                            {/* Main Content */}
+                            <main className="flex-1 p-4 md:p-8 pt-16 md:pt-0 pb-20 md:pb-8 overflow-y-auto">
+                                {children}
+                            </main>
+                        </div>
                     </div>
-                </div>
 
-                {/* Mobile Bottom Navigation */}
-                <MobileNav />
+                    {/* Mobile Bottom Navigation */}
+                    <MobileNav />
+                </SkinProvider>
             </ProtectedRoute>
         </>
     );

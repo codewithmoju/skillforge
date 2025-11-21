@@ -1,11 +1,13 @@
 'use client';
 
 import Image from 'next/image';
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Conversation, subscribeToConversations, createConversation } from '@/lib/services/messages';
 import { ChatWindow } from '@/components/messages/ChatWindow';
+import { EmptyStateEnhanced } from '@/components/messages/EmptyStateEnhanced';
+import { ConversationListItem } from '@/components/messages/ConversationListItem';
+import { DailyChallenges } from '@/components/messages/DailyChallenges';
 import { Loader2, Plus, MessageSquare } from 'lucide-react';
 import { searchUsers } from '@/lib/services/search';
 import { FirestoreUserData } from '@/lib/services/firestore';
@@ -93,6 +95,11 @@ export default function MessagesPage() {
 
             const conversationId = await createConversation([user.uid, recipient.uid], participantDetails);
 
+            // Find the new conversation object to select it immediately
+            // We might need to wait for the subscription to update, but for now let's just close the modal
+            // Ideally we would set selectedConversation here if we had the full object, 
+            // but we only have the ID. The subscription will pick it up.
+
             setShowNewMessageModal(false);
             setSearchQuery('');
             setSearchResults([]);
@@ -125,55 +132,15 @@ export default function MessagesPage() {
 
                 <div className="flex-1 overflow-y-auto">
                     {conversations.length > 0 ? (
-                        conversations.map((conv) => {
-                            const otherUserId = conv.participants.find(id => id !== user?.uid) || '';
-                            const otherUser = conv.participantDetails[otherUserId];
-                            const unread = conv.unreadMessages?.[user?.uid || '']?.length || 0;
-
-                            return (
-                                <button
-                                    key={conv.id}
-                                    onClick={() => setSelectedConversation(conv)}
-                                    className={`w-full p-4 flex items-center gap-3 hover:bg-slate-800/50 transition-colors border-b border-slate-800/50 ${selectedConversation?.id === conv.id ? 'bg-slate-800/80' : ''
-                                        }`}
-                                >
-                                    <div className="relative">
-                                        {otherUser?.photo ? (
-                                            <Image
-                                                src={otherUser.photo}
-                                                alt={otherUser.name}
-                                                width={48}
-                                                height={48}
-                                                className="w-12 h-12 rounded-full object-cover"
-                                            />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
-                                                {otherUser?.name?.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
-                                        {/* Online indicator */}
-                                        {otherUser?.online && (
-                                            <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0 text-left">
-                                        <div className="flex justify-between items-baseline">
-                                            <h3 className={`font-semibold truncate ${unread > 0 ? 'text-white' : 'text-slate-300'}`}>
-                                                {otherUser?.name || 'Unknown User'}
-                                            </h3>
-                                            {unread > 0 && (
-                                                <span className="bg-accent-indigo text-white text-xs px-2 py-0.5 rounded-full ml-2 animate-pulse">
-                                                    {unread}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className={`text-sm truncate ${unread > 0 ? 'text-slate-200 font-medium' : 'text-slate-500'}`}>
-                                            {conv.lastMessage || 'Start a conversation'}
-                                        </p>
-                                    </div>
-                                </button>
-                            );
-                        })
+                        conversations.map((conv) => (
+                            <ConversationListItem
+                                key={conv.id}
+                                conversation={conv}
+                                currentUserId={user?.uid || ''}
+                                isSelected={selectedConversation?.id === conv.id}
+                                onSelect={setSelectedConversation}
+                            />
+                        ))
                     ) : (
                         <div className="p-8 text-center text-slate-500">
                             <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-20" />
@@ -184,46 +151,12 @@ export default function MessagesPage() {
                             >
                                 Start a chat
                             </button>
-
-                            {suggestedLoading ? (
-                                <div className="flex justify-center">
-                                    <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
-                                </div>
-                            ) : suggestedUsers.length > 0 && (
-                                <div className="text-left">
-                                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Suggested People</p>
-                                    <div className="space-y-2">
-                                        {suggestedUsers.map(u => (
-                                            <button
-                                                key={u.uid}
-                                                onClick={() => startConversation(u)}
-                                                className="w-full flex items-center gap-3 p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
-                                            >
-                                                {u.profilePicture ? (
-                                                    <Image
-                                                        src={u.profilePicture}
-                                                        alt={u.name}
-                                                        width={32}
-                                                        height={32}
-                                                        className="w-8 h-8 rounded-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs text-white font-bold">
-                                                        {u.name.charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
-                                                <div className="text-left">
-                                                    <p className="text-sm font-medium text-slate-300">{u.name}</p>
-                                                    <p className="text-xs text-slate-500">@{u.username}</p>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
+
+                {/* Daily Challenges */}
+                {user && <DailyChallenges userId={user.uid} />}
             </div>
 
             {/* Chat Area */}
@@ -245,12 +178,11 @@ export default function MessagesPage() {
                         />
                     </div>
                 ) : (
-                    <div className="w-full h-full bg-slate-900/30 rounded-2xl border border-slate-800 flex items-center justify-center text-slate-500">
-                        <div className="text-center">
-                            <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                            <p>Select a conversation to start messaging</p>
-                        </div>
-                    </div>
+                    <EmptyStateEnhanced
+                        onStartConversation={startConversation}
+                        suggestedUsers={suggestedUsers}
+                        loading={suggestedLoading}
+                    />
                 )}
             </div>
 

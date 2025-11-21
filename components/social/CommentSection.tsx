@@ -5,6 +5,7 @@ import { Send, Trash2, Loader2, MoreHorizontal, CornerDownRight } from "lucide-r
 import { useAuth } from "@/lib/hooks/useAuth";
 import { addComment, getComments, deleteComment, Comment } from "@/lib/services/comments";
 import { getUserData } from "@/lib/services/firestore";
+import { useUserStore } from "@/lib/store";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ interface CommentSectionProps {
 
 export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentSectionProps) {
     const { user } = useAuth();
+    const incrementComments = useUserStore((state) => state.incrementComments);
     const [comments, setComments] = useState<Comment[]>([]);
     const [newComment, setNewComment] = useState("");
     const [loading, setLoading] = useState(true);
@@ -57,6 +59,10 @@ export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentS
 
             setComments([comment, ...comments]);
             setNewComment("");
+            
+            // Update achievement progress
+            incrementComments();
+            
             if (onCommentAdded) onCommentAdded();
         } catch (error) {
             console.error("Error posting comment:", error);

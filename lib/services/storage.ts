@@ -148,3 +148,21 @@ export function generateDefaultAvatar(username: string): string {
     // Using UI Avatars API for default avatars
     return `https://ui-avatars.com/api/?name=${initials}&background=6366f1&color=fff&size=256&bold=true`;
 }
+
+/**
+ * Uploads a generic file to Firebase Storage
+ * @param file - The file to upload
+ * @param path - The storage path
+ * @returns The download URL
+ */
+export async function uploadFile(file: Blob | File, path: string): Promise<string> {
+    try {
+        const storageRef = ref(storage, path);
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+        return downloadURL;
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+    }
+}

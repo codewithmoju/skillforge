@@ -8,6 +8,7 @@ import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/ui/BrandMark";
+import { useSkinContext } from "@/lib/contexts/SkinContext";
 
 const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -23,6 +24,8 @@ export function Sidebar() {
     const pathname = usePathname();
     const { user, logout } = useAuth();
     const [username, setUsername] = useState<string>("");
+    const skinContext = useSkinContext();
+    const { shouldApplySkin, colors } = skinContext || { shouldApplySkin: false, colors: null };
 
     useEffect(() => {
         if (user) {
@@ -42,8 +45,33 @@ export function Sidebar() {
         }
     };
 
+    const sidebarBg = shouldApplySkin && colors 
+        ? `${colors.backgroundCard}CC` 
+        : "bg-background-card/30";
+    const sidebarBorder = shouldApplySkin && colors
+        ? colors.primary + "40"
+        : "border-slate-700/50";
+    const activeBg = shouldApplySkin && colors
+        ? `${colors.primary}20`
+        : "bg-accent-indigo/10";
+    const activeText = shouldApplySkin && colors
+        ? colors.accent
+        : "text-accent-indigo";
+    const activeIcon = shouldApplySkin && colors
+        ? colors.accent
+        : "text-accent-indigo";
+    const activeShadow = shouldApplySkin && colors
+        ? `0 0 20px ${colors.primary}30`
+        : "0 0 15px rgba(99,102,241,0.2)";
+
     return (
-        <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-background-card/30 backdrop-blur-xl border-r border-slate-700/50 z-50">
+        <aside 
+            className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 backdrop-blur-xl border-r z-50 transition-all duration-500"
+            style={{
+                backgroundColor: sidebarBg,
+                borderColor: sidebarBorder,
+            }}
+        >
             <div className="p-6">
                 <BrandMark size={36} tagline="AI Learning Hub" variant="glass" showConnections={true} />
             </div>
@@ -56,17 +84,42 @@ export function Sidebar() {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                                isActive
-                                    ? "bg-accent-indigo/10 text-accent-indigo shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                                    : "text-text-secondary hover:text-text-primary hover:bg-slate-800/50"
+                                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
+                                isActive ? "" : "hover:bg-slate-800/50"
                             )}
+                            style={isActive ? {
+                                backgroundColor: activeBg,
+                                color: activeText,
+                                boxShadow: activeShadow,
+                            } : {
+                                color: shouldApplySkin && colors ? colors.textSecondary : undefined,
+                            }}
+                            onMouseEnter={(e) => {
+                                if (!isActive) {
+                                    e.currentTarget.style.backgroundColor = shouldApplySkin && colors 
+                                        ? `${colors.primary}10` 
+                                        : "rgba(148, 163, 184, 0.1)";
+                                    e.currentTarget.style.color = shouldApplySkin && colors 
+                                        ? colors.textPrimary 
+                                        : undefined;
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                if (!isActive) {
+                                    e.currentTarget.style.backgroundColor = "transparent";
+                                    e.currentTarget.style.color = shouldApplySkin && colors ? colors.textSecondary : undefined;
+                                }
+                            }}
                         >
                             <item.icon
-                                className={cn(
-                                    "w-5 h-5 transition-colors",
-                                    isActive ? "text-accent-indigo" : "text-slate-500 group-hover:text-white"
-                                )}
+                                className="w-5 h-5 transition-colors"
+                                style={{
+                                    color: isActive 
+                                        ? activeIcon 
+                                        : shouldApplySkin && colors 
+                                        ? colors.textMuted 
+                                        : undefined,
+                                }}
                             />
                             <span className="font-medium">{item.name}</span>
                         </Link>
@@ -78,34 +131,90 @@ export function Sidebar() {
                     <Link
                         href={`/profile/${username}`}
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                            pathname.startsWith("/profile")
-                                ? "bg-accent-indigo/10 text-accent-indigo shadow-[0_0_15px_rgba(99,102,241,0.2)]"
-                                : "text-text-secondary hover:text-text-primary hover:bg-slate-800/50"
+                            "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group",
+                            pathname.startsWith("/profile") ? "" : "hover:bg-slate-800/50"
                         )}
+                        style={pathname.startsWith("/profile") ? {
+                            backgroundColor: activeBg,
+                            color: activeText,
+                            boxShadow: activeShadow,
+                        } : {
+                            color: shouldApplySkin && colors ? colors.textSecondary : undefined,
+                        }}
+                        onMouseEnter={(e) => {
+                            if (!pathname.startsWith("/profile")) {
+                                e.currentTarget.style.backgroundColor = shouldApplySkin && colors 
+                                    ? `${colors.primary}10` 
+                                    : "rgba(148, 163, 184, 0.1)";
+                                e.currentTarget.style.color = shouldApplySkin && colors 
+                                    ? colors.textPrimary 
+                                    : undefined;
+                            }
+                        }}
+                        onMouseLeave={(e) => {
+                            if (!pathname.startsWith("/profile")) {
+                                e.currentTarget.style.backgroundColor = "transparent";
+                                e.currentTarget.style.color = shouldApplySkin && colors ? colors.textSecondary : undefined;
+                            }
+                        }}
                     >
                         <UserCircle
-                            className={cn(
-                                "w-5 h-5 transition-colors",
-                                pathname.startsWith("/profile") ? "text-accent-indigo" : "text-slate-500 group-hover:text-white"
-                            )}
+                            className="w-5 h-5 transition-colors"
+                            style={{
+                                color: pathname.startsWith("/profile")
+                                    ? activeIcon
+                                    : shouldApplySkin && colors 
+                                    ? colors.textMuted 
+                                    : undefined,
+                            }}
                         />
                         <span className="font-medium">Profile</span>
                     </Link>
                 )}
             </nav>
 
-            <div className="p-4 border-t border-slate-800">
+            <div 
+                className="p-4 border-t transition-colors duration-500"
+                style={{ borderColor: shouldApplySkin && colors ? `${colors.primary}30` : undefined }}
+            >
                 <Link
                     href="/settings"
-                    className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-text-secondary hover:text-text-primary hover:bg-slate-800/50 transition-all"
+                    className="flex items-center gap-3 px-4 py-3 w-full rounded-xl transition-all duration-300"
+                    style={{
+                        color: shouldApplySkin && colors ? colors.textSecondary : undefined,
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = shouldApplySkin && colors 
+                            ? `${colors.primary}10` 
+                            : "rgba(148, 163, 184, 0.1)";
+                        e.currentTarget.style.color = shouldApplySkin && colors 
+                            ? colors.textPrimary 
+                            : undefined;
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.textSecondary : undefined;
+                    }}
                 >
                     <Settings className="w-5 h-5" />
                     <span className="font-medium">Settings</span>
                 </Link>
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-status-error/80 hover:text-status-error hover:bg-status-error/10 transition-all mt-1"
+                    className="flex items-center gap-3 px-4 py-3 w-full rounded-xl transition-all duration-300 mt-1"
+                    style={{
+                        color: shouldApplySkin && colors ? colors.error + "CC" : undefined,
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = shouldApplySkin && colors 
+                            ? `${colors.error}20` 
+                            : undefined;
+                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.error : undefined;
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.error + "CC" : undefined;
+                    }}
                 >
                     <LogOut className="w-5 h-5" />
                     <span className="font-medium">Logout</span>

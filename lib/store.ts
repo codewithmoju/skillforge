@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Achievement, StreakData, XPGainEvent } from './types/gamification';
 import { ACHIEVEMENT_DEFINITIONS } from './utils/achievementSystem';
+import { SkinId, DEFAULT_SKIN } from './types/skins';
 
 export interface Project {
     id: string;
@@ -55,6 +56,7 @@ export interface UserState {
     totalRoadmapsCompleted: number;
     uniqueDomainsExplored: string[];
     roadmapsViewedCount: number;
+    weekendCompletions: number; // Roadmaps completed on weekends
 
     // Data
     projects: Project[];
@@ -63,6 +65,27 @@ export interface UserState {
     currentTopic: string;
     totalLessonsCompleted: number;
     lessonCache: Record<string, any>; // Cache for generated lessons
+
+    // Social Tracking
+    postsCount: number;
+    likesGivenCount: number;
+    commentsCount: number;
+    savesCount: number;
+    followingCount: number;
+    followersCount: number;
+    socialInteractionsTotal: number; // Sum of likes + comments + follows
+
+    // Challenge Tracking
+    challengesJoined: number;
+    challengesCompleted: number;
+
+    // Activity Tracking
+    activeDays: string[]; // Array of unique dates (YYYY-MM-DD) when user was active
+    lastActivityDate: string; // Last date user was active (YYYY-MM-DD)
+
+    // Skin System
+    selectedSkin: SkinId;
+    ownedSkins: SkinId[];
 
     // Actions
     addXp: (amount: number, source: XPGainEvent['source'], multiplier?: number) => void;
@@ -75,8 +98,21 @@ export interface UserState {
     setUserName: (name: string) => void;
     updateAchievementProgress: (achievementId: string, progress: number) => { newStarsUnlocked: number[]; totalXpGained: number };
     updateStreak: () => void;
+    setSkin: (skinId: SkinId) => void;
     loadUserData: (data: Partial<UserState>) => void;
     resetToDefaults: () => void;
+    // Social actions
+    incrementPostCount: () => void;
+    incrementShares: () => void; // For Knowledge Sharer achievement
+    incrementLikesGiven: () => void;
+    incrementComments: () => void;
+    incrementSaves: () => void;
+    incrementFollowing: () => void;
+    incrementFollowers: () => void;
+    updatePostLikes: (likes: number) => void; // For trendsetter achievement
+    // Challenge actions
+    incrementChallengesJoined: () => void;
+    incrementChallengesCompleted: () => void;
 }
 
 const defaultState = {
@@ -100,12 +136,26 @@ const defaultState = {
     totalRoadmapsCompleted: 0,
     uniqueDomainsExplored: [],
     roadmapsViewedCount: 0,
+    weekendCompletions: 0,
     projects: [],
     roadmapProgress: {},
     roadmapDefinitions: [],
     currentTopic: "",
     totalLessonsCompleted: 0,
     lessonCache: {},
+    postsCount: 0,
+    likesGivenCount: 0,
+    commentsCount: 0,
+    savesCount: 0,
+    followingCount: 0,
+    followersCount: 0,
+    socialInteractionsTotal: 0,
+    challengesJoined: 0,
+    challengesCompleted: 0,
+    activeDays: [],
+    lastActivityDate: "",
+    selectedSkin: DEFAULT_SKIN,
+    ownedSkins: ["cyber-neon", "forest-quest", "space-odyssey", "dragons-lair", "ocean-depths"], // All skins unlocked for everyone
 };
 
 export const useUserStore = create<UserState>()(
@@ -122,6 +172,7 @@ export const useUserStore = create<UserState>()(
                     // Import level calculation
                     const { getLevelFromXP } = require('./utils/levelSystem');
                     const newLevel = getLevelFromXP(newXp);
+                    const oldLevel = state.level;
 
                     // Add to XP history
                     const xpEvent: XPGainEvent = {
@@ -131,26 +182,69 @@ export const useUserStore = create<UserState>()(
                         multiplier: finalMultiplier,
                     };
 
+                    // Track daily activity
+                    const today = new Date().toISOString().split('T')[0];
+                    const activeDays = state.activeDays || [];
+                    const updatedActiveDays = activeDays.includes(today) 
+                        ? activeDays 
+                        : [...activeDays, today];
+
+                    // Update XP Collector achievement
+                    state.updateAchievementProgress('xp_collector', newXp);
+
+                    // Update Level Up Master achievement if level increased
+                    if (newLevel > oldLevel) {
+                        state.updateAchievementProgress('leveler', newLevel);
+                    }
+
                     return {
                         xp: newXp,
                         level: newLevel,
                         xpHistory: [...state.xpHistory.slice(-99), xpEvent], // Keep last 100 events
+                        activeDays: updatedActiveDays,
+                        lastActivityDate: today,
                     };
                 });
             },
 
             addProject: (project: Project) => {
-                set((state) => ({
-                    projects: [...state.projects, project],
-                }));
+                set((state) => {
+                    const newProjects = [...state.projects, project];
+                    // Update Project Builder achievement
+                    state.updateAchievementProgress('builder', newProjects.length);
+                    return {
+                        projects: newProjects,
+                    };
+                });
             },
 
             updateProjectProgress: (id: string, progress: number) => {
-                set((state) => ({
-                    projects: state.projects.map((p) =>
+                set((state) => {
+                    const updatedProjects = state.projects.map((p) =>
                         p.id === id ? { ...p, progress } : p
-                    ),
-                }));
+                    );
+                    
+                    // Check if project is completed (progress >= 100)
+                    const project = updatedProjects.find(p => p.id === id);
+                    if (project && progress >= 100 && project.status !== 'Completed') {
+                        const completedProject = { ...project, status: 'Completed' as const };
+                        const finalProjects = updatedProjects.map(p => 
+                            p.id === id ? completedProject : p
+                        );
+                        const completedCount = finalProjects.filter(p => p.status === 'Completed').length;
+                        
+                        // Update Master Architect achievement
+                        state.updateAchievementProgress('architect', completedCount);
+                        
+                        return {
+                            projects: finalProjects,
+                        };
+                    }
+                    
+                    return {
+                        projects: updatedProjects,
+                    };
+                });
             },
 
             completeLesson: (nodeId: string) => {
@@ -184,13 +278,38 @@ export const useUserStore = create<UserState>()(
                     }
                 }
 
+                const newTotalLessons = state.totalLessonsCompleted + 1;
+
                 set({
                     roadmapProgress: updatedProgress,
-                    totalLessonsCompleted: state.totalLessonsCompleted + 1,
+                    totalLessonsCompleted: newTotalLessons,
                 });
 
                 // Add XP for module completion
                 state.addXp(75, 'module_completion');
+
+                // Update lesson completion achievements
+                state.updateAchievementProgress('student', newTotalLessons);
+                state.updateAchievementProgress('first_blood', newTotalLessons);
+                state.updateAchievementProgress('centurion', newTotalLessons);
+
+                // Check for time-based achievements
+                const hour = new Date().getHours();
+                if (hour >= 0 && hour < 2) {
+                    state.updateAchievementProgress('midnight_learner', 1);
+                }
+                if (hour >= 5 && hour < 7) {
+                    state.updateAchievementProgress('early_riser', 1);
+                }
+
+                // Track daily activity
+                const today = new Date().toISOString().split('T')[0];
+                const activeDays = state.activeDays || [];
+                if (!activeDays.includes(today)) {
+                    const updatedActiveDays = [...activeDays, today];
+                    set({ activeDays: updatedActiveDays });
+                    state.updateAchievementProgress('daily_learner', updatedActiveDays.length);
+                }
             },
 
             prefetchLesson: async (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => {
@@ -262,6 +381,8 @@ export const useUserStore = create<UserState>()(
                 state.updateAchievementProgress('pathfinder', state.totalRoadmapsGenerated + 1);
                 state.updateAchievementProgress('specialist', newDomains.size);
                 state.updateAchievementProgress('explorer', state.roadmapsViewedCount + 1);
+                state.updateAchievementProgress('jack_of_all_trades', newDomains.size);
+                state.updateAchievementProgress('hundred_club', state.totalRoadmapsGenerated + 1);
 
                 // Check for time-based achievements
                 const hour = new Date().getHours();
@@ -287,36 +408,55 @@ export const useUserStore = create<UserState>()(
                         : r
                 );
 
+                const newTotalCompleted = state.totalRoadmapsCompleted + 1;
+
+                // Check if completed on weekend
+                const dayOfWeek = new Date().getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const newWeekendCompletions = isWeekend 
+                    ? state.weekendCompletions + 1 
+                    : state.weekendCompletions;
+
                 set({
                     roadmapHistory: updatedHistory,
-                    totalRoadmapsCompleted: state.totalRoadmapsCompleted + 1,
+                    totalRoadmapsCompleted: newTotalCompleted,
+                    weekendCompletions: newWeekendCompletions,
                 });
 
                 // Add XP for completion
                 state.addXp(200, 'roadmap_completion');
 
                 // Update achievements
-                state.updateAchievementProgress('finisher', state.totalRoadmapsCompleted + 1);
+                state.updateAchievementProgress('finisher', newTotalCompleted);
+                state.updateAchievementProgress('hundred_club', state.totalRoadmapsGenerated);
 
                 // Check for speed runner achievement (< 7 days)
                 if (completionTime < 7) {
-                    const speedRuns = state.roadmapHistory.filter(
+                    const speedRuns = updatedHistory.filter(
                         r => r.completedAt && r.completionTime && r.completionTime < 7
                     ).length;
-                    state.updateAchievementProgress('speedrunner', speedRuns + 1);
+                    state.updateAchievementProgress('speedrunner', speedRuns);
                 }
 
-                // Check for perfectionist achievement
+                // Check for perfectionist achievement (100% completion)
                 const allNodesCompleted = Object.values(state.roadmapProgress).every(
                     node => node.status === 'completed'
                 );
                 if (allNodesCompleted) {
-                    const perfectCompletions = state.roadmapHistory.filter(r => {
-                        // This would need more complex logic to track perfect completions
-                        return r.completedAt;
-                    }).length;
+                    // Count perfect completions (all nodes completed)
+                    const perfectCompletions = updatedHistory.filter(r => r.completedAt).length;
                     state.updateAchievementProgress('perfectionist', perfectCompletions);
                 }
+
+                // Weekend achievements
+                if (isWeekend) {
+                    state.updateAchievementProgress('weekend_warrior', newWeekendCompletions);
+                    state.updateAchievementProgress('weekend_learner', newWeekendCompletions);
+                }
+
+                // Update Master Scholar achievement (lessons across multiple roadmaps)
+                const totalLessonsAcrossRoadmaps = state.totalLessonsCompleted;
+                state.updateAchievementProgress('scholar', totalLessonsAcrossRoadmaps);
             },
 
             setUserName: (name: string) => {
@@ -363,11 +503,23 @@ export const useUserStore = create<UserState>()(
 
                 // Update streak achievement
                 state.updateAchievementProgress('consistency', newStreakData.currentStreak);
+                state.updateAchievementProgress('marathoner', newStreakData.currentStreak);
 
                 // Add milestone reward if applicable
                 if (milestoneReward > 0) {
                     state.addXp(milestoneReward, 'streak', 1);
                 }
+            },
+
+            setSkin: (skinId: SkinId) => {
+                const state = get();
+                const { SKIN_CONFIGS } = require('./types/skins');
+                const skinConfig = SKIN_CONFIGS[skinId];
+                
+                if (!skinConfig) return;
+
+                // All skins are unlocked for everyone
+                set({ selectedSkin: skinId });
             },
 
             loadUserData: (data: Partial<UserState>) => {
@@ -379,6 +531,104 @@ export const useUserStore = create<UserState>()(
 
             resetToDefaults: () => {
                 set(defaultState);
+            },
+
+            // Social action methods
+            incrementPostCount: () => {
+                set((state) => {
+                    const newCount = state.postsCount + 1;
+                    state.updateAchievementProgress('storyteller', newCount);
+                    return { postsCount: newCount };
+                });
+            },
+
+            incrementShares: () => {
+                set((state) => {
+                    // Track shares for Knowledge Sharer achievement (id: 'influencer')
+                    // This should be called when sharing roadmaps/achievements via posts
+                    const sharesCount = (state.postsCount || 0) + 1;
+                    state.updateAchievementProgress('influencer', sharesCount); // Knowledge Sharer achievement
+                    return {};
+                });
+            },
+
+            incrementLikesGiven: () => {
+                set((state) => {
+                    const newCount = state.likesGivenCount + 1;
+                    const newSocialTotal = state.socialInteractionsTotal + 1;
+                    state.updateAchievementProgress('appreciator', newCount);
+                    state.updateAchievementProgress('social_butterfly', newSocialTotal);
+                    return { 
+                        likesGivenCount: newCount,
+                        socialInteractionsTotal: newSocialTotal,
+                    };
+                });
+            },
+
+            incrementComments: () => {
+                set((state) => {
+                    const newCount = state.commentsCount + 1;
+                    const newSocialTotal = state.socialInteractionsTotal + 1;
+                    state.updateAchievementProgress('commentator', newCount);
+                    state.updateAchievementProgress('social_butterfly', newSocialTotal);
+                    return { 
+                        commentsCount: newCount,
+                        socialInteractionsTotal: newSocialTotal,
+                    };
+                });
+            },
+
+            incrementSaves: () => {
+                set((state) => {
+                    const newCount = state.savesCount + 1;
+                    state.updateAchievementProgress('bookmarker', newCount);
+                    return { savesCount: newCount };
+                });
+            },
+
+            incrementFollowing: () => {
+                set((state) => {
+                    const newCount = state.followingCount + 1;
+                    const newSocialTotal = state.socialInteractionsTotal + 1;
+                    state.updateAchievementProgress('networker', newCount);
+                    state.updateAchievementProgress('social_butterfly', newSocialTotal);
+                    return { 
+                        followingCount: newCount,
+                        socialInteractionsTotal: newSocialTotal,
+                    };
+                });
+            },
+
+            incrementFollowers: () => {
+                set((state) => {
+                    const newCount = state.followersCount + 1;
+                    state.updateAchievementProgress('learning_influencer', newCount);
+                    return { followersCount: newCount };
+                });
+            },
+
+            updatePostLikes: (likes: number) => {
+                const state = get();
+                if (likes >= 10) {
+                    state.updateAchievementProgress('trendsetter', likes);
+                }
+            },
+
+            // Challenge action methods
+            incrementChallengesJoined: () => {
+                set((state) => {
+                    const newCount = state.challengesJoined + 1;
+                    state.updateAchievementProgress('challenger', newCount);
+                    return { challengesJoined: newCount };
+                });
+            },
+
+            incrementChallengesCompleted: () => {
+                set((state) => {
+                    const newCount = state.challengesCompleted + 1;
+                    state.updateAchievementProgress('champion', newCount);
+                    return { challengesCompleted: newCount };
+                });
             },
         }),
         {
@@ -397,6 +647,17 @@ export const useUserStore = create<UserState>()(
 
                     if (missingAchievements.length > 0) {
                         state.achievements = [...state.achievements, ...missingAchievements];
+                    }
+
+                    // Ensure all skins are owned (unlock all skins for everyone)
+                    const allSkins: SkinId[] = ["cyber-neon", "forest-quest", "space-odyssey", "dragons-lair", "ocean-depths"];
+                    if (!state.ownedSkins || state.ownedSkins.length < allSkins.length) {
+                        state.ownedSkins = allSkins;
+                    }
+
+                    // Ensure selectedSkin is valid
+                    if (!state.selectedSkin) {
+                        state.selectedSkin = DEFAULT_SKIN;
                     }
                 }
             },

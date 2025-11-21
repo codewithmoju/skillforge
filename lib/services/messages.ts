@@ -29,6 +29,11 @@ export interface Message {
     // Edit tracking
     edited?: boolean;
     editedAt?: string;
+
+    // Media support
+    type?: 'text' | 'image' | 'audio' | 'video';
+    mediaUrl?: string;
+    mediaDuration?: number; // in seconds
 }
 
 export interface ParticipantDetails {
@@ -56,9 +61,17 @@ export interface Conversation {
         totalMessages: number;
         createdAt: string;
     };
+
+    pinnedMessageId?: string | null;
 }
 
-export async function sendMessage(conversationId: string, senderId: string, text: string, replyTo?: Message['replyTo']): Promise<void> {
+export async function sendMessage(
+    conversationId: string,
+    senderId: string,
+    text: string,
+    replyTo?: Message['replyTo'],
+    media?: { type: 'text' | 'image' | 'audio' | 'video'; url: string; duration?: number }
+): Promise<void> {
     try {
         const now = new Date().toISOString();
 
@@ -70,6 +83,11 @@ export async function sendMessage(conversationId: string, senderId: string, text
             createdAt: now,
             read: false,
             ...(replyTo && { replyTo }),
+            ...(media && {
+                type: media.type,
+                mediaUrl: media.url,
+                mediaDuration: media.duration
+            }),
         });
 
         // Update conversation
@@ -346,6 +364,32 @@ export async function deleteMessage(conversationId: string, messageId: string): 
         }
     } catch (error) {
         console.error('Error deleting message:', error);
+        throw error;
+    }
+}
+
+// ============ PINNED MESSAGES ============
+
+export async function pinMessage(conversationId: string, messageId: string): Promise<void> {
+    try {
+        const conversationRef = doc(db, 'conversations', conversationId);
+        await updateDoc(conversationRef, {
+            pinnedMessageId: messageId
+        });
+    } catch (error) {
+        console.error('Error pinning message:', error);
+        throw error;
+    }
+}
+
+export async function unpinMessage(conversationId: string): Promise<void> {
+    try {
+        const conversationRef = doc(db, 'conversations', conversationId);
+        await updateDoc(conversationRef, {
+            pinnedMessageId: null // or deleteField()
+        });
+    } catch (error) {
+        console.error('Error unpinning message:', error);
         throw error;
     }
 }

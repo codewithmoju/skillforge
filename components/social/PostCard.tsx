@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Heart, Bookmark, MessageCircle, MoreVertical } from "lucide-react";
 import { Post, likePost, savePost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useUserStore } from "@/lib/store";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/social/ShareButton";
@@ -19,6 +20,9 @@ interface PostCardProps {
 
 export function PostCard({ post, isLiked: initialLiked = false, isSaved: initialSaved = false }: PostCardProps) {
     const { user } = useAuth();
+    const incrementLikesGiven = useUserStore((state) => state.incrementLikesGiven);
+    const incrementSaves = useUserStore((state) => state.incrementSaves);
+    const updatePostLikes = useUserStore((state) => state.updatePostLikes);
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isSaved, setIsSaved] = useState(initialSaved);
     const [likes, setLikes] = useState(post.likes);
@@ -30,8 +34,19 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
 
         try {
             await likePost(user.uid, post.id);
-            setIsLiked(!isLiked);
-            setLikes(prev => isLiked ? prev - 1 : prev + 1);
+            const newLiked = !isLiked;
+            setIsLiked(newLiked);
+            const newLikes = isLiked ? likes - 1 : likes + 1;
+            setLikes(newLikes);
+            
+            // Update achievements
+            if (newLiked) {
+                incrementLikesGiven();
+            }
+            // Update trendsetter achievement for post owner (if likes >= 10)
+            if (newLikes >= 10) {
+                updatePostLikes(newLikes);
+            }
         } catch (error) {
             console.error('Error liking post:', error);
         }
@@ -42,8 +57,14 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
 
         try {
             await savePost(user.uid, post.id);
-            setIsSaved(!isSaved);
-            setSaves(prev => isSaved ? prev - 1 : prev + 1);
+            const newSaved = !isSaved;
+            setIsSaved(newSaved);
+            setSaves(isSaved ? saves - 1 : saves + 1);
+            
+            // Update achievements
+            if (newSaved) {
+                incrementSaves();
+            }
         } catch (error) {
             console.error('Error saving post:', error);
         }

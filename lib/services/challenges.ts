@@ -1,120 +1,126 @@
-import { db } from '../firebase';
-import { collection, doc, addDoc, getDocs, getDoc, query, where, orderBy, limit, updateDoc, increment, arrayUnion } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import {
+    doc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    Timestamp
+} from 'firebase/firestore';
 
-export interface Challenge {
+export interface DailyChallenge {
     id: string;
     title: string;
     description: string;
-    startDate: string;
-    endDate: string;
-    participantsCount: number;
-    participants: string[]; // Array of user IDs
+    target: number;
+    progress: number;
+    completed: boolean;
     xpReward: number;
-    imageUrl?: string;
-    status: 'upcoming' | 'active' | 'completed';
-    type: 'coding' | 'design' | 'learning';
+    type: 'message_count' | 'reaction_count' | 'new_conversation';
 }
 
-export async function getChallenges(status?: Challenge['status']): Promise<Challenge[]> {
-    try {
-        let q;
-        if (status) {
-            q = query(
-                collection(db, 'challenges'),
-                where('status', '==', status),
-                orderBy('endDate', 'asc')
-            );
-        } else {
-            q = query(
-                collection(db, 'challenges'),
-                orderBy('endDate', 'desc')
-            );
-        }
+export interface UserDailyChallenges {
+    userId: string;
+    date: string; // YYYY-MM-DD
+    challenges: DailyChallenge[];
+    lastUpdated: Timestamp;
+}
 
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Challenge));
-    } catch (error) {
-        console.error('Error getting challenges:', error);
-        return [];
+const CHALLENGE_TEMPLATES: Omit<DailyChallenge, 'progress' | 'completed'>[] = [
+    {
+        id: 'daily_msg_5',
+        title: 'Social Butterfly',
+        description: 'Send 5 messages today',
+        target: 5,
+        xpReward: 50,
+        type: 'message_count'
+    },
+    {
+        id: 'daily_react_3',
+        title: 'Express Yourself',
+        description: 'React to 3 messages',
+        target: 3,
+        xpReward: 30,
+        type: 'reaction_count'
+    },
+    {
+        id: 'daily_new_conv',
+        title: 'New Connections',
+        description: 'Start a new conversation',
+        target: 1,
+        xpReward: 100,
+        type: 'new_conversation'
     }
-}
+];
 
-export async function getChallenge(challengeId: string): Promise<Challenge | null> {
-    try {
-        const docRef = doc(db, 'challenges', challengeId);
-        const docSnap = await getDoc(docRef);
+export async function getDailyChallenges(userId: string): Promise<DailyChallenge[]> {
+    const today = new Date().toISOString().split('T')[0];
+    const docId = `${userId}_${today}`;
+    const docRef = doc(db, 'dailyChallenges', docId);
+    const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-            return { id: docSnap.id, ...docSnap.data() } as Challenge;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error('Error getting challenge:', error);
-        return null;
+    if (docSnap.exists()) {
+        return docSnap.data().challenges as DailyChallenge[];
     }
+
+    // Create new challenges for today
+    const newChallenges: DailyChallenge[] = CHALLENGE_TEMPLATES.map(t => ({
+        ...t,
+        progress: 0,
+        completed: false
+    }));
+
+    await setDoc(docRef, {
+        userId,
+        date: today,
+        challenges: newChallenges,
+        lastUpdated: Timestamp.now()
+    });
+
+    return newChallenges;
 }
 
-export async function joinChallenge(userId: string, challengeId: string): Promise<void> {
-    try {
-        const challengeRef = doc(db, 'challenges', challengeId);
+export async function updateChallengeProgress(
+    userId: string,
+    type: DailyChallenge['type'],
+    incrementBy: number = 1
+): Promise<{ xpGained: number; completedChallenges: DailyChallenge[] }> {
+    const today = new Date().toISOString().split('T')[0];
+    const docId = `${userId}_${today}`;
+    const docRef = doc(db, 'dailyChallenges', docId);
 
-        await updateDoc(challengeRef, {
-            participants: arrayUnion(userId),
-            participantsCount: increment(1),
-        });
-    } catch (error) {
-        console.error('Error joining challenge:', error);
-        throw error;
+    // We need to read first to update correctly
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) {
+        await getDailyChallenges(userId); // Initialize if missing
+        return updateChallengeProgress(userId, type, incrementBy); // Retry
     }
-}
 
-// Helper function to seed some initial challenges if none exist
-export async function seedChallenges(): Promise<void> {
-    try {
-        const snapshot = await getDocs(collection(db, 'challenges'));
-        if (!snapshot.empty) return;
+    const data = docSnap.data() as UserDailyChallenges;
+    let xpGained = 0;
+    const completedChallenges: DailyChallenge[] = [];
 
-        const challenges = [
-            {
-                title: "30 Days of Code",
-                description: "Commit code every day for 30 days. Build a habit and improve your skills.",
-                startDate: new Date().toISOString(),
-                endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                participantsCount: 0,
-                participants: [],
-                xpReward: 500,
-                status: 'active',
-                type: 'coding'
-            },
-            {
-                title: "UI Design Sprint",
-                description: "Design 5 different landing pages in one week. Focus on aesthetics and usability.",
-                startDate: new Date().toISOString(),
-                endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-                participantsCount: 0,
-                participants: [],
-                xpReward: 300,
-                status: 'active',
-                type: 'design'
-            },
-            {
-                title: "React Mastery",
-                description: "Complete the Advanced React course and build a final project.",
-                startDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
-                endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-                participantsCount: 0,
-                participants: [],
-                xpReward: 1000,
-                status: 'upcoming',
-                type: 'learning'
+    const updatedChallenges = data.challenges.map(challenge => {
+        if (challenge.type === type && !challenge.completed) {
+            const newProgress = Math.min(challenge.progress + incrementBy, challenge.target);
+            const isCompleted = newProgress >= challenge.target;
+
+            if (isCompleted) {
+                xpGained += challenge.xpReward;
+                completedChallenges.push({ ...challenge, progress: newProgress, completed: true });
+                return { ...challenge, progress: newProgress, completed: true };
             }
-        ];
 
-        for (const challenge of challenges) {
-            await addDoc(collection(db, 'challenges'), challenge);
+            return { ...challenge, progress: newProgress };
         }
-    } catch (error) {
-        console.error('Error seeding challenges:', error);
+        return challenge;
+    });
+
+    if (xpGained > 0 || updatedChallenges !== data.challenges) {
+        await updateDoc(docRef, {
+            challenges: updatedChallenges,
+            lastUpdated: Timestamp.now()
+        });
     }
+
+    return { xpGained, completedChallenges };
 }

@@ -8,6 +8,7 @@ import { Loader2, Image as ImageIcon, X } from "@/lib/icons";
 import { createPost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
+import { useUserStore } from "@/lib/store";
 
 interface CreatePostProps {
     isOpen: boolean;
@@ -17,6 +18,7 @@ interface CreatePostProps {
 
 export function CreatePost({ isOpen, onClose, onPostCreated }: CreatePostProps) {
     const { user } = useAuth();
+    const incrementPostCount = useUserStore((state) => state.incrementPostCount);
     const [text, setText] = useState("");
     const [images, setImages] = useState<string[]>([]);
     const [loading, setLoading] = useState(false);
@@ -58,6 +60,9 @@ export function CreatePost({ isOpen, onClose, onPostCreated }: CreatePostProps) 
                     images: images.length > 0 ? images : undefined,
                 }
             );
+
+            // Update achievement progress
+            incrementPostCount();
 
             setText("");
             setImages([]);

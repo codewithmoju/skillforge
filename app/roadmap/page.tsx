@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Lock, Star, ChevronRight, BookOpen, Loader2, Trophy, RotateCcw } from "lucide-react";
+import { Check, Lock, Star, ChevronRight, BookOpen, Loader2, Trophy, RotateCcw, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,17 +14,22 @@ import { LevelBadge } from "@/components/gamification/LevelBadge";
 import { StreakDisplay } from "@/components/gamification/StreakDisplay";
 import { RoadmapGenerationHero } from "@/components/roadmap/RoadmapGenerationHero";
 import RoadmapLoading from "@/components/roadmap/RoadmapLoading";
+import { RoadmapSkinRenderer } from "@/components/roadmap/RoadmapSkinRenderer";
+import { SkinSelector } from "@/components/roadmap/SkinSelector";
+import { useSkin } from "@/lib/hooks/useSkin";
 import { calculateUserLevel } from "@/lib/utils/levelSystem";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export default function RoadmapPage() {
     const router = useRouter();
-    const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic, xp, streakData, updateStreak } = useUserStore();
+    const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic, xp, streakData, updateStreak, selectedSkin } = useUserStore();
+    const { colors } = useSkin();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isQuizOpen, setIsQuizOpen] = useState(false);
+    const [isSkinSelectorOpen, setIsSkinSelectorOpen] = useState(false);
     const [achievementToast, setAchievementToast] = useState<{
         name: string;
         icon: string;
@@ -99,18 +104,59 @@ export default function RoadmapPage() {
     }
 
     return (
-        <div className="min-h-screen pb-20">
+        <div 
+            className="min-h-screen pb-20 transition-all duration-500 relative overflow-hidden"
+            style={{ backgroundColor: colors.background }}
+        >
+            {/* Background Effects */}
+            <div 
+                className="fixed inset-0 -z-10 opacity-30"
+                style={{
+                    background: `radial-gradient(circle at 20% 30%, ${colors.primary}20 0%, transparent 50%),
+                                 radial-gradient(circle at 80% 70%, ${colors.accent}20 0%, transparent 50%)`,
+                }}
+            />
+            
             {/* Header / Stats Section */}
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">
+                        <h1 
+                            className="text-3xl font-bold mb-2 transition-colors duration-500"
+                            style={{ color: colors.textPrimary }}
+                        >
                             {currentTopic ? `Roadmap: ${currentTopic}` : "Your Learning Journey"}
                         </h1>
-                        <p className="text-slate-400">Master your skills one level at a time.</p>
+                        <p 
+                            className="transition-colors duration-500"
+                            style={{ color: colors.textSecondary }}
+                        >
+                            Master your skills one level at a time.
+                        </p>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 flex-wrap">
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsSkinSelectorOpen(true)}
+                            className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                            style={{
+                                borderColor: colors.primary,
+                                color: colors.textPrimary,
+                                backgroundColor: `${colors.backgroundCard}80`,
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = colors.accent;
+                                e.currentTarget.style.backgroundColor = `${colors.primary}20`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = colors.primary;
+                                e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
+                            }}
+                        >
+                            <Palette className="w-4 h-4" style={{ color: colors.accent }} />
+                            Change Layout
+                        </Button>
                         <Button
                             variant="outline"
                             onClick={() => {
@@ -118,14 +164,43 @@ export default function RoadmapPage() {
                                     setRoadmap("", [], "");
                                 }
                             }}
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                            style={{
+                                borderColor: colors.primary,
+                                color: colors.textPrimary,
+                                backgroundColor: `${colors.backgroundCard}80`,
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = colors.accent;
+                                e.currentTarget.style.backgroundColor = `${colors.primary}20`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = colors.primary;
+                                e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
+                            }}
                         >
-                            <RotateCcw className="w-4 h-4" />
+                            <RotateCcw className="w-4 h-4" style={{ color: colors.accent }} />
                             New Roadmap
                         </Button>
                         <Link href="/achievements">
-                            <Button variant="outline" className="flex items-center gap-2">
-                                <Trophy className="w-4 h-4" />
+                            <Button 
+                                variant="outline" 
+                                className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                                style={{
+                                    borderColor: colors.primary,
+                                    color: colors.textPrimary,
+                                    backgroundColor: `${colors.backgroundCard}80`,
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = colors.accent;
+                                    e.currentTarget.style.backgroundColor = `${colors.primary}20`;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = colors.primary;
+                                    e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
+                                }}
+                            >
+                                <Trophy className="w-4 h-4" style={{ color: colors.accent }} />
                                 Achievements
                             </Button>
                         </Link>
@@ -134,10 +209,22 @@ export default function RoadmapPage() {
 
                 {/* Stats Bar */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 flex items-center justify-center">
+                    <div 
+                        className="rounded-xl p-4 border flex items-center justify-center transition-all duration-500"
+                        style={{
+                            backgroundColor: `${colors.backgroundCard}80`,
+                            borderColor: `${colors.primary}40`,
+                        }}
+                    >
                         <LevelBadge userLevel={userLevel} size="sm" />
                     </div>
-                    <div className="md:col-span-2">
+                    <div 
+                        className="md:col-span-2 rounded-xl p-4 border transition-all duration-500"
+                        style={{
+                            backgroundColor: `${colors.backgroundCard}80`,
+                            borderColor: `${colors.primary}40`,
+                        }}
+                    >
                         <StreakDisplay
                             currentStreak={streakData.currentStreak}
                             longestStreak={streakData.longestStreak}
@@ -149,64 +236,15 @@ export default function RoadmapPage() {
             </div>
 
             <div className="flex flex-col lg:flex-row gap-8 h-full">
-                {/* Left: Roadmap Visualization */}
-                <div className="flex-1 relative min-h-[800px] bg-slate-900/30 rounded-3xl border border-slate-800/50 overflow-hidden p-8 flex justify-center">
-                    {/* Background Grid */}
-                    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-
-                    {/* Connecting Line */}
-                    <div className="absolute top-20 bottom-20 w-1 bg-slate-800 left-1/2 -translate-x-1/2">
-                        <motion.div
-                            className="w-full bg-gradient-to-b from-accent-indigo to-accent-cyan"
-                            initial={{ height: "0%" }}
-                            animate={{ height: "50%" }} // This should be dynamic based on progress
-                            transition={{ duration: 1.5, ease: "easeInOut" }}
-                        />
-                    </div>
-
-                    {/* Nodes */}
-                    <div className="relative z-10 flex flex-col gap-24 w-full max-w-md items-center pt-10">
-                        {roadmapDefinitions.map((def, index) => {
-                            const nodeState = roadmapProgress[def.id] || { status: "locked", completedLessons: 0 };
-
-                            return (
-                                <motion.div
-                                    key={def.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: index * 0.2 }}
-                                    className="relative w-full flex justify-center"
-                                >
-                                    <button
-                                        onClick={() => setSelectedNodeId(def.id)}
-                                        className={cn(
-                                            "relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center border-4 transition-all duration-300 hover:scale-110",
-                                            nodeState.status === "completed" && "bg-slate-900 border-status-success text-status-success shadow-[0_0_20px_rgba(34,197,94,0.3)]",
-                                            nodeState.status === "active" && "bg-slate-900 border-accent-cyan text-accent-cyan shadow-[0_0_30px_rgba(6,182,212,0.4)] animate-pulse-slow",
-                                            nodeState.status === "locked" && "bg-slate-800 border-slate-700 text-slate-600 grayscale"
-                                        )}
-                                    >
-                                        {nodeState.status === "completed" ? (
-                                            <Check className="w-8 h-8" />
-                                        ) : nodeState.status === "locked" ? (
-                                            <Lock className="w-6 h-6" />
-                                        ) : (
-                                            <Star className="w-8 h-8 fill-current" />
-                                        )}
-
-                                        {/* Label */}
-                                        <div className={cn(
-                                            "absolute left-20 top-1/2 -translate-y-1/2 w-48 text-left pl-4 transition-all",
-                                            selectedNodeId === def.id ? "opacity-100 translate-x-0" : "opacity-50 translate-x-[-10px]"
-                                        )}>
-                                            <div className="text-lg font-bold text-white">{def.title}</div>
-                                            <div className="text-xs text-slate-400">Level {def.level}</div>
-                                        </div>
-                                    </button>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
+                {/* Left: Roadmap Visualization with Skin System */}
+                <div className="flex-1 relative min-h-[800px] overflow-hidden">
+                    <RoadmapSkinRenderer
+                        selectedSkin={selectedSkin}
+                        roadmapDefinitions={roadmapDefinitions}
+                        roadmapProgress={roadmapProgress}
+                        selectedNodeId={selectedNodeId}
+                        onNodeSelect={setSelectedNodeId}
+                    />
                 </div>
 
                 {/* Right: Details Panel */}
@@ -218,31 +256,62 @@ export default function RoadmapPage() {
                             animate={{ opacity: 1, x: 0 }}
                             className="sticky top-24"
                         >
-                            <Card className="border-accent-indigo/30 bg-slate-800/80">
+                            <Card 
+                                className="transition-all duration-500"
+                                style={{
+                                    borderColor: `${colors.primary}50`,
+                                    backgroundColor: `${colors.backgroundCard}CC`,
+                                }}
+                            >
                                 <div className="mb-6">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-bold uppercase tracking-wider text-accent-cyan">
+                                        <span 
+                                            className="text-xs font-bold uppercase tracking-wider transition-colors duration-500"
+                                            style={{ color: colors.accent }}
+                                        >
                                             Current Module
                                         </span>
-                                        <span className="text-xs text-slate-400">
+                                        <span 
+                                            className="text-xs transition-colors duration-500"
+                                            style={{ color: colors.textSecondary }}
+                                        >
                                             {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Lessons
                                         </span>
                                     </div>
-                                    <h2 className="text-2xl font-bold text-white mb-4">
+                                    <h2 
+                                        className="text-2xl font-bold mb-4 transition-colors duration-500"
+                                        style={{ color: colors.textPrimary }}
+                                    >
                                         {selectedNodeDef.title}
                                     </h2>
-                                    <p className="text-sm text-slate-400 mb-4">{selectedNodeDef.description}</p>
-                                    <ProgressBar
-                                        progress={
-                                            (selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100
-                                        }
-                                        className="h-2"
-                                    />
+                                    <p 
+                                        className="text-sm mb-4 transition-colors duration-500"
+                                        style={{ color: colors.textSecondary }}
+                                    >
+                                        {selectedNodeDef.description}
+                                    </p>
+                                    <div className="relative w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${colors.primary}20` }}>
+                                        <motion.div
+                                            className="h-full rounded-full transition-all duration-500"
+                                            style={{
+                                                backgroundColor: colors.accent,
+                                                background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
+                                            }}
+                                            initial={{ width: 0 }}
+                                            animate={{ 
+                                                width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%` 
+                                            }}
+                                            transition={{ duration: 0.8, ease: "easeOut" }}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="space-y-4 mb-8">
-                                    <h3 className="font-semibold text-white flex items-center gap-2">
-                                        <BookOpen className="w-4 h-4" /> Lessons
+                                    <h3 
+                                        className="font-semibold flex items-center gap-2 transition-colors duration-500"
+                                        style={{ color: colors.textPrimary }}
+                                    >
+                                        <BookOpen className="w-4 h-4" style={{ color: colors.accent }} /> Lessons
                                     </h3>
                                     {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
                                         const lessonNum = i + 1;
@@ -250,47 +319,109 @@ export default function RoadmapPage() {
                                         const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
 
                                         return (
-                                            <div
+                                            <motion.div
                                                 key={lessonNum}
                                                 onClick={() => {
                                                     if (!isCompleted) {
                                                         router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
                                                     }
                                                 }}
-                                                className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/50 border border-slate-700/50 hover:border-accent-indigo/50 transition-colors cursor-pointer group"
+                                                className="flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer group"
+                                                style={{
+                                                    backgroundColor: isCompleted ? `${colors.nodeCompleted}15` : `${colors.backgroundCard}80`,
+                                                    borderColor: isCompleted ? `${colors.nodeCompleted}40` : `${colors.primary}30`,
+                                                }}
+                                                whileHover={{ 
+                                                    scale: 1.02,
+                                                    borderColor: isCompleted ? colors.nodeCompleted : colors.accent,
+                                                }}
                                             >
-                                                <div className={cn(
-                                                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border",
-                                                    isCompleted ? "bg-status-success/20 border-status-success text-status-success" : "border-slate-600 text-slate-500"
-                                                )}>
+                                                <div 
+                                                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300"
+                                                    style={{
+                                                        backgroundColor: isCompleted ? `${colors.nodeCompleted}30` : "transparent",
+                                                        borderColor: isCompleted ? colors.nodeCompleted : colors.textMuted,
+                                                        color: isCompleted ? colors.nodeCompleted : colors.textMuted,
+                                                    }}
+                                                >
                                                     {isCompleted ? <Check className="w-3 h-3" /> : lessonNum}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <span className={cn(
-                                                        "text-sm font-medium transition-colors block",
-                                                        isCompleted ? "text-slate-400 line-through" : "text-slate-200 group-hover:text-white"
-                                                    )}>
+                                                    <span 
+                                                        className={cn(
+                                                            "text-sm font-medium transition-colors block",
+                                                            isCompleted && "line-through"
+                                                        )}
+                                                        style={{
+                                                            color: isCompleted ? colors.textMuted : colors.textPrimary,
+                                                        }}
+                                                    >
                                                         {lessonTitle}
                                                     </span>
                                                     {isCompleted && (
-                                                        <span className="text-xs text-status-success">✓ Completed</span>
+                                                        <span 
+                                                            className="text-xs transition-colors duration-500"
+                                                            style={{ color: colors.nodeCompleted }}
+                                                        >
+                                                            ✓ Completed
+                                                        </span>
                                                     )}
                                                 </div>
-                                                <ChevronRight className="w-4 h-4 text-slate-600 ml-auto group-hover:text-white" />
-                                            </div>
+                                                <ChevronRight 
+                                                    className="w-4 h-4 ml-auto transition-colors duration-300" 
+                                                    style={{ 
+                                                        color: colors.textMuted,
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        e.currentTarget.style.color = colors.accent;
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        e.currentTarget.style.color = colors.textMuted;
+                                                    }}
+                                                />
+                                            </motion.div>
                                         );
                                     })}
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    <Button className="w-full" size="lg">
+                                    <Button 
+                                        className="w-full transition-all duration-300 hover:scale-105" 
+                                        size="lg"
+                                        style={{
+                                            background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                                            color: colors.textPrimary,
+                                            border: "none",
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.boxShadow = `0 0 20px ${colors.primary}50`;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.boxShadow = "none";
+                                        }}
+                                    >
                                         {selectedNodeProgress.completedLessons >= selectedNodeDef.lessons ? "Module Completed" : "Continue Learning"}
                                     </Button>
 
                                     <Button
                                         variant="outline"
-                                        className="w-full"
+                                        className="w-full transition-all duration-300 hover:scale-105"
                                         onClick={() => setIsQuizOpen(true)}
+                                        style={{
+                                            borderColor: colors.primary,
+                                            color: colors.textPrimary,
+                                            backgroundColor: `${colors.backgroundCard}80`,
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.borderColor = colors.accent;
+                                            e.currentTarget.style.backgroundColor = `${colors.primary}20`;
+                                            e.currentTarget.style.boxShadow = `0 0 15px ${colors.primary}30`;
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.borderColor = colors.primary;
+                                            e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
+                                            e.currentTarget.style.boxShadow = "none";
+                                        }}
                                     >
                                         Take Quiz Challenge
                                     </Button>
@@ -298,7 +429,10 @@ export default function RoadmapPage() {
                             </Card>
                         </motion.div>
                     ) : (
-                        <div className="h-full flex items-center justify-center text-slate-500">
+                        <div 
+                            className="h-full flex items-center justify-center transition-colors duration-500"
+                            style={{ color: colors.textMuted }}
+                        >
                             Select a node to view details
                         </div>
                     )}
@@ -333,6 +467,12 @@ export default function RoadmapPage() {
                     />
                 )
             }
+
+            {/* Skin Selector Modal */}
+            <SkinSelector
+                isOpen={isSkinSelectorOpen}
+                onClose={() => setIsSkinSelectorOpen(false)}
+            />
         </div >
     );
 }
