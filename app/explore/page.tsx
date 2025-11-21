@@ -31,7 +31,7 @@ export default function ExplorePage() {
             content.text ||
             post.userName ||
             post.username ||
-            "SkillForge Post"
+            "EduMate AI Post"
         );
     };
 
@@ -237,14 +237,14 @@ export default function ExplorePage() {
                                         <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-white text-xs md:text-sm">
                                             <div>
                                                 <p className="font-semibold">{displayName}</p>
-                                                <p className="text-white/70">@{post.username || "skillforge"}</p>
+                                                <p className="text-white/70">@{post.username || "edumate"}</p>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="flex items-center gap-1">
                                                     <Heart className="w-4 h-4" />
                                                     <span>{likes}</span>
                                                 </div>
-                                            <div className="flex items-center gap-1">
+                                                <div className="flex items-center gap-1">
                                                     <MessageCircle className="w-4 h-4" />
                                                     <span>{comments}</span>
                                                 </div>

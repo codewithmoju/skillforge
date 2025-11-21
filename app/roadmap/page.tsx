@@ -2,20 +2,39 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Lock, Star, ChevronRight, BookOpen, Sparkles, Loader2 } from "lucide-react";
+import { Check, Lock, Star, ChevronRight, BookOpen, Sparkles, Loader2, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { useUserStore } from "@/lib/store";
 import { QuizModal } from "@/components/features/QuizModal";
+import { AchievementToast } from "@/components/gamification/AchievementToast";
+import { LevelBadge } from "@/components/gamification/LevelBadge";
+import { StreakDisplay } from "@/components/gamification/StreakDisplay";
+import { calculateUserLevel } from "@/lib/utils/levelSystem";
+import Link from "next/link";
 
 export default function RoadmapPage() {
-    const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic } = useUserStore();
+    const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic, xp, streakData, updateStreak } = useUserStore();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [topicInput, setTopicInput] = useState("");
+    const [categoryInput, setCategoryInput] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
     const [isQuizOpen, setIsQuizOpen] = useState(false);
+    const [achievementToast, setAchievementToast] = useState<{
+        name: string;
+        icon: string;
+        stars: number;
+        xp: number;
+    } | null>(null);
+
+    const userLevel = calculateUserLevel(xp);
+
+    // Update streak on mount
+    useEffect(() => {
+        updateStreak();
+    }, []);
 
     // Set initial selected node if available and none selected
     useEffect(() => {
@@ -40,8 +59,13 @@ export default function RoadmapPage() {
             });
             const data = await res.json();
             if (data.roadmap) {
-                setRoadmap(topicInput, data.roadmap);
+                const category = categoryInput.trim() || topicInput.split(' ')[0];
+                setRoadmap(topicInput, data.roadmap, category);
                 setTopicInput("");
+                setCategoryInput("");
+
+                // Show achievement toast for first roadmap
+                // This would be triggered by the store's achievement system
             }
         } catch (error) {
             console.error("Failed to generate", error);
@@ -53,27 +77,62 @@ export default function RoadmapPage() {
     return (
         <div className="min-h-screen pb-20">
             {/* Header / Input Section */}
-            <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">
-                        {currentTopic ? `Roadmap: ${currentTopic}` : "Your Learning Journey"}
-                    </h1>
-                    <p className="text-slate-400">Master your skills one level at a time.</p>
+            <div className="mb-8">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white mb-2">
+                            {currentTopic ? `Roadmap: ${currentTopic}` : "Your Learning Journey"}
+                        </h1>
+                        <p className="text-slate-400">Master your skills one level at a time.</p>
+                    </div>
+
+                    <Link href="/achievements">
+                        <Button variant="outline" className="flex items-center gap-2">
+                            <Trophy className="w-4 h-4" />
+                            Achievements
+                        </Button>
+                    </Link>
                 </div>
 
-                <div className="flex gap-2 w-full md:w-auto">
-                    <input
-                        type="text"
-                        placeholder="What do you want to learn?"
-                        value={topicInput}
-                        onChange={(e) => setTopicInput(e.target.value)}
-                        className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-accent-indigo w-full md:w-64"
-                        onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
-                    />
-                    <Button onClick={handleGenerate} disabled={isGenerating} className="shrink-0">
-                        {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                        {isGenerating ? "Forging..." : "New Path"}
-                    </Button>
+                {/* Stats Bar */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-slate-900/50 rounded-xl p-4 border border-slate-800 flex items-center justify-center">
+                        <LevelBadge userLevel={userLevel} size="sm" />
+                    </div>
+                    <div className="md:col-span-2">
+                        <StreakDisplay
+                            currentStreak={streakData.currentStreak}
+                            longestStreak={streakData.longestStreak}
+                            multiplier={streakData.multiplier}
+                            compact
+                        />
+                    </div>
+                </div>
+
+                {/* Roadmap Generation */}
+                <div className="flex flex-col gap-2">
+                    <div className="flex gap-2 w-full">
+                        <input
+                            type="text"
+                            placeholder="What do you want to learn?"
+                            value={topicInput}
+                            onChange={(e) => setTopicInput(e.target.value)}
+                            className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-accent-indigo flex-1"
+                            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                        />
+                        <input
+                            type="text"
+                            placeholder="Category (optional)"
+                            value={categoryInput}
+                            onChange={(e) => setCategoryInput(e.target.value)}
+                            className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-accent-indigo w-48"
+                            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+                        />
+                        <Button onClick={handleGenerate} disabled={isGenerating} className="shrink-0">
+                            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                            {isGenerating ? "Forging..." : "New Path"}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -241,6 +300,18 @@ export default function RoadmapPage() {
                     topic={selectedNodeDef.title}
                     level={selectedNodeDef.level}
                     nodeId={selectedNodeDef.id}
+                />
+            )}
+
+            {/* Achievement Toast */}
+            {achievementToast && (
+                <AchievementToast
+                    achievementName={achievementToast.name}
+                    achievementIcon={achievementToast.icon}
+                    stars={achievementToast.stars}
+                    xpGained={achievementToast.xp}
+                    isVisible={!!achievementToast}
+                    onClose={() => setAchievementToast(null)}
                 />
             )}
         </div>

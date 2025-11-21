@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
     { name: "Home", href: "/dashboard", icon: Home },
-    { name: "Explore", href: "/explore", icon: Globe }, // New Explore item
+    { name: "Search", href: "/search", icon: Globe }, // Updated to Search
     { name: "Create", href: "/create", icon: PlusCircle },
     { name: "Notifications", href: "/notifications", icon: Bell },
     { name: "Profile", href: "/profile", icon: UserCircle },
@@ -32,7 +32,7 @@ export function MobileNav() {
     }, [user]);
 
     return (
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 z-50 safe-area-bottom">
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 w-full bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 z-50 pb-safe">
             <div className="flex items-center justify-around h-16 px-2 w-full max-w-md mx-auto">
                 {navItems.map((item) => {
                     const href = item.name === "Profile" && username ? `/profile/${username}` : item.href;

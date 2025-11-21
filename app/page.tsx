@@ -9,6 +9,7 @@ import { AuthModal } from "@/components/features/AuthModal";
 import { SplashScreen } from "@/components/ui/SplashScreen";
 import { useAuth } from "@/lib/hooks/useAuth";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -63,10 +64,16 @@ export default function LandingPage() {
         {/* Navigation */}
         <nav className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center overflow-hidden">
+              <Image
+                src="/icons/MyLogo.png"
+                alt="EduMate AI Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+              />
             </div>
-            <span className="text-2xl font-bold text-white">SkillForge</span>
+            <span className="text-2xl font-bold text-white">EduMate AI</span>
           </div>
           <Button onClick={() => setIsAuthModalOpen(true)}>
             Get Started

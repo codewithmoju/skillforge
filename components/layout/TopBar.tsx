@@ -1,19 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { Bell, Flame, Search, LogOut } from "lucide-react";
 import { useUserStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { AuthModal } from "@/components/features/AuthModal";
+import Image from "next/image";
+import Link from "next/link";
 
 export function TopBar() {
     const { xp, level, streak } = useUserStore();
     const { user, logout } = useAuth();
-    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
     return (
-        <header className="h-20 px-8 flex items-center justify-between bg-transparent sticky top-0 z-40 backdrop-blur-sm">
+        <header className="hidden md:flex h-20 px-8 items-center justify-between bg-transparent sticky top-0 z-40 backdrop-blur-sm">
             <div className="flex items-center gap-4 flex-1">
                 <div className="relative w-96 hidden md:block">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -44,7 +43,13 @@ export function TopBar() {
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-indigo to-accent-violet p-0.5">
                                 <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden">
                                     {user.photoURL ? (
-                                        <img src={user.photoURL} alt={user.displayName || "User"} className="w-full h-full object-cover" />
+                                        <Image
+                                            src={user.photoURL}
+                                            alt={user.displayName || "User"}
+                                            width={40}
+                                            height={40}
+                                            className="w-full h-full object-cover"
+                                        />
                                     ) : (
                                         <span className="font-bold text-white">{user.displayName?.charAt(0) || user.email?.charAt(0) || "U"}</span>
                                     )}
@@ -55,9 +60,11 @@ export function TopBar() {
                             </Button>
                         </div>
                     ) : (
-                        <Button size="sm" onClick={() => setIsAuthModalOpen(true)}>
-                            Get Started
-                        </Button>
+                        <Link href="/signup">
+                            <Button size="sm">
+                                Get Started
+                            </Button>
+                        </Link>
                     )}
                 </div>
 
@@ -67,8 +74,6 @@ export function TopBar() {
                     <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-status-error border-2 border-slate-900"></span>
                 </button>
             </div>
-
-            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         </header>
     );
 }

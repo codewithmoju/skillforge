@@ -114,16 +114,30 @@ export async function getUserPosts(userId: string, limitCount: number = 50): Pro
 
 export async function getFeedPosts(followingIds: string[], limitCount: number = 50): Promise<Post[]> {
     try {
-        if (followingIds.length === 0) return [];
+        let followedPosts: Post[] = [];
 
-        const q = query(
-            collection(db, 'posts'),
-            where('userId', 'in', followingIds.slice(0, 10)), // Firestore limit
-            orderBy('createdAt', 'desc'),
-            limit(limitCount)
-        );
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        // 1. Fetch posts from followed users (if any)
+        if (followingIds.length > 0) {
+            // Firestore 'in' query is limited to 10. For now, we take the top 10 followed users.
+            const q = query(
+                collection(db, 'posts'),
+                where('userId', 'in', followingIds.slice(0, 10)),
+                orderBy('createdAt', 'desc'),
+                limit(limitCount)
+            );
+            const snapshot = await getDocs(q);
+            followedPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        }
+
+        // 2. Fetch trending/recent posts to fill the feed
+        const trendingPosts = await getTrendingPosts(limitCount);
+
+        // 3. Combine: Followed posts first, then trending posts
+        // Filter out duplicates
+        const followedPostIds = new Set(followedPosts.map(p => p.id));
+        const uniqueTrendingPosts = trendingPosts.filter(p => !followedPostIds.has(p.id));
+
+        return [...followedPosts, ...uniqueTrendingPosts];
     } catch (error) {
         console.error('Error getting feed posts:', error);
         return [];
@@ -132,31 +146,62 @@ export async function getFeedPosts(followingIds: string[], limitCount: number = 
 
 export async function getTrendingPosts(limitCount: number = 20): Promise<Post[]> {
     try {
-        // For simplicity, "trending" is defined by most likes in descending order.
-        // In a real application, this might involve more complex logic (e.g., time decay, comments, shares).
+        // Try to get posts with most likes first
         const q = query(
             collection(db, 'posts'),
             orderBy('likes', 'desc'),
-            orderBy('createdAt', 'desc'), // Secondary sort for newer posts with same likes
+            orderBy('createdAt', 'desc'),
             limit(limitCount)
         );
         const snapshot = await getDocs(q);
+
+        // If we don't have enough trending posts (e.g. new app), fallback to recent posts
+        if (snapshot.empty || snapshot.docs.length < 5) {
+            const recentQ = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                limit(limitCount)
+            );
+            const recentSnapshot = await getDocs(recentQ);
+            return recentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        }
+
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
     } catch (error) {
         console.error('Error getting trending posts:', error);
-        return [];
+        // Fallback to recent posts on error (e.g. missing index)
+        try {
+            const recentQ = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                limit(limitCount)
+            );
+            const recentSnapshot = await getDocs(recentQ);
+            return recentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        } catch (fallbackError) {
+            console.error('Error getting fallback posts:', fallbackError);
+            return [];
+        }
     }
 }
 
-export async function likePost(userId: string, postId: string): Promise<void> {
+export async function likePost(userId: string, postId: string, postOwnerId: string, userDetails: { name: string, photo?: string }): Promise<void> {
     try {
+        // Verify post exists first
+        const postRef = doc(db, 'posts', postId);
+        const postSnap = await getDoc(postRef);
+
+        if (!postSnap.exists()) {
+            throw new Error("Post does not exist");
+        }
+
         const likeId = `${userId}_${postId}`;
         const likeDoc = await getDoc(doc(db, 'likes', likeId));
 
         if (likeDoc.exists()) {
             // Unlike
             await deleteDoc(doc(db, 'likes', likeId));
-            await updateDoc(doc(db, 'posts', postId), {
+            await updateDoc(postRef, {
                 likes: increment(-1),
             });
         } else {
@@ -166,9 +211,22 @@ export async function likePost(userId: string, postId: string): Promise<void> {
                 postId,
                 createdAt: new Date().toISOString(),
             });
-            await updateDoc(doc(db, 'posts', postId), {
+            await updateDoc(postRef, {
                 likes: increment(1),
             });
+
+            // Send notification
+            if (userId !== postOwnerId) { // Don't notify if liking own post
+                const { createNotification } = await import('./notifications');
+                await createNotification(
+                    postOwnerId,
+                    'like',
+                    userId,
+                    userDetails.name,
+                    userDetails.photo,
+                    postId
+                );
+            }
         }
     } catch (error) {
         console.error('Error liking post:', error);

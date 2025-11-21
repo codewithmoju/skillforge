@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Settings, LogOut, User, Shield, Database } from "lucide-react";
+import { X, Settings, LogOut, User, Shield, Database, Trophy } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -94,6 +94,15 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
                         {/* Menu Items */}
                         <div className="p-4 space-y-2">
+                            <Link
+                                href="/achievements"
+                                onClick={onClose}
+                                className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hover:text-white transition-all"
+                            >
+                                <Trophy className="w-5 h-5" />
+                                <span className="font-medium">Achievements</span>
+                            </Link>
+
                             <Link
                                 href="/settings"
                                 onClick={onClose}

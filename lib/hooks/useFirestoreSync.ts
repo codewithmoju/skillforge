@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { onSnapshot, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useAuth } from './useAuth';
 import { useUserStore } from '../store';
 import { getUserData, createUserData, updateUserData } from '../services/firestore';
@@ -12,23 +14,26 @@ export function useFirestoreSync() {
     const lastSyncRef = useRef<string>('');
     const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
 
-    // Load user data from Firestore when user logs in
+    // Load user data from Firestore when user logs in and listen for updates
     useEffect(() => {
-        if (!user || syncedRef.current) return;
+        if (!user) return;
 
-        const loadData = async () => {
-            try {
-                const firestoreData = await getUserData(user.uid);
+        const unsubscribe = onSnapshot(doc(db, 'users', user.uid), async (docSnap: any) => {
+            if (docSnap.exists()) {
+                const firestoreData = docSnap.data();
 
-                if (firestoreData) {
-                    // Check if profile is complete
-                    if (!firestoreData.profileComplete) {
-                        setNeedsProfileCompletion(true);
-                        syncedRef.current = true;
-                        return;
-                    }
+                // Check if profile is complete
+                if (!firestoreData.profileComplete) {
+                    setNeedsProfileCompletion(true);
+                    // Don't return here, we might still want to sync other data or keep listening
+                } else {
+                    setNeedsProfileCompletion(false);
+                }
 
-                    // User exists in Firestore - load their data
+                // Only load data into store if we haven't synced yet or if it's a remote update
+                // We use a simple check here to avoid overwriting local unsaved changes
+                // In a real app, you might want more complex conflict resolution
+                if (!syncedRef.current) {
                     store.loadUserData({
                         xp: firestoreData.xp,
                         level: firestoreData.level,
@@ -42,23 +47,27 @@ export function useFirestoreSync() {
                         totalLessonsCompleted: firestoreData.totalLessonsCompleted || 0,
                         completedRoadmaps: firestoreData.completedRoadmaps || 0,
                     });
-                } else {
-                    // New user - create Firestore document
+                    syncedRef.current = true;
+                }
+            } else {
+                // New user - create Firestore document
+                // We only do this if we are sure it's a new user and not just a latency issue
+                // But for now, we stick to the existing logic
+                if (!syncedRef.current) {
                     await createUserData(
                         user.uid,
                         user.email || '',
                         user.displayName || 'Learner'
                     );
                     setNeedsProfileCompletion(true);
+                    syncedRef.current = true;
                 }
-
-                syncedRef.current = true;
-            } catch (error) {
-                console.error('Error loading user data:', error);
             }
-        };
+        }, (error: any) => {
+            console.error('Error listening to user data:', error);
+        });
 
-        loadData();
+        return () => unsubscribe();
     }, [user, store]);
 
     // Save to Firestore when store changes

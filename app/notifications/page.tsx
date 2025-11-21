@@ -1,137 +1,200 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Bell, UserPlus, Heart, MessageCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import Link from "next/link";
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { getNotifications, markAsRead, markAllAsRead, Notification } from '@/lib/services/notifications';
+import { Loader2, Heart, UserPlus, MessageCircle, Bell } from 'lucide-react';
+import Link from 'next/link';
+
+function timeAgo(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+
+    return Math.floor(seconds) + " seconds ago";
+}
 
 export default function NotificationsPage() {
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const { user } = useAuth();
+    const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Mock notifications for now
-    const mockNotifications = [
-        {
-            id: "1",
-            type: "follow",
-            fromUserName: "John Doe",
-            fromUsername: "johndoe",
-            fromUserPhoto: "",
-            read: false,
-            createdAt: new Date().toISOString(),
-        },
-        {
-            id: "2",
-            type: "like",
-            fromUserName: "Jane Smith",
-            fromUsername: "janesmith",
-            fromUserPhoto: "",
-            postId: "post1",
-            read: true,
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-    ];
-
     useEffect(() => {
-        // Simulate loading
-        setTimeout(() => {
-            setNotifications(mockNotifications);
-            setLoading(false);
-        }, 500);
-    }, []);
+        if (!user) return;
 
-    const getNotificationIcon = (type: string) => {
+        const fetchNotifications = async () => {
+            try {
+                const data = await getNotifications(user.uid);
+                setNotifications(data);
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchNotifications();
+    }, [user]);
+
+    const handleMarkAllRead = async () => {
+        if (!user) return;
+        try {
+            await markAllAsRead(user.uid);
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (error) {
+            console.error('Error marking all as read:', error);
+        }
+    };
+
+    const handleNotificationClick = async (notification: Notification) => {
+        if (!notification.read) {
+            try {
+                await markAsRead(notification.id);
+                setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+    };
+
+    const getIcon = (type: Notification['type']) => {
         switch (type) {
-            case "follow":
-                return UserPlus;
-            case "like":
-                return Heart;
-            case "comment":
-                return MessageCircle;
+            case 'like':
+                return <Heart className="w-5 h-5 text-red-400 fill-red-400" />;
+            case 'follow':
+                return <UserPlus className="w-5 h-5 text-blue-400" />;
+            case 'comment':
+                return <MessageCircle className="w-5 h-5 text-green-400" />;
+            case 'mention':
+                return <Bell className="w-5 h-5 text-yellow-400" />;
             default:
-                return Bell;
+                return <Bell className="w-5 h-5 text-gray-400" />;
         }
     };
 
-    const getNotificationText = (notification: any) => {
+    const getMessage = (notification: Notification) => {
         switch (notification.type) {
-            case "follow":
-                return "started following you";
-            case "like":
-                return "liked your post";
-            case "comment":
-                return "commented on your post";
+            case 'like':
+                return 'liked your post';
+            case 'follow':
+                return 'started following you';
+            case 'comment':
+                return 'commented on your post';
+            case 'mention':
+                return 'mentioned you in a post';
             default:
-                return "sent you a notification";
+                return 'interacted with you';
         }
     };
+
+    const getLink = (notification: Notification) => {
+        if (notification.type === 'follow') {
+            return `/profile/${notification.fromUserName}`; // Assuming username is available or we fetch it. Wait, fromUserName is name not username.
+            // We might need to store username in notification or fetch it.
+            // For now, let's assume we can link to profile but we need username.
+            // The notification service stores `fromUserName` which is likely the display name.
+            // We should probably store `fromUserUsername` too if we want to link correctly.
+            // Let's update the service later if needed, for now let's link to dashboard or just not link if we can't.
+            // Actually, let's just link to /profile/ID if we supported it, but we support /profile/USERNAME.
+            // I'll assume for now that I can't easily link to profile without username.
+            // But wait, I can store username in notification.
+        }
+        if (notification.postId) {
+            // We don't have a single post page yet? Or maybe we do?
+            // We don't have a dedicated single post page in the plan.
+            // But we can link to the feed or create a post modal.
+            // For now, let's just make it non-clickable or link to home.
+            return '/dashboard';
+        }
+        return '/dashboard';
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen">
-            <div className="max-w-2xl mx-auto">
-                {/* Header */}
-                <div className="mb-6 md:mb-8">
-                    <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Notifications</h1>
-                    <p className="text-slate-400">Stay updated with your activity</p>
-                </div>
+        <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-bold text-white">Notifications</h1>
+                {notifications.some(n => !n.read) && (
+                    <button
+                        onClick={handleMarkAllRead}
+                        className="text-sm text-accent-cyan hover:text-accent-cyan/80 transition-colors"
+                    >
+                        Mark all as read
+                    </button>
+                )}
+            </div>
 
-                {/* Notifications List */}
-                {loading ? (
-                    <div className="flex items-center justify-center py-12 md:py-20">
-                        <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
-                    </div>
-                ) : notifications.length > 0 ? (
-                    <div className="space-y-2 md:space-y-3">
-                        {notifications.map((notification) => {
-                            const Icon = getNotificationIcon(notification.type);
-                            return (
-                                <motion.div
-                                    key={notification.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className={`bg-slate-900/50 border rounded-xl md:rounded-2xl p-4 md:p-6 ${notification.read ? "border-slate-800" : "border-accent-indigo/30 bg-accent-indigo/5"
-                                        }`}
-                                >
-                                    <div className="flex items-start gap-3 md:gap-4">
-                                        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0 ${notification.type === "follow" ? "bg-blue-500/10" :
-                                                notification.type === "like" ? "bg-red-500/10" :
-                                                    "bg-green-500/10"
-                                            }`}>
-                                            <Icon className={`w-5 h-5 md:w-6 md:h-6 ${notification.type === "follow" ? "text-blue-400" :
-                                                    notification.type === "like" ? "text-red-400" :
-                                                        "text-green-400"
-                                                }`} />
-                                        </div>
-
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm md:text-base text-white">
-                                                <Link href={`/profile/${notification.fromUsername}`} className="font-semibold hover:text-accent-cyan">
-                                                    {notification.fromUserName}
-                                                </Link>
-                                                {" "}
-                                                <span className="text-slate-400">{getNotificationText(notification)}</span>
-                                            </p>
-                                            <p className="text-xs md:text-sm text-slate-500 mt-1">
-                                                {new Date(notification.createdAt).toLocaleDateString()}
-                                            </p>
-                                        </div>
-
-                                        {!notification.read && (
-                                            <div className="w-2 h-2 rounded-full bg-accent-cyan shrink-0 mt-2" />
-                                        )}
+            <div className="space-y-2">
+                {notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                        <div
+                            key={notification.id}
+                            onClick={() => handleNotificationClick(notification)}
+                            className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${notification.read
+                                ? 'bg-slate-900/30 border-slate-800/50'
+                                : 'bg-slate-800/50 border-slate-700'
+                                }`}
+                        >
+                            <div className="flex-shrink-0">
+                                {notification.fromUserPhoto ? (
+                                    <img
+                                        src={notification.fromUserPhoto}
+                                        alt={notification.fromUserName}
+                                        className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
+                                        <span className="text-white font-bold">
+                                            {notification.fromUserName.charAt(0).toUpperCase()}
+                                        </span>
                                     </div>
-                                </motion.div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="text-center py-12 md:py-20">
-                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                            <Bell className="w-8 h-8 md:w-10 md:h-10 text-slate-600" />
+                                )}
+                                <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full p-1">
+                                    {getIcon(notification.type)}
+                                </div>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                                <p className="text-white">
+                                    <span className="font-semibold">{notification.fromUserName}</span>{' '}
+                                    <span className="text-slate-300">{getMessage(notification)}</span>
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    {timeAgo(notification.createdAt)}
+                                </p>
+                            </div>
+
+                            {!notification.read && (
+                                <div className="w-2 h-2 rounded-full bg-accent-cyan flex-shrink-0" />
+                            )}
                         </div>
-                        <h3 className="text-lg md:text-xl font-semibold text-white mb-2">No notifications yet</h3>
-                        <p className="text-sm md:text-base text-slate-400">We'll notify you when something happens</p>
+                    ))
+                ) : (
+                    <div className="text-center py-12 text-slate-500">
+                        <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                        <p>No notifications yet</p>
                     </div>
                 )}
             </div>

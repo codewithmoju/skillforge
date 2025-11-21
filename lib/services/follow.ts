@@ -8,7 +8,7 @@ export interface FollowRelationship {
     createdAt: string;
 }
 
-export async function followUser(followerId: string, followingId: string, isPrivate: boolean): Promise<void> {
+export async function followUser(followerId: string, followingId: string, isPrivate: boolean, followerDetails: { name: string, photo?: string }): Promise<void> {
     try {
         const followId = `${followerId}_${followingId}`;
         const status = isPrivate ? 'pending' : 'accepted';
@@ -28,6 +28,16 @@ export async function followUser(followerId: string, followingId: string, isPriv
             await updateDoc(doc(db, 'users', followingId), {
                 followers: increment(1),
             });
+
+            // Send notification
+            const { createNotification } = await import('./notifications');
+            await createNotification(
+                followingId,
+                'follow',
+                followerId,
+                followerDetails.name,
+                followerDetails.photo
+            );
         }
     } catch (error) {
         console.error('Error following user:', error);

@@ -39,7 +39,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
                             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-indigo to-accent-cyan flex items-center justify-center">
                                 <Sparkles className="w-5 h-5 text-white" />
                             </div>
-                            <h1 className="text-xl font-bold text-white">SkillForge</h1>
+                            <h1 className="text-xl font-bold text-white">EduMate AI</h1>
                         </div>
                     )}
                 </div>

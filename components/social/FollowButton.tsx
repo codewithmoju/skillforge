@@ -10,9 +10,10 @@ interface FollowButtonProps {
     targetUserId: string;
     isPrivate: boolean;
     className?: string;
+    onFollowChange?: (isFollowing: boolean) => void;
 }
 
-export function FollowButton({ targetUserId, isPrivate, className }: FollowButtonProps) {
+export function FollowButton({ targetUserId, isPrivate, className, onFollowChange }: FollowButtonProps) {
     const { user } = useAuth();
     const [status, setStatus] = useState<'none' | 'pending' | 'following'>('none');
     const [loading, setLoading] = useState(false);
@@ -28,8 +29,14 @@ export function FollowButton({ targetUserId, isPrivate, className }: FollowButto
 
         setLoading(true);
         try {
-            await followUser(user.uid, targetUserId, isPrivate);
+            await followUser(user.uid, targetUserId, isPrivate, {
+                name: user.displayName || 'User',
+                photo: user.photoURL || undefined
+            });
             setStatus(isPrivate ? 'pending' : 'following');
+            if (!isPrivate && onFollowChange) {
+                onFollowChange(true);
+            }
         } catch (error) {
             console.error('Error following user:', error);
         } finally {
@@ -43,7 +50,11 @@ export function FollowButton({ targetUserId, isPrivate, className }: FollowButto
         setLoading(true);
         try {
             await unfollowUser(user.uid, targetUserId);
+            const wasFollowing = status === 'following';
             setStatus('none');
+            if (wasFollowing && onFollowChange) {
+                onFollowChange(false);
+            }
         } catch (error) {
             console.error('Error unfollowing user:', error);
         } finally {

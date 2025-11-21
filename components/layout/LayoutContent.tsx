@@ -13,13 +13,13 @@ import { useFirestoreSync } from "@/lib/hooks/useFirestoreSync";
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isLandingPage = pathname === "/";
+    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/signup";
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
     // Sync Firestore data with Zustand store
     const { needsProfileCompletion, user, onProfileComplete } = useFirestoreSync();
 
-    if (isLandingPage) {
+    if (isPublicPage) {
         return <>{children}</>;
     }
 

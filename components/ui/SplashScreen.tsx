@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import Image from "next/image";
 
 export function SplashScreen() {
     return (
@@ -24,7 +24,13 @@ export function SplashScreen() {
                     }}
                     className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center"
                 >
-                    <Sparkles className="w-12 h-12 text-white" />
+                    <Image
+                        src="/icons/MyLogo.png"
+                        alt="EduMate AI Logo"
+                        width={48}
+                        height={48}
+                        className="object-contain"
+                    />
                 </motion.div>
 
                 <motion.h1
@@ -33,7 +39,7 @@ export function SplashScreen() {
                     transition={{ delay: 0.2 }}
                     className="text-4xl font-bold text-white mb-4"
                 >
-                    SkillForge
+                    EduMate AI
                 </motion.h1>
 
                 <motion.p
