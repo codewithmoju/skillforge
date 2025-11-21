@@ -208,7 +208,7 @@ export default function LandingPage() {
       >
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <motion.div whileHover={{ scale: 1.05 }} transition={{ type: "spring", stiffness: 400 }}>
-            <BrandMark tagline="Intelligent Skill Engine" size={44} />
+            <BrandMark tagline="Intelligent Skill Engine" size={40} variant="glow" showConnections={!shouldReduceAnimations} />
           </motion.div>
           <div className="flex items-center gap-4">
             <Link href="/login">
@@ -236,10 +236,22 @@ export default function LandingPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-accent-cyan mb-8"
+                className="inline-flex items-center gap-3 px-6 py-3 rounded-full relative overflow-hidden mb-8"
               >
-                <BrandMark showName={false} size={30} />
-                <span className="text-sm font-medium">The Future of Learning is Here</span>
+                {/* Premium background for badge */}
+                <div className="absolute inset-0 bg-gradient-to-r from-accent-indigo/10 via-accent-violet/10 to-accent-cyan/10 backdrop-blur-xl" />
+                <div className="absolute inset-0 border border-white/10 rounded-full" />
+                {!shouldReduceAnimations && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-accent-indigo/20 via-accent-violet/20 to-accent-cyan/20 blur-xl"
+                    animate={{ opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ duration: 3, repeat: Infinity }}
+                  />
+                )}
+                <div className="relative z-10 flex items-center gap-3">
+                  <BrandMark showName={false} size={36} variant="premium" showConnections={!shouldReduceAnimations} />
+                  <span className="text-sm font-medium text-accent-cyan">The Future of Learning is Here</span>
+                </div>
               </motion.div>
 
               <motion.h1
@@ -630,7 +642,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-12 bg-slate-950 relative">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <BrandMark size={36} tagline="Stay Curious" />
+          <BrandMark size={36} tagline="Stay Curious" variant="glass" />
           <div className="flex gap-8 text-slate-400 text-sm">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
             <a href="#" className="hover:text-white transition-colors">Terms</a>

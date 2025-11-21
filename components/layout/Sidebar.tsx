@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, LogOut, Globe, Trophy } from "@/lib/icons";
+import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, LogOut, Globe, Trophy, MessageCircle } from "@/lib/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -14,6 +14,7 @@ const navItems = [
     { name: "Roadmap", href: "/roadmap", icon: Map },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Social", href: "/social", icon: Users },
+    { name: "Messages", href: "/messages", icon: MessageCircle },
     { name: "Achievements", href: "/achievements", icon: Trophy },
     { name: "Explore", href: "/explore", icon: Globe },
 ];
@@ -44,7 +45,7 @@ export function Sidebar() {
     return (
         <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-background-card/30 backdrop-blur-xl border-r border-slate-700/50 z-50">
             <div className="p-6">
-                <BrandMark size={40} tagline="AI Learning Hub" />
+                <BrandMark size={36} tagline="AI Learning Hub" variant="glass" showConnections={true} />
             </div>
 
             <nav className="flex-1 px-4 py-6 space-y-2">

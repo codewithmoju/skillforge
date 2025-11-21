@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, setDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment, addDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment } from 'firebase/firestore';
 
 export interface Post {
     id: string;
@@ -24,58 +24,63 @@ export interface Post {
     createdAt: string;
 }
 
-export async function createPost(userId: string, username: string, userName: string, userPhoto: string | undefined, type: Post['type'], postContent: Post['content']): Promise<string> {
+export async function createPost(
+    userId: string,
+    username: string,
+    authorName: string,
+    authorPhoto: string | undefined,
+    data: {
+        type: 'roadmap' | 'achievement' | 'project' | 'text';
+        content: {
+            text?: string;
+            images?: string[];
+            roadmapId?: string;
+            roadmapTitle?: string;
+            achievementId?: string;
+            achievementTitle?: string;
+            projectId?: string;
+            projectTitle?: string;
+        };
+    }
+): Promise<string> {
     try {
-        // Construct the content object, only adding fields if they exist and have a value
-        const contentData: Post['content'] = {};
-
-        if (postContent.text) {
-            contentData.text = postContent.text;
-        }
-        if (postContent.roadmapId) {
-            contentData.roadmapId = postContent.roadmapId;
-        }
-        if (postContent.roadmapTitle) {
-            contentData.roadmapTitle = postContent.roadmapTitle;
-        }
-        if (postContent.achievementId) {
-            contentData.achievementId = postContent.achievementId;
-        }
-        if (postContent.achievementTitle) {
-            contentData.achievementTitle = postContent.achievementTitle;
-        }
-        if (postContent.projectId) {
-            contentData.projectId = postContent.projectId;
-        }
-        if (postContent.projectTitle) {
-            contentData.projectTitle = postContent.projectTitle;
-        }
-        if (postContent.images && postContent.images.length > 0) {
-            contentData.images = postContent.images;
-        }
-
-        const postData = {
+        // Prepare post data
+        const postData: any = {
             userId,
             username,
-            userName,
-            userPhoto,
-            type,
-            content: contentData, // Use the carefully constructed contentData
+            userName: authorName,
+            userPhoto: authorPhoto,
+            type: data.type,
+            content: {
+                text: data.content.text,
+            },
             likes: 0,
-            saves: 0,
             comments: 0,
+            saves: 0,
             createdAt: new Date().toISOString(),
         };
 
-        const docRef = await addDoc(collection(db, 'posts'), postData);
-        const postId = docRef.id;
+        // Only add images if they exist and are not empty
+        if (data.content.images && data.content.images.length > 0) {
+            postData.content.images = data.content.images;
+        }
+
+        // Add other optional fields if they exist
+        if (data.content.roadmapId) postData.content.roadmapId = data.content.roadmapId;
+        if (data.content.roadmapTitle) postData.content.roadmapTitle = data.content.roadmapTitle;
+        if (data.content.achievementId) postData.content.achievementId = data.content.achievementId;
+        if (data.content.achievementTitle) postData.content.achievementTitle = data.content.achievementTitle;
+        if (data.content.projectId) postData.content.projectId = data.content.projectId;
+        if (data.content.projectTitle) postData.content.projectTitle = data.content.projectTitle;
+
+        const docRef = await addDoc(collection(db, "posts"), postData);
 
         // Update user's post count
         await updateDoc(doc(db, 'users', userId), {
             postsCount: increment(1),
         });
 
-        return postId;
+        return docRef.id;
     } catch (error) {
         console.error('Error creating post:', error);
         throw error;
@@ -114,119 +119,44 @@ export async function getUserPosts(userId: string, limitCount: number = 50): Pro
 
 export async function getFeedPosts(followingIds: string[], limitCount: number = 50): Promise<Post[]> {
     try {
-        let followedPosts: Post[] = [];
+        if (followingIds.length === 0) return [];
 
-        // 1. Fetch posts from followed users (if any)
-        if (followingIds.length > 0) {
-            // Firestore 'in' query is limited to 10. For now, we take the top 10 followed users.
-            const q = query(
-                collection(db, 'posts'),
-                where('userId', 'in', followingIds.slice(0, 10)),
-                orderBy('createdAt', 'desc'),
-                limit(limitCount)
-            );
-            const snapshot = await getDocs(q);
-            followedPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-        }
-
-        // 2. Fetch trending/recent posts to fill the feed
-        const trendingPosts = await getTrendingPosts(limitCount);
-
-        // 3. Combine: Followed posts first, then trending posts
-        // Filter out duplicates
-        const followedPostIds = new Set(followedPosts.map(p => p.id));
-        const uniqueTrendingPosts = trendingPosts.filter(p => !followedPostIds.has(p.id));
-
-        return [...followedPosts, ...uniqueTrendingPosts];
+        const q = query(
+            collection(db, 'posts'),
+            where('userId', 'in', followingIds.slice(0, 10)), // Firestore limit
+            orderBy('createdAt', 'desc'),
+            limit(limitCount)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
     } catch (error) {
         console.error('Error getting feed posts:', error);
         return [];
     }
 }
 
-export async function getTrendingPosts(limitCount: number = 20): Promise<Post[]> {
+export async function likePost(userId: string, postId: string): Promise<void> {
     try {
-        // Try to get posts with most likes first
-        const q = query(
-            collection(db, 'posts'),
-            orderBy('likes', 'desc'),
-            orderBy('createdAt', 'desc'),
-            limit(limitCount)
-        );
-        const snapshot = await getDocs(q);
-
-        // If we don't have enough trending posts (e.g. new app), fallback to recent posts
-        if (snapshot.empty || snapshot.docs.length < 5) {
-            const recentQ = query(
-                collection(db, 'posts'),
-                orderBy('createdAt', 'desc'),
-                limit(limitCount)
-            );
-            const recentSnapshot = await getDocs(recentQ);
-            return recentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-        }
-
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-    } catch (error) {
-        console.error('Error getting trending posts:', error);
-        // Fallback to recent posts on error (e.g. missing index)
-        try {
-            const recentQ = query(
-                collection(db, 'posts'),
-                orderBy('createdAt', 'desc'),
-                limit(limitCount)
-            );
-            const recentSnapshot = await getDocs(recentQ);
-            return recentSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-        } catch (fallbackError) {
-            console.error('Error getting fallback posts:', fallbackError);
-            return [];
-        }
-    }
-}
-
-export async function likePost(userId: string, postId: string, postOwnerId: string, userDetails: { name: string, photo?: string }): Promise<void> {
-    try {
-        // Verify post exists first
-        const postRef = doc(db, 'posts', postId);
-        const postSnap = await getDoc(postRef);
-
-        if (!postSnap.exists()) {
-            throw new Error("Post does not exist");
-        }
-
         const likeId = `${userId}_${postId}`;
         const likeDoc = await getDoc(doc(db, 'likes', likeId));
 
         if (likeDoc.exists()) {
             // Unlike
             await deleteDoc(doc(db, 'likes', likeId));
-            await updateDoc(postRef, {
+            await updateDoc(doc(db, 'posts', postId), {
                 likes: increment(-1),
             });
         } else {
             // Like
-            await setDoc(doc(db, 'likes', likeId), {
+            await addDoc(collection(db, 'likes'), {
+                id: likeId,
                 userId,
                 postId,
                 createdAt: new Date().toISOString(),
             });
-            await updateDoc(postRef, {
+            await updateDoc(doc(db, 'posts', postId), {
                 likes: increment(1),
             });
-
-            // Send notification
-            if (userId !== postOwnerId) { // Don't notify if liking own post
-                const { createNotification } = await import('./notifications');
-                await createNotification(
-                    postOwnerId,
-                    'like',
-                    userId,
-                    userDetails.name,
-                    userDetails.photo,
-                    postId
-                );
-            }
         }
     } catch (error) {
         console.error('Error liking post:', error);
@@ -247,7 +177,8 @@ export async function savePost(userId: string, postId: string): Promise<void> {
             });
         } else {
             // Save
-            await setDoc(doc(db, 'saves', saveId), {
+            await addDoc(collection(db, 'saves'), {
+                id: saveId,
                 userId,
                 postId,
                 createdAt: new Date().toISOString(),

@@ -52,7 +52,7 @@ export interface UserState {
     roadmapHistory: RoadmapHistory[];
     totalRoadmapsGenerated: number;
     totalRoadmapsCompleted: number;
-    uniqueDomainsExplored: Set<string>;
+    uniqueDomainsExplored: string[];
     roadmapsViewedCount: number;
 
     // Data
@@ -61,12 +61,14 @@ export interface UserState {
     roadmapDefinitions: RoadmapDefinition[];
     currentTopic: string;
     totalLessonsCompleted: number;
+    lessonCache: Record<string, any>; // Cache for generated lessons
 
     // Actions
     addXp: (amount: number, source: XPGainEvent['source'], multiplier?: number) => void;
     addProject: (project: Project) => void;
     updateProjectProgress: (id: string, progress: number) => void;
     completeLesson: (nodeId: string) => void;
+    prefetchLesson: (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => Promise<void>;
     setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string) => void;
     completeRoadmap: (roadmapId: string) => void;
     setUserName: (name: string) => void;
@@ -95,13 +97,14 @@ const defaultState = {
     roadmapHistory: [],
     totalRoadmapsGenerated: 0,
     totalRoadmapsCompleted: 0,
-    uniqueDomainsExplored: new Set<string>(),
+    uniqueDomainsExplored: [],
     roadmapsViewedCount: 0,
     projects: [],
     roadmapProgress: {},
     roadmapDefinitions: [],
     currentTopic: "",
     totalLessonsCompleted: 0,
+    lessonCache: {},
 };
 
 export const useUserStore = create<UserState>()(
@@ -189,6 +192,32 @@ export const useUserStore = create<UserState>()(
                 state.addXp(75, 'module_completion');
             },
 
+            prefetchLesson: async (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => {
+                const state = get();
+                const cacheKey = `${topic}-${moduleTitle}-${lessonTitle}`;
+
+                if (state.lessonCache[cacheKey]) return; // Already cached
+
+                try {
+                    const res = await fetch("/api/generate-lesson", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ topic, moduleTitle, lessonTitle, userLevel }),
+                    });
+                    const data = await res.json();
+                    if (data && !data.error) {
+                        set((state) => ({
+                            lessonCache: {
+                                ...state.lessonCache,
+                                [cacheKey]: data
+                            }
+                        }));
+                    }
+                } catch (error) {
+                    console.error("Prefetch failed:", error);
+                }
+            },
+
             setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string) => {
                 const state = get();
                 const initialProgress: Record<string, RoadmapNode> = {};
@@ -209,7 +238,11 @@ export const useUserStore = create<UserState>()(
                 };
 
                 // Update unique domains
-                const newDomains = new Set(state.uniqueDomainsExplored);
+                const currentDomains = state.uniqueDomainsExplored instanceof Set
+                    ? Array.from(state.uniqueDomainsExplored)
+                    : (Array.isArray(state.uniqueDomainsExplored) ? state.uniqueDomainsExplored : []);
+
+                const newDomains = new Set(currentDomains);
                 newDomains.add(category);
 
                 set({
@@ -218,7 +251,7 @@ export const useUserStore = create<UserState>()(
                     roadmapProgress: initialProgress,
                     roadmapHistory: [...state.roadmapHistory, roadmapEntry],
                     totalRoadmapsGenerated: state.totalRoadmapsGenerated + 1,
-                    uniqueDomainsExplored: newDomains,
+                    uniqueDomainsExplored: Array.from(newDomains), // Store as array
                 });
 
                 // Add XP for roadmap generation

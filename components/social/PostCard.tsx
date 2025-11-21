@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2, Loader2 } from "lucide-react";
-import { Post, likePost, savePost, deletePost } from "@/lib/services/posts";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Heart, Bookmark, MessageCircle, MoreVertical } from "lucide-react";
+import { Post, likePost, savePost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -15,91 +15,37 @@ interface PostCardProps {
     post: Post;
     isLiked?: boolean;
     isSaved?: boolean;
-    onDelete?: (postId: string) => void; // Callback for when a post is deleted
 }
 
-export function PostCard({ post, isLiked: initialLiked = false, isSaved: initialSaved = false, onDelete }: PostCardProps) {
+export function PostCard({ post, isLiked: initialLiked = false, isSaved: initialSaved = false }: PostCardProps) {
     const { user } = useAuth();
     const [isLiked, setIsLiked] = useState(initialLiked);
     const [isSaved, setIsSaved] = useState(initialSaved);
     const [likes, setLikes] = useState(post.likes);
     const [saves, setSaves] = useState(post.saves);
     const [showComments, setShowComments] = useState(false);
-    const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    const optionsMenuRef = useRef<HTMLDivElement>(null);
-
-    const isOwnPost = user?.uid === post.userId;
-
-    // Close options menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
-                setShowOptionsMenu(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [optionsMenuRef]);
 
     const handleLike = async () => {
         if (!user) return;
 
-        const previousLikedState = isLiked;
-        const previousLikesCount = likes;
-
-        // Optimistic UI update
-        setIsLiked(prev => !prev);
-        setLikes(prev => (previousLikedState ? prev - 1 : prev + 1));
-
         try {
             await likePost(user.uid, post.id);
+            setIsLiked(!isLiked);
+            setLikes(prev => isLiked ? prev - 1 : prev + 1);
         } catch (error) {
             console.error('Error liking post:', error);
-            // Revert UI on error
-            setIsLiked(previousLikedState);
-            setLikes(previousLikesCount);
         }
     };
 
     const handleSave = async () => {
         if (!user) return;
 
-        const previousSavedState = isSaved;
-        const previousSavesCount = saves;
-
-        // Optimistic UI update
-        setIsSaved(prev => !prev);
-        setSaves(prev => (previousSavedState ? prev - 1 : prev + 1));
-
         try {
             await savePost(user.uid, post.id);
+            setIsSaved(!isSaved);
+            setSaves(prev => isSaved ? prev - 1 : prev + 1);
         } catch (error) {
             console.error('Error saving post:', error);
-            // Revert UI on error
-            setIsSaved(previousSavedState);
-            setSaves(previousSavesCount);
-        }
-    };
-
-    const handleDeletePost = async () => {
-        if (!user || !isOwnPost || isDeleting) return;
-
-        if (!confirm("Are you sure you want to delete this post?")) {
-            setShowOptionsMenu(false);
-            return;
-        }
-
-        setIsDeleting(true);
-        try {
-            await deletePost(post.id, user.uid);
-            onDelete?.(post.id); // Notify parent to remove the post from its state
-        } catch (error) {
-            console.error('Error deleting post:', error);
-            setIsDeleting(false); // Revert loading state on error
         }
     };
 
@@ -125,7 +71,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden"
+            className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden mb-4"
         >
             {/* Header */}
             <div className="p-4 flex items-center justify-between">
@@ -150,40 +96,9 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                         <p className="text-sm text-slate-500">@{post.username}</p>
                     </div>
                 </Link>
-                <div className="relative" ref={optionsMenuRef}>
-                    <button
-                        onClick={() => setShowOptionsMenu(prev => !prev)}
-                        className="p-2 rounded-full text-slate-500 hover:bg-slate-800 hover:text-white transition-colors"
-                    >
-                        <MoreVertical className="w-5 h-5" />
-                    </button>
-                    <AnimatePresence>
-                        {showOptionsMenu && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                className="absolute right-0 mt-2 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg overflow-hidden z-10"
-                            >
-                                {isOwnPost && (
-                                    <button
-                                        onClick={handleDeletePost}
-                                        disabled={isDeleting}
-                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                                    >
-                                        {isDeleting ? (
-                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="w-4 h-4" />
-                                        )}
-                                        Delete Post
-                                    </button>
-                                )}
-                                {/* Add other options here if needed */}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
+                <button className="text-slate-500 hover:text-white transition-colors">
+                    <MoreVertical className="w-5 h-5" />
+                </button>
             </div>
 
             {/* Content */}

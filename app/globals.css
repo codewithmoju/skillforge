@@ -6,15 +6,15 @@
   --color-accent-cyan: #06B6D4;
   --color-accent-violet: #8B5CF6;
   --color-accent-indigo: #6366F1;
-  
+
   --color-background: #0F172A;
   --color-background-card: #1E293B;
   --color-background-overlay: rgba(15, 23, 42, 0.8);
-  
+
   --color-text-primary: #E2E8F0;
   --color-text-secondary: #94A3B8;
   --color-text-muted: #64748B;
-  
+
   --color-status-success: #22C55E;
   --color-status-warning: #FACC15;
   --color-status-error: #EF4444;
@@ -43,6 +43,147 @@ body {
 }
 
 .min-h-screen-safe {
-  min-height: 100vh; /* Fallback */
+  min-height: 100vh;
+  /* Fallback */
   min-height: 100dvh;
+}
+
+/* Auth Screen Animations */
+@keyframes float-label {
+  0% {
+    transform: translateY(0);
+    font-size: 1rem;
+    color: rgb(148 163 184);
+  }
+
+  100% {
+    transform: translateY(-1.5rem);
+    font-size: 0.875rem;
+    color: rgb(99 102 241);
+  }
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes gradient-glow {
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-ripple {
+  animation: ripple 0.6s ease-out;
+}
+
+.animate-gradient-glow {
+  animation: gradient-glow 3s ease-in-out infinite;
+}
+
+/* Floating Label States */
+.floating-label-container {
+  position: relative;
+}
+
+.floating-label {
+  position: absolute;
+  left: 3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  color: rgb(148 163 184);
+}
+
+.floating-input:focus~.floating-label,
+.floating-input:not(:placeholder-shown)~.floating-label {
+  transform: translateY(-2.5rem);
+  font-size: 0.875rem;
+  color: rgb(99 102 241);
+  font-weight: 500;
+}
+
+/* Responsive Height Utilities */
+.h-screen-safe {
+  height: 100vh;
+  height: 100dvh;
+}
+
+@media (max-height: 700px) {
+  .compact-spacing {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+/* Gradient Animation for Roadmap Hero */
+@keyframes gradient {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
 }
