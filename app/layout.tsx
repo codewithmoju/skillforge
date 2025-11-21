@@ -16,7 +16,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "EduMate AI - AI-Powered Learning Platform",
+  title: "EDUMATE AI - AI-Powered Learning Platform",
   description: "Master any skill with AI-guided learning, gamified progress, and personalized roadmaps.",
 };
 

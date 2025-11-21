@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ImageUpload } from "@/components/ui/ImageUpload";
-import { Loader2, Mail, Lock, User, AlertCircle, AtSign, ArrowLeft, Sparkles, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { Loader2, Mail, Lock, User, AlertCircle, AtSign, ArrowLeft, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { usePerformance } from "@/lib/hooks/usePerformance";
 import { validateUsername, checkUsernameAvailability, reserveUsername } from "@/lib/services/username";
@@ -280,7 +280,7 @@ export default function SignupPage() {
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-indigo via-accent-violet to-accent-cyan flex items-center justify-center shadow-2xl shadow-accent-indigo/50 overflow-hidden">
                             <Image
                                 src="/icons/MyLogo.png"
-                                alt="EduMate AI Logo"
+                                alt="EDUMATE AI Logo"
                                 width={64}
                                 height={64}
                                 className="object-contain"

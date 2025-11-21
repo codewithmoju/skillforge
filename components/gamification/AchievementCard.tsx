@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Achievement } from "@/lib/types/gamification";
 import { getTotalStarsEarned, getNextStarRequirement } from "@/lib/utils/achievementSystem";
-import { Star, Lock, Sparkles } from "lucide-react";
+import { Star, Lock, Award } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AchievementCardProps {
@@ -132,7 +132,7 @@ export function AchievementCard({ achievement, onClick }: AchievementCardProps) 
                     </p>
                 ) : (
                     <p className="text-xs text-center text-accent-cyan font-bold flex items-center justify-center gap-1">
-                        <Sparkles className="w-3 h-3" />
+                        <Award className="w-3 h-3" />
                         MASTERED
                     </p>
                 )}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, Search, Menu, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Search, Menu } from "lucide-react";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 interface MobileHeaderProps {
     onMenuClick: () => void;
@@ -35,12 +35,7 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
                     )}
 
                     {!isNested && (
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-indigo to-accent-cyan flex items-center justify-center">
-                                <Sparkles className="w-5 h-5 text-white" />
-                            </div>
-                            <h1 className="text-xl font-bold text-white">EduMate AI</h1>
-                        </div>
+                        <BrandMark size={34} tagline="On the Go" />
                     )}
                 </div>
 

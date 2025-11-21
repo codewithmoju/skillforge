@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { LogIn, UserPlus, Sparkles, ShieldCheck, Trophy, Zap, ArrowRight } from "lucide-react";
+import { LogIn, UserPlus, ShieldCheck, Trophy, Zap, ArrowRight, Brain } from "lucide-react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -14,7 +15,7 @@ interface AuthModalProps {
 
 const benefits = [
     {
-        icon: Sparkles,
+        icon: Brain,
         title: "AI Guidance",
         description: "Personalized learning paths generated for every goal."
     },
@@ -37,8 +38,11 @@ const benefits = [
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Join SkillForge">
+        <Modal isOpen={isOpen} onClose={onClose} title="Join EDUMATE AI">
             <div className="space-y-8">
+                <div className="flex justify-center">
+                    <BrandMark direction="column" tagline="Future-Proof Learning" />
+                </div>
                 <p className="text-slate-300">
                     Create a free account or sign back in to unlock personalized roadmaps, AI-powered quizzes, and
                     progress tracking designed to keep you motivated.
@@ -102,7 +106,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                 <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
                     <p className="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-4">
-                        Why learners choose SkillForge
+                        Why learners choose EDUMATE AI
                     </p>
                     <div className="grid gap-4 sm:grid-cols-2">
                         {benefits.map((benefit) => (

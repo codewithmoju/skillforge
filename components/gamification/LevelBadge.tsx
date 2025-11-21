@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { UserLevel } from "@/lib/types/gamification";
 import { cn } from "@/lib/utils";
-import { Sparkles } from "lucide-react";
+import { Star } from "lucide-react";
 
 interface LevelBadgeProps {
     userLevel: UserLevel;
@@ -65,7 +65,7 @@ export function LevelBadge({ userLevel, size = "md", showProgress = false }: Lev
                         transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                         className="absolute inset-0"
                     >
-                        <Sparkles className="absolute top-0 right-0 w-4 h-4 text-white" />
+                        <Star className="absolute top-0 right-0 w-4 h-4 text-white" />
                     </motion.div>
                 )}
             </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Share2, Trophy, Sparkles } from "lucide-react";
+import { X, Share2, Trophy, Star } from "lucide-react";
 import { Achievement } from "@/lib/types/gamification";
 import { getTotalStarsEarned } from "@/lib/utils/achievementSystem";
 import { Button } from "@/components/ui/Button";
@@ -118,7 +118,7 @@ export function AchievementUnlockModal({
                                             transition={{ delay: 0.5 + index * 0.1, type: "spring" }}
                                             className="text-accent-cyan"
                                         >
-                                            <Sparkles className="w-10 h-10 fill-current drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
+                                            <Star className="w-10 h-10 fill-current drop-shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
                                         </motion.div>
                                     ))}
                                 </div>

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Mail, Lock, ArrowLeft, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { usePerformance } from "@/lib/hooks/usePerformance";
 import { motion, AnimatePresence } from "framer-motion";
@@ -242,7 +242,7 @@ export default function LoginPage() {
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center shadow-2xl shadow-accent-indigo/50 overflow-hidden">
                             <Image
                                 src="/icons/MyLogo.png"
-                                alt="EduMate AI Logo"
+                                alt="EDUMATE AI Logo"
                                 width={64}
                                 height={64}
                                 className="object-contain"

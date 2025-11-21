@@ -45,7 +45,6 @@ export {
     Settings,
     Share2,
     Shield,
-    Sparkles,
     Star,
     Target,
     Trash2,

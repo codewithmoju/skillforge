@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Lock, Star, ChevronRight, BookOpen, Sparkles, Loader2, Trophy } from "lucide-react";
+import { Check, Lock, Star, ChevronRight, BookOpen, Loader2, Trophy, Bot } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -14,6 +14,7 @@ import { LevelBadge } from "@/components/gamification/LevelBadge";
 import { StreakDisplay } from "@/components/gamification/StreakDisplay";
 import { calculateUserLevel } from "@/lib/utils/levelSystem";
 import Link from "next/link";
+import { BrandMark } from "@/components/ui/BrandMark";
 
 export default function RoadmapPage() {
     const { roadmapProgress, roadmapDefinitions, completeLesson, setRoadmap, currentTopic, xp, streakData, updateStreak } = useUserStore();
@@ -129,7 +130,7 @@ export default function RoadmapPage() {
                             onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
                         />
                         <Button onClick={handleGenerate} disabled={isGenerating} className="shrink-0">
-                            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                            {isGenerating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Bot className="w-4 h-4 mr-2" />}
                             {isGenerating ? "Forging..." : "New Path"}
                         </Button>
                     </div>
@@ -138,7 +139,7 @@ export default function RoadmapPage() {
 
             {roadmapDefinitions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-[600px] text-center p-8 border-2 border-dashed border-slate-800 rounded-3xl bg-slate-900/20">
-                    <Sparkles className="w-16 h-16 text-accent-indigo mb-6 opacity-50" />
+                    <BrandMark size={80} direction="column" tagline="Let's Build" />
                     <h2 className="text-2xl font-bold text-white mb-2">Start Your Adventure</h2>
                     <p className="text-slate-400 max-w-md mb-8">
                         Enter a topic above to generate a custom, gamified learning roadmap powered by AI.

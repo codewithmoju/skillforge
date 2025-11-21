@@ -31,7 +31,7 @@ export default function ExplorePage() {
             content.text ||
             post.userName ||
             post.username ||
-            "EduMate AI Post"
+            "EDUMATE AI Post"
         );
     };
 
