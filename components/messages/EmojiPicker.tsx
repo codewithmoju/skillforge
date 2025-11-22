@@ -1,7 +1,7 @@
 'use client';
 
+import React, { useEffect, useRef } from 'react';
 import EmojiPickerReact, { EmojiClickData, Theme } from 'emoji-picker-react';
-import { useEffect, useRef } from 'react';
 
 interface EmojiPickerProps {
     onEmojiClick: (emojiData: EmojiClickData) => void;

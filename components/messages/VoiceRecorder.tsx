@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useState } from 'react';
 import { AudioRecorder, useAudioRecorder } from 'react-audio-voice-recorder';
 import { Mic, X, Check } from 'lucide-react';
-import { useState } from 'react';
 
 interface VoiceRecorderProps {
     onRecordingComplete: (blob: Blob) => void;
