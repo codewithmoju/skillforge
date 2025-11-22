@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useEffect, useRef, useState } from 'react';
 import { GiphyFetch } from '@giphy/js-fetch-api';
 import { Grid } from '@giphy/react-components';
-import { useEffect, useRef, useState } from 'react';
 
 interface GifPickerProps {
     onGifClick: (gif: any, e: React.SyntheticEvent<HTMLElement, Event>) => void;

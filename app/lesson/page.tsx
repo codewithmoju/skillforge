@@ -7,6 +7,7 @@ import { ArrowLeft, Zap, Target, Trophy, Code, Sparkles, CheckCircle, XCircle, L
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useUserStore } from "@/lib/store";
+import { ForestLessonView } from "@/components/skins/forest-quest/ForestLessonView";
 
 interface GamifiedLessonContent {
     title: string;
@@ -35,7 +36,11 @@ interface GamifiedLessonContent {
 export default function LessonPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { completeLesson, currentTopic, roadmapDefinitions, roadmapProgress } = useUserStore();
+    const { completeLesson, currentTopic, roadmapDefinitions, roadmapProgress, selectedSkin } = useUserStore();
+
+    if (selectedSkin === 'forest-quest') {
+        return <ForestLessonView />;
+    }
 
     const nodeId = searchParams.get("nodeId");
     const lessonIndex = parseInt(searchParams.get("lessonIndex") || "1");
@@ -326,14 +331,14 @@ export default function LessonPage() {
                                                 onClick={() => !isQuizSubmitted && setSelectedOption(idx)}
                                                 disabled={isQuizSubmitted}
                                                 className={`w-full p-6 rounded-2xl text-left transition-all border-2 ${isQuizSubmitted
-                                                        ? idx === content?.bossChallenge?.correctAnswer
-                                                            ? "bg-green-500/20 border-green-500 text-green-200 shadow-lg shadow-green-500/20"
-                                                            : idx === selectedOption
-                                                                ? "bg-red-500/20 border-red-500 text-red-200"
-                                                                : "bg-slate-900/30 border-slate-800 text-slate-500"
-                                                        : selectedOption === idx
-                                                            ? "bg-accent-indigo/20 border-accent-indigo text-white shadow-lg shadow-accent-indigo/20"
-                                                            : "bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600"
+                                                    ? idx === content?.bossChallenge?.correctAnswer
+                                                        ? "bg-green-500/20 border-green-500 text-green-200 shadow-lg shadow-green-500/20"
+                                                        : idx === selectedOption
+                                                            ? "bg-red-500/20 border-red-500 text-red-200"
+                                                            : "bg-slate-900/30 border-slate-800 text-slate-500"
+                                                    : selectedOption === idx
+                                                        ? "bg-accent-indigo/20 border-accent-indigo text-white shadow-lg shadow-accent-indigo/20"
+                                                        : "bg-slate-900/50 border-slate-700 text-slate-300 hover:bg-slate-800 hover:border-slate-600"
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">

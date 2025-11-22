@@ -1,9 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Sparkles } from "lucide-react";
 import { SKIN_CONFIGS, SkinId } from "@/lib/types/skins";
 import { useUserStore } from "@/lib/store";
+import { useSkin } from "@/lib/hooks/useSkin";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
 
@@ -13,7 +16,8 @@ interface SkinSelectorProps {
 }
 
 export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
-    const { selectedSkin, ownedSkins, setSkin } = useUserStore();
+    const { colors, skin } = useSkin();
+    const { selectedSkin, setSkin } = useUserStore();
 
     const handleSkinSelect = (skinId: SkinId) => {
         // All skins are unlocked for everyone
@@ -21,38 +25,69 @@ export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
         onClose();
     };
 
-    if (!isOpen) return null;
+    const [mounted, setMounted] = useState(false);
 
-    return (
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!isOpen || !mounted) return null;
+
+    return createPortal(
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                    className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                    className="w-[95vw] max-w-5xl rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col relative border-2"
+                    style={{
+                        backgroundColor: colors.backgroundCard,
+                        borderColor: colors.primary,
+                        boxShadow: `0 0 50px ${colors.primary}20`
+                    }}
                 >
+                    {/* Forest Quest Texture Overlay */}
+                    {skin.id === 'forest-quest' && (
+                        <div className="absolute inset-0 pointer-events-none opacity-10 z-0"
+                            style={{
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm20 20h20v20H20V20zM0 20h20v20H0V20z' fill='%23ffffff' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                backgroundSize: '20px 20px'
+                            }}
+                        />
+                    )}
+
                     {/* Header */}
-                    <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-900 to-slate-800">
+                    <div
+                        className="p-6 border-b flex items-center justify-between relative z-10"
+                        style={{
+                            borderColor: `${colors.primary}40`,
+                            background: `linear-gradient(to right, ${colors.backgroundCard}, ${colors.primary}10)`
+                        }}
+                    >
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-accent-indigo/20 rounded-lg">
-                                <Sparkles className="w-6 h-6 text-accent-indigo" />
+                            <div
+                                className="p-2 rounded-lg"
+                                style={{ backgroundColor: `${colors.accent}20` }}
+                            >
+                                <Sparkles className="w-6 h-6" style={{ color: colors.accent }} />
                             </div>
                             <div>
-                                <h2 className="text-2xl font-bold text-white">Choose Your Roadmap Theme</h2>
-                                <p className="text-sm text-slate-400">Transform your learning journey with premium skins</p>
+                                <h2 className="text-2xl font-bold" style={{ color: colors.textPrimary }}>Choose Your Roadmap Theme</h2>
+                                <p className="text-sm" style={{ color: colors.textSecondary }}>Transform your learning journey with premium skins</p>
                             </div>
                         </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400 hover:text-white"
+                            className="p-2 rounded-lg transition-colors hover:bg-white/10"
+                            style={{ color: colors.textSecondary }}
                         >
                             <X className="w-6 h-6" />
                         </button>
                     </div>
 
                     {/* Skin Grid */}
-                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-6 custom-scrollbar relative z-10">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {Object.values(SKIN_CONFIGS).map((skinConfig) => {
                                 const isSelected = selectedSkin === skinConfig.id;
@@ -76,6 +111,7 @@ export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
                                             )}
                                             style={{
                                                 background: `linear-gradient(135deg, ${skinConfig.colors.primary}20, ${skinConfig.colors.secondary}20, ${skinConfig.colors.accent}20)`,
+                                                borderColor: isSelected ? colors.accent : `${colors.primary}40`
                                             }}
                                         >
                                             {/* Preview Gradient */}
@@ -127,7 +163,10 @@ export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
                                             {/* Selected Indicator */}
                                             {isSelected && (
                                                 <div className="absolute top-3 left-3">
-                                                    <div className="bg-accent-cyan text-white p-2 rounded-full">
+                                                    <div
+                                                        className="text-white p-2 rounded-full"
+                                                        style={{ backgroundColor: colors.accent }}
+                                                    >
                                                         <Check className="w-4 h-4" />
                                                     </div>
                                                 </div>
@@ -136,10 +175,10 @@ export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
 
                                         {/* Skin Info */}
                                         <div className="mt-4">
-                                            <h3 className="text-lg font-bold text-white mb-1">
+                                            <h3 className="text-lg font-bold mb-1" style={{ color: colors.textPrimary }}>
                                                 {skinConfig.name}
                                             </h3>
-                                            <p className="text-sm text-slate-400">
+                                            <p className="text-sm" style={{ color: colors.textSecondary }}>
                                                 {skinConfig.description}
                                             </p>
                                         </div>
@@ -150,9 +189,15 @@ export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
                     </div>
 
                     {/* Footer */}
-                    <div className="p-6 border-t border-slate-800 bg-slate-900/50">
+                    <div
+                        className="p-6 border-t relative z-10"
+                        style={{
+                            borderColor: `${colors.primary}40`,
+                            backgroundColor: `${colors.backgroundCard}80`
+                        }}
+                    >
                         <div className="flex items-center justify-between">
-                            <p className="text-sm text-slate-400">
+                            <p className="text-sm" style={{ color: colors.textSecondary }}>
                                 All skins are available! Choose your favorite theme to transform your roadmap.
                             </p>
                             <Button onClick={onClose} variant="outline">
@@ -162,7 +207,8 @@ export function SkinSelector({ isOpen, onClose }: SkinSelectorProps) {
                     </div>
                 </motion.div>
             </div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }
 

@@ -104,30 +104,32 @@ export default function RoadmapPage() {
     }
 
     return (
-        <div 
+        <div
             className="min-h-screen pb-20 transition-all duration-500 relative overflow-hidden"
-            style={{ backgroundColor: colors.background }}
+            style={{ backgroundColor: selectedSkin === 'forest-quest' ? 'transparent' : colors.background }}
         >
-            {/* Background Effects */}
-            <div 
-                className="fixed inset-0 -z-10 opacity-30"
-                style={{
-                    background: `radial-gradient(circle at 20% 30%, ${colors.primary}20 0%, transparent 50%),
-                                 radial-gradient(circle at 80% 70%, ${colors.accent}20 0%, transparent 50%)`,
-                }}
-            />
-            
+            {/* Background Effects - Only for non-custom skins */}
+            {selectedSkin !== 'forest-quest' && (
+                <div
+                    className="fixed inset-0 -z-10 opacity-30"
+                    style={{
+                        background: `radial-gradient(circle at 20% 30%, ${colors.primary}20 0%, transparent 50%),
+                                     radial-gradient(circle at 80% 70%, ${colors.accent}20 0%, transparent 50%)`,
+                    }}
+                />
+            )}
+
             {/* Header / Stats Section */}
             <div className="mb-8">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
                     <div>
-                        <h1 
+                        <h1
                             className="text-3xl font-bold mb-2 transition-colors duration-500"
                             style={{ color: colors.textPrimary }}
                         >
                             {currentTopic ? `Roadmap: ${currentTopic}` : "Your Learning Journey"}
                         </h1>
-                        <p 
+                        <p
                             className="transition-colors duration-500"
                             style={{ color: colors.textSecondary }}
                         >
@@ -139,7 +141,7 @@ export default function RoadmapPage() {
                         <Button
                             variant="outline"
                             onClick={() => setIsSkinSelectorOpen(true)}
-                            className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                            className="flex items-center gap-2 transition-all duration-300 hover:scale-105 relative overflow-hidden"
                             style={{
                                 borderColor: colors.primary,
                                 color: colors.textPrimary,
@@ -154,8 +156,15 @@ export default function RoadmapPage() {
                                 e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
                             }}
                         >
-                            <Palette className="w-4 h-4" style={{ color: colors.accent }} />
-                            Change Layout
+                            {selectedSkin === 'forest-quest' && (
+                                <div className="absolute inset-0 opacity-20 pointer-events-none"
+                                    style={{
+                                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm10 10h10v10H10V10zM0 10h10v10H0V10z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                    }}
+                                />
+                            )}
+                            <Palette className="w-4 h-4 relative z-10" style={{ color: colors.accent }} />
+                            <span className="relative z-10">Change Layout</span>
                         </Button>
                         <Button
                             variant="outline"
@@ -164,7 +173,7 @@ export default function RoadmapPage() {
                                     setRoadmap("", [], "");
                                 }
                             }}
-                            className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                            className="flex items-center gap-2 transition-all duration-300 hover:scale-105 relative overflow-hidden"
                             style={{
                                 borderColor: colors.primary,
                                 color: colors.textPrimary,
@@ -179,13 +188,20 @@ export default function RoadmapPage() {
                                 e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
                             }}
                         >
-                            <RotateCcw className="w-4 h-4" style={{ color: colors.accent }} />
-                            New Roadmap
+                            {selectedSkin === 'forest-quest' && (
+                                <div className="absolute inset-0 opacity-20 pointer-events-none"
+                                    style={{
+                                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm10 10h10v10H10V10zM0 10h10v10H0V10z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                    }}
+                                />
+                            )}
+                            <RotateCcw className="w-4 h-4 relative z-10" style={{ color: colors.accent }} />
+                            <span className="relative z-10">New Roadmap</span>
                         </Button>
                         <Link href="/achievements">
-                            <Button 
-                                variant="outline" 
-                                className="flex items-center gap-2 transition-all duration-300 hover:scale-105"
+                            <Button
+                                variant="outline"
+                                className="flex items-center gap-2 transition-all duration-300 hover:scale-105 relative overflow-hidden"
                                 style={{
                                     borderColor: colors.primary,
                                     color: colors.textPrimary,
@@ -200,8 +216,15 @@ export default function RoadmapPage() {
                                     e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
                                 }}
                             >
-                                <Trophy className="w-4 h-4" style={{ color: colors.accent }} />
-                                Achievements
+                                {selectedSkin === 'forest-quest' && (
+                                    <div className="absolute inset-0 opacity-20 pointer-events-none"
+                                        style={{
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h20v20H0V0zm10 10h10v10H10V10zM0 10h10v10H0V10z' fill='%23000000' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                        }}
+                                    />
+                                )}
+                                <Trophy className="w-4 h-4 relative z-10" style={{ color: colors.accent }} />
+                                <span className="relative z-10">Achievements</span>
                             </Button>
                         </Link>
                     </div>
@@ -209,22 +232,36 @@ export default function RoadmapPage() {
 
                 {/* Stats Bar */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div 
-                        className="rounded-xl p-4 border flex items-center justify-center transition-all duration-500"
+                    <div
+                        className="rounded-xl p-4 border flex items-center justify-center transition-all duration-500 relative overflow-hidden"
                         style={{
                             backgroundColor: `${colors.backgroundCard}80`,
                             borderColor: `${colors.primary}40`,
                         }}
                     >
+                        {selectedSkin === 'forest-quest' && (
+                            <div className="absolute inset-0 opacity-10 pointer-events-none"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h40v20.5h-20z' fill='%23ffffff' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                }}
+                            />
+                        )}
                         <LevelBadge userLevel={userLevel} size="sm" />
                     </div>
-                    <div 
-                        className="md:col-span-2 rounded-xl p-4 border transition-all duration-500"
+                    <div
+                        className="md:col-span-2 rounded-xl p-4 border transition-all duration-500 relative overflow-hidden"
                         style={{
                             backgroundColor: `${colors.backgroundCard}80`,
                             borderColor: `${colors.primary}40`,
                         }}
                     >
+                        {selectedSkin === 'forest-quest' && (
+                            <div className="absolute inset-0 opacity-10 pointer-events-none"
+                                style={{
+                                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h40v20.5h-20z' fill='%23ffffff' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E")`,
+                                }}
+                            />
+                        )}
                         <StreakDisplay
                             currentStreak={streakData.currentStreak}
                             longestStreak={streakData.longestStreak}
@@ -239,7 +276,6 @@ export default function RoadmapPage() {
                 {/* Left: Roadmap Visualization with Skin System */}
                 <div className="flex-1 relative min-h-[800px] overflow-hidden">
                     <RoadmapSkinRenderer
-                        selectedSkin={selectedSkin}
                         roadmapDefinitions={roadmapDefinitions}
                         roadmapProgress={roadmapProgress}
                         selectedNodeId={selectedNodeId}
@@ -256,35 +292,42 @@ export default function RoadmapPage() {
                             animate={{ opacity: 1, x: 0 }}
                             className="sticky top-24"
                         >
-                            <Card 
-                                className="transition-all duration-500"
+                            <Card
+                                className="transition-all duration-500 relative overflow-hidden"
                                 style={{
                                     borderColor: `${colors.primary}50`,
                                     backgroundColor: `${colors.backgroundCard}CC`,
                                 }}
                             >
+                                {selectedSkin === 'forest-quest' && (
+                                    <div className="absolute inset-0 opacity-5 pointer-events-none"
+                                        style={{
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                                        }}
+                                    />
+                                )}
                                 <div className="mb-6">
                                     <div className="flex items-center justify-between mb-2">
-                                        <span 
+                                        <span
                                             className="text-xs font-bold uppercase tracking-wider transition-colors duration-500"
                                             style={{ color: colors.accent }}
                                         >
                                             Current Module
                                         </span>
-                                        <span 
+                                        <span
                                             className="text-xs transition-colors duration-500"
                                             style={{ color: colors.textSecondary }}
                                         >
                                             {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Lessons
                                         </span>
                                     </div>
-                                    <h2 
+                                    <h2
                                         className="text-2xl font-bold mb-4 transition-colors duration-500"
                                         style={{ color: colors.textPrimary }}
                                     >
                                         {selectedNodeDef.title}
                                     </h2>
-                                    <p 
+                                    <p
                                         className="text-sm mb-4 transition-colors duration-500"
                                         style={{ color: colors.textSecondary }}
                                     >
@@ -298,8 +341,8 @@ export default function RoadmapPage() {
                                                 background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
                                             }}
                                             initial={{ width: 0 }}
-                                            animate={{ 
-                                                width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%` 
+                                            animate={{
+                                                width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%`
                                             }}
                                             transition={{ duration: 0.8, ease: "easeOut" }}
                                         />
@@ -307,7 +350,7 @@ export default function RoadmapPage() {
                                 </div>
 
                                 <div className="space-y-4 mb-8">
-                                    <h3 
+                                    <h3
                                         className="font-semibold flex items-center gap-2 transition-colors duration-500"
                                         style={{ color: colors.textPrimary }}
                                     >
@@ -331,12 +374,12 @@ export default function RoadmapPage() {
                                                     backgroundColor: isCompleted ? `${colors.nodeCompleted}15` : `${colors.backgroundCard}80`,
                                                     borderColor: isCompleted ? `${colors.nodeCompleted}40` : `${colors.primary}30`,
                                                 }}
-                                                whileHover={{ 
+                                                whileHover={{
                                                     scale: 1.02,
                                                     borderColor: isCompleted ? colors.nodeCompleted : colors.accent,
                                                 }}
                                             >
-                                                <div 
+                                                <div
                                                     className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300"
                                                     style={{
                                                         backgroundColor: isCompleted ? `${colors.nodeCompleted}30` : "transparent",
@@ -347,7 +390,7 @@ export default function RoadmapPage() {
                                                     {isCompleted ? <Check className="w-3 h-3" /> : lessonNum}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <span 
+                                                    <span
                                                         className={cn(
                                                             "text-sm font-medium transition-colors block",
                                                             isCompleted && "line-through"
@@ -359,7 +402,7 @@ export default function RoadmapPage() {
                                                         {lessonTitle}
                                                     </span>
                                                     {isCompleted && (
-                                                        <span 
+                                                        <span
                                                             className="text-xs transition-colors duration-500"
                                                             style={{ color: colors.nodeCompleted }}
                                                         >
@@ -367,9 +410,9 @@ export default function RoadmapPage() {
                                                         </span>
                                                     )}
                                                 </div>
-                                                <ChevronRight 
-                                                    className="w-4 h-4 ml-auto transition-colors duration-300" 
-                                                    style={{ 
+                                                <ChevronRight
+                                                    className="w-4 h-4 ml-auto transition-colors duration-300"
+                                                    style={{
                                                         color: colors.textMuted,
                                                     }}
                                                     onMouseEnter={(e) => {
@@ -385,8 +428,8 @@ export default function RoadmapPage() {
                                 </div>
 
                                 <div className="flex flex-col gap-3">
-                                    <Button 
-                                        className="w-full transition-all duration-300 hover:scale-105" 
+                                    <Button
+                                        className="w-full transition-all duration-300 hover:scale-105"
                                         size="lg"
                                         style={{
                                             background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
@@ -429,7 +472,7 @@ export default function RoadmapPage() {
                             </Card>
                         </motion.div>
                     ) : (
-                        <div 
+                        <div
                             className="h-full flex items-center justify-center transition-colors duration-500"
                             style={{ color: colors.textMuted }}
                         >
