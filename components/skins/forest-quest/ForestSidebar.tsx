@@ -50,7 +50,7 @@ export function ForestSidebar({ isOpen, onClose }: ForestSidebarProps) {
 
     return (
         <aside className={cn(
-            "fixed left-0 top-0 z-50 h-screen w-72 flex flex-col transition-transform duration-500 font-serif relative overflow-hidden md:translate-x-0 border-r border-[#2d1b0e] shadow-2xl",
+            "fixed left-0 top-0 z-50 h-screen w-72 flex flex-col transition-transform duration-500 font-serif overflow-hidden md:translate-x-0 border-r border-[#2d1b0e] shadow-2xl",
             isOpen ? "translate-x-0" : "-translate-x-full"
         )}>
             {/* Wooden Texture Background */}

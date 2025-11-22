@@ -35,7 +35,7 @@ export function calculateNodePositions(
         case 'vertical':
             return calculateVerticalLayout(nodes, spacing);
         case 'tree':
-            return calculateForestVineLayout(nodes, spacing);
+            return calculateForestVineLayout(nodes, spacing, screenWidth);
         case 'orbital':
             return calculateOrbitalLayout(nodes, spacing);
         case 'dungeon':
@@ -49,60 +49,86 @@ export function calculateNodePositions(
 
 /**
  * VERTICAL LAYOUT (Cyber Neon)
- * Nodes arranged in a straight vertical line
+ * Nodes arranged in a straight vertical line, centered horizontally
  */
 function calculateVerticalLayout(
     nodes: RoadmapDefinition[],
     spacing: { vertical: number; horizontal: number; minDistance: number }
 ): LayoutResult {
     const positions = new Map<string, NodePosition>();
-    const centerX = 0; // Center of container
+    const containerWidth = 800;
+    const centerX = containerWidth / 2;
 
     nodes.forEach((node, index) => {
         positions.set(node.id, {
             x: centerX,
-            y: index * spacing.vertical,
+            y: 100 + (index * spacing.vertical), // Start with 100px padding from top
             level: node.level,
         });
     });
 
     return {
         positions,
-        width: 400, // Fixed width for vertical layout
-        height: (nodes.length - 1) * spacing.vertical + 200,
+        width: containerWidth,
+        height: 100 + (nodes.length - 1) * spacing.vertical + 200,
     };
 }
 
 /**
  * FOREST VINE LAYOUT (Forest Quest)
- * Nodes grow along a winding organic vine
- * Replaces the rigid tree structure
+ * Nodes are placed along a winding "Jungle Path" that traverses the screen.
+ * Creates a gamified "level map" feel.
  */
 function calculateForestVineLayout(
     nodes: RoadmapDefinition[],
-    spacing: { vertical: number; horizontal: number; minDistance: number }
+    spacing: { vertical: number; horizontal: number; minDistance: number },
+    screenWidth: number
 ): LayoutResult {
     const positions = new Map<string, NodePosition>();
-    const amplitude = spacing.horizontal * 0.8; // Vine sway width
-    const frequency = 0.6; // Vine sway frequency
-    let maxX = 0;
-    let minX = 0;
+
+    // Dynamic container width based on available space
+    const containerWidth = screenWidth;
+    const centerX = containerWidth / 2;
+
+    // Path Configuration
+    const isMobile = screenWidth < 768;
+
+    // Amplitude: How wide the path swings side-to-side
+    // Mobile: Less swing to keep it readable on narrow screens
+    // Desktop: Wide, sweeping curves for the "Deep Jungle" feel
+    const maxAmplitude = isMobile ? screenWidth * 0.35 : Math.min(screenWidth * 0.45, 600);
+    const amplitude = Math.max(150, maxAmplitude);
+
+    // Frequency: How tight the curves are. Lower = longer, more sweeping curves.
+    const frequency = isMobile ? 0.6 : 0.4;
+
+    // Vertical Spacing: Distance between nodes along the Y-axis
+    const verticalSpacing = isMobile ? spacing.vertical * 0.8 : spacing.vertical;
+
+    let maxX = centerX;
+    let minX = centerX;
+    let maxY = 0;
 
     nodes.forEach((node, index) => {
-        // Main vine follows a sine wave
-        const vineX = amplitude * Math.sin(index * frequency);
-        const vineY = index * spacing.vertical;
+        // Calculate position along the sine wave path
+        // t represents the "progress" along the curve
+        const t = index * frequency;
 
-        // Nodes branch off the vine
-        // Alternate left/right based on index
-        const branchSide = index % 2 === 0 ? 1 : -1;
-        const branchLength = spacing.horizontal * 0.6;
+        // Primary Sine Wave for the main path shape
+        const primaryWave = Math.sin(t);
 
-        // Add some organic randomness to branch angle
-        const randomAngle = (Math.random() * 0.4) - 0.2; // +/- 0.2 radians
+        // Secondary Wave adds a bit of "organic" irregularity so it's not a perfect math sine
+        const secondaryWave = Math.cos(t * 0.7) * 0.2;
 
-        const x = vineX + (branchSide * branchLength * Math.cos(randomAngle));
-        const y = vineY + (branchSide * branchLength * Math.sin(randomAngle));
+        // Calculate X position: Center + (Amplitude * Combined Wave)
+        // We alternate the starting direction based on index to ensure flow
+        const xOffset = amplitude * (primaryWave + secondaryWave);
+        const x = centerX + xOffset;
+
+        // Calculate Y position: Simple linear progression down the screen
+        // Add a small random offset for "organic" feel, but keep it deterministic based on index
+        const randomY = (index % 3 === 0) ? 20 : (index % 3 === 1) ? -10 : 0;
+        const y = 100 + (index * verticalSpacing) + randomY;
 
         positions.set(node.id, {
             x,
@@ -110,14 +136,21 @@ function calculateForestVineLayout(
             level: node.level,
         });
 
+        // Track bounds for container sizing
         maxX = Math.max(maxX, x);
         minX = Math.min(minX, x);
+        maxY = Math.max(maxY, y);
     });
+
+    // Calculate total width needed (with padding)
+    // Ensure we have enough space for the widest swing + node width
+    const contentWidth = (maxX - minX) + 200; // Add padding for node visuals
+    const totalWidth = Math.max(screenWidth, contentWidth);
 
     return {
         positions,
-        width: Math.max(400, (maxX - minX) + 200),
-        height: (nodes.length - 1) * spacing.vertical + 200,
+        width: totalWidth,
+        height: maxY + 300, // Extra padding at bottom for "end of path" visuals
     };
 }
 
@@ -305,32 +338,60 @@ function checkOverlap(
 
 /**
  * Adjust positions to prevent overlaps
+ * Now properly moves BOTH nodes and iterates to convergence
  */
 export function preventOverlaps(
     positions: Map<string, NodePosition>,
-    minDistance: number
+    minDistance: number,
+    maxIterations: number = 10
 ): Map<string, NodePosition> {
-    const adjusted = new Map(positions);
+    // Create a deep copy to avoid mutations
+    const adjusted = new Map(
+        Array.from(positions.entries()).map(([k, v]) => [k, { ...v }])
+    );
     const nodeIds = Array.from(adjusted.keys());
 
-    // Simple overlap prevention - push nodes apart if too close
-    for (let i = 0; i < nodeIds.length; i++) {
-        for (let j = i + 1; j < nodeIds.length; j++) {
-            const pos1 = adjusted.get(nodeIds[i])!;
-            const pos2 = adjusted.get(nodeIds[j])!;
+    // Iterate until no overlaps or max iterations reached
+    for (let iteration = 0; iteration < maxIterations; iteration++) {
+        let hasOverlap = false;
 
-            if (checkOverlap(pos1, pos2, minDistance)) {
-                // Push nodes apart
-                const dx = pos2.x - pos1.x;
-                const dy = pos2.y - pos1.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-                const pushDistance = (minDistance - distance) / 2;
+        for (let i = 0; i < nodeIds.length; i++) {
+            for (let j = i + 1; j < nodeIds.length; j++) {
+                const pos1 = adjusted.get(nodeIds[i])!;
+                const pos2 = adjusted.get(nodeIds[j])!;
 
-                const angle = Math.atan2(dy, dx);
-                pos2.x += pushDistance * Math.cos(angle);
-                pos2.y += pushDistance * Math.sin(angle);
+                if (checkOverlap(pos1, pos2, minDistance)) {
+                    hasOverlap = true;
+
+                    // Calculate push vector
+                    const dx = pos2.x - pos1.x;
+                    const dy = pos2.y - pos1.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    // Avoid division by zero
+                    if (distance < 0.1) {
+                        // Nodes are at same position, push them apart arbitrarily
+                        pos1.x -= minDistance / 2;
+                        pos2.x += minDistance / 2;
+                        continue;
+                    }
+
+                    const pushDistance = (minDistance - distance) / 2;
+                    const angle = Math.atan2(dy, dx);
+                    const pushX = pushDistance * Math.cos(angle);
+                    const pushY = pushDistance * Math.sin(angle);
+
+                    // Move BOTH nodes apart (not just one!)
+                    pos1.x -= pushX;
+                    pos1.y -= pushY;
+                    pos2.x += pushX;
+                    pos2.y += pushY;
+                }
             }
         }
+
+        // If no overlaps found, we've converged
+        if (!hasOverlap) break;
     }
 
     return adjusted;

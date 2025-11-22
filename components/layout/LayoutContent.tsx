@@ -11,14 +11,14 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { ProfileCompletionModal } from "@/components/features/ProfileCompletionModal";
 import { useFirestoreSync } from "@/lib/hooks/useFirestoreSync";
 import { SkinProvider } from "@/lib/contexts/SkinContext";
-import useSkinStore from "@/lib/store/skinStore";
+import { useUserStore } from "@/lib/store";
 import { ForestQuestWrapper } from "@/components/skins/forest-quest/ForestQuestWrapper";
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/signup";
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-    const { currentSkin } = useSkinStore();
+    const selectedSkin = useUserStore((state) => state.selectedSkin);
 
     // Sync Firestore data with Zustand store
     const { needsProfileCompletion, user, onProfileComplete } = useFirestoreSync();
@@ -41,7 +41,7 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
 
             <ProtectedRoute>
                 <SkinProvider>
-                    {currentSkin === 'forest-quest' ? (
+                    {selectedSkin === 'forest-quest' ? (
                         <ForestQuestWrapper>{children}</ForestQuestWrapper>
                     ) : (
                         <>

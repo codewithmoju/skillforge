@@ -14,7 +14,6 @@ export function ThemedPath({ from, to, status, skin }: ThemedPathProps) {
     // Calculate path
     const dx = to.x - from.x;
     const dy = to.y - from.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
 
     // Get color based on status
     const getColor = () => {
@@ -74,25 +73,27 @@ export function ThemedPath({ from, to, status, skin }: ThemedPathProps) {
     const color = getColor();
 
     // Create SVG path
-    // For vertical/simple paths, use straight line
-    // For complex layouts, use curved paths
     const createPath = () => {
         if (skin.layout === 'vertical') {
             return `M ${from.x} ${from.y} L ${to.x} ${to.y}`;
         } else if (skin.layout === 'tree' || skin.layout === 'orbital') {
-            // Curved path for tree and orbital
+            // Calculate a curved path for the vine
             const midX = (from.x + to.x) / 2;
             const midY = (from.y + to.y) / 2;
-            return `M ${from.x} ${from.y} Q ${midX} ${midY} ${to.x} ${to.y}`;
+
+            // Add offset to control point for organic curve
+            // Alternating direction based on y position to create winding effect
+            const curveIntensity = skin.layout === 'tree' ? 60 : 0;
+            const offset = (from.y % 200 > 100) ? curveIntensity : -curveIntensity;
+
+            return `M ${from.x} ${from.y} Q ${midX + offset} ${midY} ${to.x} ${to.y}`;
         } else if (skin.layout === 'wave') {
-            // Smooth wave curve
             const controlX1 = from.x + dx * 0.3;
             const controlY1 = from.y + dy * 0.3;
             const controlX2 = from.x + dx * 0.7;
             const controlY2 = from.y + dy * 0.7;
             return `M ${from.x} ${from.y} C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${to.x} ${to.y}`;
         } else {
-            // Dungeon - angular path
             const midX = (from.x + to.x) / 2;
             return `M ${from.x} ${from.y} L ${midX} ${from.y} L ${midX} ${to.y} L ${to.x} ${to.y}`;
         }
@@ -133,78 +134,118 @@ export function ThemedPath({ from, to, status, skin }: ThemedPathProps) {
 
     const animation = getPathAnimation();
 
-    // Custom rendering for Forest Quest
+    // Forest Quest special rendering (Jungle Vine)
     if (skin.id === 'forest-quest') {
+        // Calculate a smooth Cubic Bezier curve
+        // We want the curve to flow naturally from point A to point B
+        // Control points are calculated to create a "S" shape or smooth arc
+        const midY = (from.y + to.y) / 2;
+
+        // Control point 1: Vertical start
+        const cp1x = from.x;
+        const cp1y = midY;
+
+        // Control point 2: Vertical end approach
+        const cp2x = to.x;
+        const cp2y = midY;
+
+        const curvePath = `M ${from.x} ${from.y} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${to.x} ${to.y}`;
+
         return (
-            <svg
-                className="absolute top-0 left-0 w-full h-full pointer-events-none"
-                style={{ overflow: 'visible' }}
-            >
-                {/* Main Vine Segment */}
+            <g>
+                {/* Shadow / Depth Layer */}
                 <motion.path
-                    d={pathD}
-                    stroke={color}
-                    strokeWidth={status === 'active' ? 6 : 4}
+                    d={curvePath}
+                    stroke="#052e16" // Very dark green for shadow
+                    strokeWidth={12}
                     fill="none"
                     strokeLinecap="round"
-                    strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ pathLength: 1, opacity: 0.3 }}
+                    transition={{ duration: 1, ease: "easeInOut" }}
+                />
+
+                {/* Main Vine Body */}
+                <motion.path
+                    d={curvePath}
+                    stroke="#14532d" // Dark green vine
+                    strokeWidth={8}
+                    fill="none"
+                    strokeLinecap="round"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
                     transition={{ duration: 1, ease: "easeInOut" }}
-                    style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }}
                 />
 
-                {/* Inner Vine Detail (Lighter green for depth) */}
+                {/* Vine Texture / Highlights */}
                 <motion.path
-                    d={pathD}
-                    stroke={status === 'active' ? '#4ade80' : '#374151'}
-                    strokeWidth={2}
+                    d={curvePath}
+                    stroke="#166534" // Lighter green texture
+                    strokeWidth={3}
                     fill="none"
                     strokeLinecap="round"
-                    strokeDasharray="4 8"
+                    strokeDasharray="10 20"
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: 1, opacity: 1 }}
                     transition={{ duration: 1.2, ease: "easeInOut" }}
                 />
 
-                {/* Leaves growing along the vine */}
-                {(status === 'active' || status === 'completed') && (
+                {/* Active State: Magical Energy Flow */}
+                {status === 'active' && (
                     <>
-                        {[0.3, 0.7].map((offset, i) => (
-                            <motion.g
-                                key={i}
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{
-                                    scale: 1,
-                                    opacity: 1,
-                                    offsetDistance: `${offset * 100}%`
-                                }}
-                                style={{
-                                    offsetPath: `path('${pathD}')`,
-                                    offsetRotate: 'auto',
-                                }}
-                                transition={{ delay: 0.5 + (i * 0.3), type: "spring" }}
-                            >
-                                <path
-                                    d="M0 0 Q10 -10 20 0 Q10 10 0 0"
-                                    fill="#22c55e"
-                                    stroke="#14532d"
-                                    strokeWidth="1"
-                                    transform={`scale(${i % 2 === 0 ? 1 : -1}) rotate(${i % 2 === 0 ? -45 : 45})`}
-                                />
-                            </motion.g>
-                        ))}
+                        {/* Glowing Core */}
+                        <motion.path
+                            d={curvePath}
+                            stroke="#4ade80" // Bright green glow
+                            strokeWidth={2}
+                            fill="none"
+                            strokeLinecap="round"
+                            initial={{ pathLength: 0, opacity: 0 }}
+                            animate={{ pathLength: 1, opacity: 1 }}
+                            transition={{ duration: 1.5, ease: "easeInOut" }}
+                            style={{ filter: 'drop-shadow(0 0 4px #4ade80)' }}
+                        />
+
+                        {/* Traveling Energy Particles */}
+                        <circle r="3" fill="#a7f3d0">
+                            <animateMotion
+                                dur="3s"
+                                repeatCount="indefinite"
+                                path={curvePath}
+                            />
+                        </circle>
+                        <circle r="2" fill="#ffffff">
+                            <animateMotion
+                                dur="3s"
+                                begin="1.5s"
+                                repeatCount="indefinite"
+                                path={curvePath}
+                            />
+                        </circle>
                     </>
                 )}
-            </svg>
+
+                {/* Completed State: Golden Growth */}
+                {status === 'completed' && (
+                    <motion.path
+                        d={curvePath}
+                        stroke="#f59e0b" // Gold tint
+                        strokeWidth={2}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeDasharray="5 30"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 0.5 }}
+                        transition={{ duration: 1 }}
+                    />
+                )}
+            </g>
         );
     }
 
+    // Default rendering - returns g element with paths
     return (
-        <svg
-            className="absolute top-0 left-0 w-full h-full pointer-events-none"
-            style={{ overflow: 'visible' }}
-        >
+        <g>
             <motion.path
                 d={pathD}
                 stroke={color}
@@ -220,7 +261,7 @@ export function ThemedPath({ from, to, status, skin }: ThemedPathProps) {
                     duration: skin.animations.pathDraw.duration / 1000,
                     ease: "easeInOut",
                     repeat: skin.animations.pathDraw.type === 'pulse' ? Infinity : 0,
-                    repeatType: skin.animations.pathDraw.type === 'pulse' ? 'loop' : undefined,
+                    repeatType: skin.animations.pathDraw.type === 'pulse' ? 'loop' as const : undefined,
                 }}
             />
 
@@ -229,9 +270,8 @@ export function ThemedPath({ from, to, status, skin }: ThemedPathProps) {
                 <motion.circle
                     r="4"
                     fill={color}
-                    initial={{ offsetDistance: '0%', opacity: 0 }}
+                    initial={{ opacity: 0 }}
                     animate={{
-                        offsetDistance: '100%',
                         opacity: [0, 1, 1, 0],
                     }}
                     transition={{
@@ -239,12 +279,14 @@ export function ThemedPath({ from, to, status, skin }: ThemedPathProps) {
                         repeat: Infinity,
                         ease: "linear",
                     }}
-                    style={{
-                        offsetPath: `path('${pathD}')`,
-                        offsetRotate: '0deg',
-                    }}
-                />
+                >
+                    <animateMotion
+                        dur="2s"
+                        repeatCount="indefinite"
+                        path={pathD}
+                    />
+                </motion.circle>
             )}
-        </svg>
+        </g>
     );
 }

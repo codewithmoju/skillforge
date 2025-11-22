@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Check, Lock, Star, Zap, Leaf, Rocket, Flame, Waves } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { SkinConfig } from "@/lib/types/skins";
 
 interface ThemedNodeProps {
@@ -40,57 +39,117 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
     };
 
     // Get theme-specific node styling
-    const getNodeClass = () => {
-        const baseClass = "relative z-10 w-16 h-16 flex items-center justify-center border-4 transition-all duration-300";
+    const getNodeStyle = () => {
+        const baseStyle: React.CSSProperties = {
+            position: 'relative',
+            zIndex: 10,
+            width: '64px',
+            height: '64px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: '4px',
+            borderStyle: 'solid',
+            transition: 'all 0.3s ease',
+        };
 
         switch (skin.id) {
             case 'cyber-neon':
-                return cn(
-                    baseClass,
-                    "rounded-2xl",
-                    status === 'completed' && `bg-slate-900 border-[${skin.colors.nodeCompleted}] text-[${skin.colors.nodeCompleted}] shadow-[0_0_20px_rgba(34,197,94,0.3)]`,
-                    status === 'active' && `bg-slate-900 border-[${skin.colors.nodeActive}] text-[${skin.colors.nodeActive}] shadow-[0_0_30px_rgba(6,182,212,0.4)] animate-pulse-slow`,
-                    status === 'locked' && `bg-slate-800 border-[${skin.colors.nodeLocked}] text-[${skin.colors.nodeLocked}] grayscale`
-                );
+                return {
+                    ...baseStyle,
+                    borderRadius: '16px',
+                    backgroundColor: status === 'locked' ? '#1e293b' : '#0f172a',
+                    borderColor: status === 'completed' ? skin.colors.nodeCompleted :
+                        status === 'active' ? skin.colors.nodeActive :
+                            skin.colors.nodeLocked,
+                    color: status === 'completed' ? skin.colors.nodeCompleted :
+                        status === 'active' ? skin.colors.nodeActive :
+                            skin.colors.nodeLocked,
+                    boxShadow: status === 'completed' ? `0 0 20px ${skin.colors.nodeCompleted}40` :
+                        status === 'active' ? `0 0 30px ${skin.colors.nodeActive}60` :
+                            'none',
+                    filter: status === 'locked' ? 'grayscale(1)' : 'none',
+                };
 
             case 'forest-quest':
-                return cn(
-                    baseClass,
-                    "rounded-full",
-                    status === 'completed' && "bg-gradient-to-br from-green-900 to-emerald-900 border-green-500 text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.4)]",
-                    status === 'active' && "bg-gradient-to-br from-green-800 to-emerald-800 border-green-400 text-green-300 shadow-[0_0_30px_rgba(34,197,94,0.5)]",
-                    status === 'locked' && "bg-slate-800 border-slate-600 text-slate-500 grayscale"
-                );
+                return {
+                    ...baseStyle,
+                    borderRadius: '50%',
+                    background: status === 'completed' ? 'linear-gradient(135deg, #14532d, #065f46)' :
+                        status === 'active' ? 'linear-gradient(135deg, #166534, #047857)' :
+                            '#1e293b',
+                    borderColor: status === 'completed' ? '#22c55e' :
+                        status === 'active' ? '#4ade80' :
+                            '#475569',
+                    color: status === 'completed' ? '#86efac' :
+                        status === 'active' ? '#bbf7d0' :
+                            '#64748b',
+                    boxShadow: status === 'completed' ? '0 0 20px rgba(34,197,94,0.4)' :
+                        status === 'active' ? '0 0 30px rgba(34,197,94,0.5)' :
+                            'none',
+                    filter: status === 'locked' ? 'grayscale(1)' : 'none',
+                };
 
             case 'space-odyssey':
-                return cn(
-                    baseClass,
-                    "rounded-full",
-                    status === 'completed' && "bg-gradient-to-br from-purple-900 to-pink-900 border-purple-500 text-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.5)]",
-                    status === 'active' && "bg-gradient-to-br from-purple-800 to-pink-800 border-pink-500 text-pink-300 shadow-[0_0_35px_rgba(236,72,153,0.6)] animate-pulse",
-                    status === 'locked' && "bg-slate-800 border-slate-600 text-slate-500 grayscale"
-                );
+                return {
+                    ...baseStyle,
+                    borderRadius: '50%',
+                    background: status === 'completed' ? 'linear-gradient(135deg, #581c87, #9333ea)' :
+                        status === 'active' ? 'linear-gradient(135deg, #701a75, #db2777)' :
+                            '#1e293b',
+                    borderColor: status === 'completed' ? '#a855f7' :
+                        status === 'active' ? '#ec4899' :
+                            '#475569',
+                    color: status === 'completed' ? '#e9d5ff' :
+                        status === 'active' ? '#fbcfe8' :
+                            '#64748b',
+                    boxShadow: status === 'completed' ? '0 0 25px rgba(168,85,247,0.5)' :
+                        status === 'active' ? '0 0 35px rgba(236,72,153,0.6)' :
+                            'none',
+                    filter: status === 'locked' ? 'grayscale(1)' : 'none',
+                };
 
             case 'dragons-lair':
-                return cn(
-                    baseClass,
-                    "rounded-lg rotate-45",
-                    status === 'completed' && "bg-gradient-to-br from-red-900 to-orange-900 border-orange-500 text-orange-300 shadow-[0_0_25px_rgba(249,115,22,0.5)]",
-                    status === 'active' && "bg-gradient-to-br from-red-800 to-orange-800 border-red-500 text-red-300 shadow-[0_0_35px_rgba(239,68,68,0.6)]",
-                    status === 'locked' && "bg-slate-800 border-slate-600 text-slate-500 grayscale"
-                );
+                return {
+                    ...baseStyle,
+                    borderRadius: '8px',
+                    transform: 'rotate(45deg)',
+                    background: status === 'completed' ? 'linear-gradient(135deg, #7c2d12, #c2410c)' :
+                        status === 'active' ? 'linear-gradient(135deg, #991b1b, #dc2626)' :
+                            '#1e293b',
+                    borderColor: status === 'completed' ? '#f97316' :
+                        status === 'active' ? '#ef4444' :
+                            '#475569',
+                    color: status === 'completed' ? '#fed7aa' :
+                        status === 'active' ? '#fecaca' :
+                            '#64748b',
+                    boxShadow: status === 'completed' ? '0 0 25px rgba(249,115,22,0.5)' :
+                        status === 'active' ? '0 0 35px rgba(239,68,68,0.6)' :
+                            'none',
+                    filter: status === 'locked' ? 'grayscale(1)' : 'none',
+                };
 
             case 'ocean-depths':
-                return cn(
-                    baseClass,
-                    "rounded-full",
-                    status === 'completed' && "bg-gradient-to-br from-cyan-900 to-teal-900 border-teal-500 text-teal-300 shadow-[0_0_20px_rgba(20,184,166,0.4)]",
-                    status === 'active' && "bg-gradient-to-br from-cyan-800 to-teal-800 border-cyan-500 text-cyan-300 shadow-[0_0_30px_rgba(6,182,212,0.5)]",
-                    status === 'locked' && "bg-slate-800 border-slate-600 text-slate-500 grayscale"
-                );
+                return {
+                    ...baseStyle,
+                    borderRadius: '50%',
+                    background: status === 'completed' ? 'linear-gradient(135deg, #164e63, #0e7490)' :
+                        status === 'active' ? 'linear-gradient(135deg, #155e75, #0891b2)' :
+                            '#1e293b',
+                    borderColor: status === 'completed' ? '#14b8a6' :
+                        status === 'active' ? '#06b6d4' :
+                            '#475569',
+                    color: status === 'completed' ? '#99f6e4' :
+                        status === 'active' ? '#a5f3fc' :
+                            '#64748b',
+                    boxShadow: status === 'completed' ? '0 0 20px rgba(20,184,166,0.4)' :
+                        status === 'active' ? '0 0 30px rgba(6,182,212,0.5)' :
+                            'none',
+                    filter: status === 'locked' ? 'grayscale(1)' : 'none',
+                };
 
             default:
-                return baseClass;
+                return baseStyle;
         }
     };
 
@@ -107,7 +166,10 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
             case 'bounce':
                 return {
                     initial: { opacity: 0, y: -50 },
-                    animate: { opacity: 1, y: 0, transition: { type: "spring", bounce: 0.5 } },
+                    animate: {
+                        opacity: 1,
+                        y: 0,
+                    },
                 };
             case 'scale':
                 return {
@@ -129,95 +191,129 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
 
     const variants = getAnimationVariants();
 
-    // Custom rendering for Forest Quest
+    // Custom rendering for Forest Quest (Gamified Ruins/Stones)
     if (skin.id === 'forest-quest') {
         return (
             <motion.div
                 className="absolute z-20"
                 style={{
-                    left: `calc(50% + ${position.x}px)`,
+                    left: `${position.x}px`,
                     top: `${position.y}px`,
-                    transform: 'translate(-50%, 0)',
+                    transform: 'translate(-50%, -50%)',
                 }}
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: level * 0.1, type: "spring" }}
+                transition={{ delay: level * 0.1, type: "spring" as const }}
             >
                 <motion.button
                     onClick={onClick}
-                    className="relative w-20 h-20 flex items-center justify-center group"
-                    whileHover={{ scale: 1.1 }}
+                    className="relative w-24 h-24 flex items-center justify-center group"
+                    whileHover={{ scale: 1.15 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    {/* Visuals based on status */}
+                    {/* LOCKED STATE: Ancient Stone Ruin */}
                     {status === 'locked' && (
-                        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-lg">
-                            {/* Stone Bud */}
-                            <path d="M50 20 C30 20 20 50 20 70 C20 90 40 95 50 95 C60 95 80 90 80 70 C80 50 70 20 50 20 Z" fill="#374151" stroke="#1f2937" strokeWidth="2" />
-                            <path d="M50 20 C50 20 45 50 50 95" stroke="#1f2937" strokeWidth="1" opacity="0.5" />
-                            <path d="M30 60 L40 70 M70 60 L60 70" stroke="#1f2937" strokeWidth="2" opacity="0.3" />
-                        </svg>
+                        <div className="relative w-full h-full drop-shadow-xl grayscale opacity-80">
+                            {/* Stone Base */}
+                            <svg viewBox="0 0 100 100" className="w-full h-full">
+                                <path d="M50 15 L85 35 L85 75 L50 95 L15 75 L15 35 Z" fill="#334155" stroke="#1e293b" strokeWidth="4" />
+                                {/* Cracks */}
+                                <path d="M30 40 L45 55 M70 80 L60 65" stroke="#0f172a" strokeWidth="2" opacity="0.5" />
+                                {/* Moss */}
+                                <circle cx="30" cy="70" r="8" fill="#14532d" opacity="0.6" />
+                                <circle cx="75" cy="40" r="5" fill="#14532d" opacity="0.5" />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Lock className="w-8 h-8 text-slate-500" />
+                            </div>
+                        </div>
                     )}
 
+                    {/* ACTIVE STATE: Glowing Magical Rune Stone */}
                     {status === 'active' && (
                         <div className="relative w-full h-full">
-                            {/* Pulsing Glow */}
-                            <div className="absolute inset-0 bg-emerald-500/30 rounded-full blur-xl animate-pulse" />
-                            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(16,185,129,0.6)]">
-                                {/* Blooming Flower */}
-                                <g className="animate-[spin_10s_linear_infinite]">
-                                    {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-                                        <path
-                                            key={i}
-                                            d="M50 50 Q30 20 50 10 Q70 20 50 50"
-                                            fill="#10b981"
-                                            stroke="#065f46"
-                                            strokeWidth="1"
-                                            transform={`rotate(${angle} 50 50)`}
-                                        />
-                                    ))}
+                            {/* Pulsing Aura */}
+                            <div className="absolute inset-0 bg-emerald-500/40 rounded-full blur-2xl animate-pulse" />
+
+                            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_20px_rgba(16,185,129,0.8)]">
+                                {/* Magical Stone Base */}
+                                <path d="M50 10 L90 32 L90 78 L50 100 L10 78 L10 32 Z" fill="#064e3b" stroke="#34d399" strokeWidth="3" />
+
+                                {/* Inner Glow Gradient */}
+                                <defs>
+                                    <radialGradient id="magicGlow" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stopColor="#34d399" stopOpacity="0.8" />
+                                        <stop offset="100%" stopColor="#064e3b" stopOpacity="0" />
+                                    </radialGradient>
+                                </defs>
+                                <circle cx="50" cy="50" r="30" fill="url(#magicGlow)" className="animate-pulse" />
+
+                                {/* Rotating Runes Ring */}
+                                <g className="animate-[spin_8s_linear_infinite]">
+                                    <circle cx="50" cy="50" r="28" stroke="#34d399" strokeWidth="1" strokeDasharray="4 8" fill="none" />
                                 </g>
-                                <circle cx="50" cy="50" r="15" fill="#fcd34d" className="animate-pulse" />
                             </svg>
+
+                            {/* Floating Icon */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Leaf className="w-10 h-10 text-emerald-300 drop-shadow-lg animate-bounce" />
+                            </div>
                         </div>
                     )}
 
+                    {/* COMPLETED STATE: Golden Temple Artifact */}
                     {status === 'completed' && (
-                        <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]">
-                            {/* Golden Fruit */}
-                            <circle cx="50" cy="50" r="35" fill="url(#goldGradient)" stroke="#b45309" strokeWidth="2" />
-                            <defs>
-                                <radialGradient id="goldGradient" cx="30%" cy="30%" r="70%">
-                                    <stop offset="0%" stopColor="#fcd34d" />
-                                    <stop offset="100%" stopColor="#d97706" />
-                                </radialGradient>
-                            </defs>
-                            {/* Shine */}
-                            <ellipse cx="35" cy="35" rx="10" ry="5" fill="white" opacity="0.4" transform="rotate(-45 35 35)" />
-                        </svg>
-                    )}
+                        <div className="relative w-full h-full">
+                            {/* Golden Shine */}
+                            <div className="absolute inset-0 bg-amber-400/30 rounded-full blur-xl" />
 
-                    {/* Icon Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center text-white drop-shadow-md pointer-events-none">
-                        {status === 'locked' && <Lock className="w-6 h-6 text-slate-400" />}
-                        {status === 'active' && <Leaf className="w-8 h-8 text-emerald-900" />}
-                        {status === 'completed' && <Check className="w-8 h-8 text-amber-900" />}
-                    </div>
+                            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]">
+                                {/* Golden Hexagon */}
+                                <path d="M50 5 L95 27 L95 73 L50 95 L5 73 L5 27 Z" fill="url(#goldGradient)" stroke="#b45309" strokeWidth="2" />
+
+                                <defs>
+                                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                        <stop offset="0%" stopColor="#fcd34d" />
+                                        <stop offset="50%" stopColor="#fbbf24" />
+                                        <stop offset="100%" stopColor="#d97706" />
+                                    </linearGradient>
+                                </defs>
+
+                                {/* Decorative Border */}
+                                <path d="M50 15 L85 32 L85 68 L50 85 L15 68 L15 32 Z" fill="none" stroke="#78350f" strokeWidth="1" opacity="0.5" />
+                            </svg>
+
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <Check className="w-10 h-10 text-amber-900 drop-shadow-sm" strokeWidth={3} />
+                            </div>
+                        </div>
+                    )}
                 </motion.button>
 
-                {/* Organic Label */}
+                {/* RPG Style Label */}
                 <div
-                    className={cn(
-                        "absolute left-1/2 -translate-x-1/2 top-full mt-2 w-40 text-center transition-all",
-                        isSelected ? "opacity-100 scale-100" : "opacity-70 scale-90"
-                    )}
+                    className={`absolute left-1/2 -translate-x-1/2 top-full mt-1 w-48 text-center transition-all duration-300 ${isSelected ? "opacity-100 scale-100 z-30" : "opacity-80 scale-90 z-10"
+                        }`}
                 >
-                    <div className="bg-[#1a2f16]/80 backdrop-blur-sm border border-[#2d4a22] px-3 py-1 rounded-lg shadow-lg">
-                        <div className="text-sm font-bold text-[#e2d5c3] font-serif leading-tight">
+                    <div className={`
+                        relative px-4 py-2 rounded-lg border-2 shadow-xl backdrop-blur-md
+                        ${status === 'completed' ? 'bg-amber-900/80 border-amber-500/50' :
+                            status === 'active' ? 'bg-emerald-900/80 border-emerald-500/50' :
+                                'bg-slate-800/80 border-slate-600/50'}
+                    `}>
+                        <div className={`text-sm font-bold font-serif tracking-wide
+                            ${status === 'completed' ? 'text-amber-200' :
+                                status === 'active' ? 'text-emerald-200' :
+                                    'text-slate-300'}
+                        `}>
                             {title}
                         </div>
-                        <div className="text-[10px] text-emerald-400 uppercase tracking-wider mt-0.5">
-                            Level {level}
+                        <div className="flex items-center justify-center gap-2 mt-1">
+                            <div className="h-[1px] w-4 bg-current opacity-30" />
+                            <div className="text-[10px] uppercase tracking-widest opacity-70">
+                                Lvl {level}
+                            </div>
+                            <div className="h-[1px] w-4 bg-current opacity-30" />
                         </div>
                     </div>
                 </div>
@@ -230,9 +326,9 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
         <motion.div
             className="absolute"
             style={{
-                left: `calc(50% + ${position.x}px)`,
+                left: `${position.x}px`,
                 top: `${position.y}px`,
-                transform: 'translate(-50%, 0)',
+                transform: 'translate(-50%, -50%)',
             }}
             initial={variants.initial}
             animate={variants.animate}
@@ -243,7 +339,7 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
         >
             <motion.button
                 onClick={onClick}
-                className={getNodeClass()}
+                style={getNodeStyle()}
                 whileHover={{
                     scale: skin.animations.hover.scale,
                     transition: { duration: skin.animations.hover.duration / 1000 },
@@ -251,7 +347,7 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
                 whileTap={{ scale: 0.95 }}
             >
                 {/* Icon - counter-rotate for dragon's lair */}
-                <div className={skin.id === 'dragons-lair' ? '-rotate-45' : ''}>
+                <div style={{ transform: skin.id === 'dragons-lair' ? 'rotate(-45deg)' : 'none' }}>
                     {getIcon()}
                 </div>
 
@@ -269,10 +365,8 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
 
             {/* Node Label */}
             <div
-                className={cn(
-                    "absolute left-20 top-1/2 -translate-y-1/2 w-48 text-left pl-4 transition-all",
-                    isSelected ? "opacity-100 translate-x-0" : "opacity-50 translate-x-[-10px]"
-                )}
+                className={`absolute left-20 top-1/2 -translate-y-1/2 w-48 text-left pl-4 transition-all ${isSelected ? "opacity-100 translate-x-0" : "opacity-50 translate-x-[-10px]"
+                    }`}
             >
                 <div className="text-lg font-bold" style={{ color: skin.colors.textPrimary }}>
                     {title}
