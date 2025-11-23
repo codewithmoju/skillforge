@@ -63,19 +63,6 @@ export interface RoadmapDefinition {
     level: number;
     lessons: number;
     lessonTitles?: string[];
-    lessonDescriptions?: string[]; // Detailed description for each lesson
-    position: { x: number; y: number };
-    description?: string;
-
-    // Module Details
-    learningObjectives?: string[]; // What you'll learn
-    estimatedDuration?: string; // Time to complete module
-    difficulty?: string; // Beginner/Intermediate/Advanced
-    keyTakeaways?: string[]; // Key learning points
-    practicalProjects?: string[]; // Project ideas
-
-    // Hierarchical Learning Structure
-    prerequisites?: Prerequisite[]; // What to learn first + why
     learningAreas?: LearningArea[]; // Hierarchical breakdown
     learningPath?: string[]; // Sequential list of areas
     topics?: string[]; // Legacy support - list of topic names
@@ -125,6 +112,8 @@ export interface UserState {
     roadmapProgress: Record<string, RoadmapNode>;
     roadmapDefinitions: RoadmapDefinition[];
     currentTopic: string;
+    completedTopics: string[];
+    completedSubtopics: string[];
     // Guide Mode Data
     learningAreas: LearningArea[];
     prerequisites: Prerequisite[];
@@ -180,6 +169,7 @@ export interface UserState {
     // Challenge actions
     incrementChallengesJoined: () => void;
     incrementChallengesCompleted: () => void;
+    toggleSubtopicCompletion: (subtopicId: string) => void;
 }
 
 const defaultState = {
@@ -213,6 +203,8 @@ const defaultState = {
     roadmapGoal: "",
     totalLessonsCompleted: 0,
     lessonCache: {},
+    completedTopics: [],
+    completedSubtopics: [],
     postsCount: 0,
     likesGivenCount: 0,
     commentsCount: 0,
@@ -709,6 +701,20 @@ export const useUserStore = create<UserState>()(
                     const newCount = state.challengesCompleted + 1;
                     state.updateAchievementProgress('champion', newCount);
                     return { challengesCompleted: newCount };
+                });
+            },
+
+            toggleSubtopicCompletion: (subtopicId: string) => {
+                set((state) => {
+                    const completed = new Set(state.completedSubtopics || []);
+                    if (completed.has(subtopicId)) {
+                        completed.delete(subtopicId);
+                    } else {
+                        completed.add(subtopicId);
+                        // Add XP for completing an objective
+                        state.addXp(50, 'lesson_complete');
+                    }
+                    return { completedSubtopics: Array.from(completed) };
                 });
             },
         }),

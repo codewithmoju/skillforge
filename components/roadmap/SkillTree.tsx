@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Hexagon, ChevronRight, CheckCircle2, Lock, Zap, BookOpen, Star, Code2, Lightbulb, ArrowRight, X, Target } from "lucide-react";
-import type { LearningArea, Topic } from "@/lib/store";
+import { type LearningArea, type Topic, useUserStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { MissionPlayer } from "./MissionPlayer";
 
 interface SkillTreeProps {
     learningAreas: LearningArea[];
@@ -16,6 +17,7 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
     const [selectedAreaId, setSelectedAreaId] = useState<string>(learningAreas[0]?.id || "");
     const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
     const [startedTopics, setStartedTopics] = useState<Set<string>>(new Set());
+    const [activeMission, setActiveMission] = useState<{ topic: Topic, subtopicIndex: number } | null>(null);
 
     const toggleMissionStart = (topicId: string) => {
         const newStarted = new Set(startedTopics);
@@ -250,7 +252,13 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
 
                                         <div className="grid gap-3">
                                             {selectedTopic.subtopics.map((sub, i) => (
-                                                <MissionObjective key={i} sub={sub} index={i} />
+                                                <MissionObjective
+                                                    key={i}
+                                                    sub={sub}
+                                                    index={i}
+                                                    topic={selectedTopic}
+                                                    onPlay={() => setActiveMission({ topic: selectedTopic, subtopicIndex: i })}
+                                                />
                                             ))}
                                         </div>
                                     </div>
@@ -299,108 +307,69 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
                     </AnimatePresence>
                 </div>
             </div>
+            {/* Mission Player Overlay */}
+            <AnimatePresence>
+                {activeMission && (
+                    <MissionPlayer
+                        topic={activeMission.topic}
+                        initialSubtopicIndex={activeMission.subtopicIndex}
+                        onClose={() => setActiveMission(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
 
-function MissionObjective({ sub, index }: { sub: any, index: number }) {
+function MissionObjective({ sub, index, topic, onPlay }: { sub: any, index: number, topic: Topic, onPlay: () => void }) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isCompleted, setIsCompleted] = useState(false);
+    const { completedSubtopics } = useUserStore();
+    const isCompleted = completedSubtopics.includes(sub.id);
 
     return (
         <motion.div
             layout
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onPlay}
             className={cn(
-                "group rounded-xl border transition-all duration-300 overflow-hidden",
-                isExpanded
-                    ? "bg-slate-900/80 border-blue-500/50 shadow-lg shadow-blue-900/20"
-                    : "bg-slate-950/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900"
+                "group rounded-xl border transition-all duration-300 overflow-hidden cursor-pointer relative",
+                isCompleted
+                    ? "bg-green-950/20 border-green-500/30 hover:border-green-500/50"
+                    : "bg-slate-900/50 border-slate-800 hover:border-blue-500/50 hover:bg-slate-900/80 hover:shadow-lg hover:shadow-blue-900/20"
             )}
         >
-            <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center gap-4 p-4 text-left"
-            >
+            <div className="flex items-center gap-4 p-4">
                 <div className={cn(
-                    "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs border transition-colors",
+                    "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm border transition-colors shadow-lg",
                     isCompleted
-                        ? "bg-green-500 text-white border-green-500"
-                        : isExpanded
-                            ? "bg-blue-500 text-white border-blue-500"
-                            : "bg-slate-900 text-slate-500 border-slate-800 group-hover:border-slate-700"
+                        ? "bg-green-500 text-white border-green-500 shadow-green-900/20"
+                        : "bg-slate-800 text-slate-400 border-slate-700 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-500 group-hover:shadow-blue-900/30"
                 )}>
-                    {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : index + 1}
+                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : index + 1}
                 </div>
 
                 <div className="flex-1">
                     <h5 className={cn(
-                        "font-bold transition-colors",
-                        isExpanded ? "text-white" : "text-slate-300 group-hover:text-white",
-                        isCompleted && "text-green-400 line-through opacity-70"
+                        "font-bold text-base transition-colors mb-1",
+                        isCompleted ? "text-green-400 line-through opacity-70" : "text-slate-200 group-hover:text-white"
                     )}>
                         {sub.name}
                     </h5>
-                    {!isExpanded && (
-                        <p className="text-xs text-slate-500 line-clamp-1 mt-1">
-                            {sub.description}
-                        </p>
-                    )}
+                    <p className="text-xs text-slate-500 line-clamp-1 group-hover:text-slate-400">
+                        {sub.description}
+                    </p>
                 </div>
 
-                <ChevronRight className={cn(
-                    "w-5 h-5 text-slate-500 transition-transform duration-300",
-                    isExpanded && "rotate-90 text-blue-400"
-                )} />
-            </button>
-
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <div className="px-4 pb-4 pt-0 pl-[4.5rem]">
-                            <p className="text-sm text-slate-300 mb-4 leading-relaxed">
-                                {sub.description}
-                            </p>
-
-                            {sub.keyPoints && sub.keyPoints.length > 0 && (
-                                <div className="mb-4">
-                                    <h6 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Key Intel</h6>
-                                    <div className="flex flex-wrap gap-2">
-                                        {sub.keyPoints.map((point: string, j: number) => (
-                                            <span key={j} className="text-xs px-2 py-1 rounded-md bg-slate-950 text-slate-400 border border-slate-800">
-                                                {point}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex justify-end pt-2">
-                                <Button
-                                    size="sm"
-                                    variant={isCompleted ? "outline" : "primary"}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setIsCompleted(!isCompleted);
-                                    }}
-                                    className={cn(
-                                        "text-xs h-8",
-                                        isCompleted
-                                            ? "border-green-500/50 text-green-400 hover:bg-green-500/10"
-                                            : "bg-blue-600 hover:bg-blue-500"
-                                    )}
-                                >
-                                    {isCompleted ? "Mark Incomplete" : "Complete Objective"}
-                                </Button>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300",
+                    isCompleted
+                        ? "bg-green-500/10 text-green-500"
+                        : "bg-slate-800 text-slate-500 group-hover:bg-blue-600 group-hover:text-white"
+                )}>
+                    {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                </div>
+            </div>
         </motion.div>
     );
 }
