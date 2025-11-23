@@ -282,6 +282,54 @@ export default function RoadmapPage() {
                         onNodeSelect={setSelectedNodeId}
                     />
                 </div>
+
+                {/* Right: Details Panel */}
+                <div className="w-full lg:w-96 shrink-0">
+                    {selectedNodeId && selectedNodeDef && selectedNodeProgress ? (
+                        selectedSkin === 'forest-quest' ? (
+                            // Forest Quest Premium Parchment Scroll
+                            <motion.div
+                                key={selectedNodeId}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                className="sticky top-24"
+                            >
+                                {/* Scroll Container with Torn Edges */}
+                                <div className="relative">
+                                    {/* Main Parchment Background */}
+                                    <div className="absolute inset-0 bg-gradient-to-br from-[#f5e6d3] via-[#ede0ce] to-[#f5e6d3] rounded-lg shadow-2xl">
+                                        {/* Paper Texture Overlay */}
+                                        <div className="absolute inset-0 opacity-40" style={{
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E")`
+                                        }} />
+
+                                        {/* Torn Edge Effect - Top */}
+                                        <div className="absolute -top-2 left-0 right-0 h-4 bg-gradient-to-b from-[#d4c5b3] to-transparent opacity-60"
+                                            style={{
+                                                clipPath: 'polygon(0% 0%, 2% 100%, 5% 20%, 8% 80%, 12% 30%, 15% 90%, 18% 40%, 22% 100%, 25% 10%, 28% 70%, 32% 25%, 35% 85%, 38% 35%, 42% 95%, 45% 15%, 48% 75%, 52% 30%, 55% 90%, 58% 20%, 62% 80%, 65% 40%, 68% 100%, 72% 25%, 75% 85%, 78% 35%, 82% 95%, 85% 15%, 88% 75%, 92% 30%, 95% 90%, 98% 20%, 100% 0%)'
+                                            }}
+                                        />
+
+                                        {/* Torn Edge Effect - Bottom */}
+                                        <div className="absolute -bottom-2 left-0 right-0 h-4 bg-gradient-to-t from-[#d4c5b3] to-transparent opacity-60"
+                                            style={{
+                                                clipPath: 'polygon(0% 100%, 2% 0%, 5% 80%, 8% 20%, 12% 70%, 15% 10%, 18% 60%, 22% 0%, 25% 90%, 28% 30%, 32% 75%, 35% 15%, 38% 65%, 42% 5%, 45% 85%, 48% 25%, 52% 70%, 55% 10%, 58% 80%, 62% 20%, 65% 60%, 68% 0%, 72% 75%, 75% 15%, 78% 65%, 82% 5%, 85% 85%, 88% 25%, 92% 70%, 95% 10%, 98% 80%, 100% 100%)'
+                                            }}
+                                        />
+
+                                        {/* Shadow Depth Layers */}
+                                        <div className="absolute inset-0 rounded-lg shadow-[0_8px_32px_rgba(139,69,19,0.3)]" />
+                                        <div className="absolute inset-0 rounded-lg shadow-[inset_0_2px_8px_rgba(139,69,19,0.1)]" />
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="relative p-8 text-[#3e2723] font-serif">
+                                        {/* Header Section */}
+                                        <div className="mb-6 pb-6 border-b-2 border-[#8b4513]/20">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#8b4513]">
+                                                    Current Module
                                                 </span>
                                                 <span className="text-sm font-bold text-[#5d4037] bg-[#fff8f0] px-3 py-1 rounded-full border border-[#e6d5c3]">
                                                     {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Lessons
@@ -293,10 +341,10 @@ export default function RoadmapPage() {
                                             <p className="text-sm leading-relaxed text-[#5d4037]">
                                                 {selectedNodeDef.description}
                                             </p>
-                                        </div >
+                                        </div>
 
-        {/* Gradient Progress Bar */ }
-        < div className = "mb-8" >
+                                        {/* Gradient Progress Bar */}
+                                        <div className="mb-8">
                                             <div className="flex items-center justify-between mb-2">
                                                 <span className="text-xs font-bold uppercase tracking-wider text-[#8b4513]">📖 Lessons</span>
                                             </div>
@@ -311,96 +359,94 @@ export default function RoadmapPage() {
                                                     <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent animate-pulse-slow" />
                                                 </motion.div>
                                             </div>
-                                        </div >
+                                        </div>
 
-        {/* Lessons List */ }
-        < div className = "space-y-3 mb-8" >
-        {
-            Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
-                const lessonNum = i + 1;
-                const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
-                const isCurrent = lessonNum === selectedNodeProgress.completedLessons + 1;
-                const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
+                                        {/* Lessons List */}
+                                        <div className="space-y-3 mb-8">
+                                            {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
+                                                const lessonNum = i + 1;
+                                                const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
+                                                const isCurrent = lessonNum === selectedNodeProgress.completedLessons + 1;
+                                                const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
 
-                return (
-                    <motion.div
-                        key={lessonNum}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        onClick={() => {
-                            if (!isCompleted) {
-                                router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
-                            }
-                        }}
-                        className={cn(
-                            "flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden",
-                            isCompleted
-                                ? "bg-gradient-to-r from-[#d4f4dd] to-[#c8e6c9] border-[#81c784] shadow-sm"
-                                : isCurrent
-                                    ? "bg-gradient-to-r from-[#fef3c7] to-[#fde68a] border-[#fbbf24] shadow-md hover:shadow-lg"
-                                    : "bg-white/60 border-[#d7ccc8] hover:bg-white/80 hover:border-[#a1887f] hover:shadow-md"
-                        )}
-                    >
-                        {/* Subtle Background Pattern */}
-                        {isCurrent && (
-                            <div className="absolute inset-0 opacity-10" style={{
-                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f59e0b' fill-opacity='0.4'%3E%3Cpath d='M0 0h20L0 20z'/%3E%3C/g%3E%3C/svg%3E")`
-                            }} />
-                        )}
+                                                return (
+                                                    <motion.div
+                                                        key={lessonNum}
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: i * 0.05 }}
+                                                        onClick={() => {
+                                                            if (!isCompleted) {
+                                                                router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
+                                                            }
+                                                        }}
+                                                        className={cn(
+                                                            "flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden",
+                                                            isCompleted
+                                                                ? "bg-gradient-to-r from-[#d4f4dd] to-[#c8e6c9] border-[#81c784] shadow-sm"
+                                                                : isCurrent
+                                                                    ? "bg-gradient-to-r from-[#fef3c7] to-[#fde68a] border-[#fbbf24] shadow-md hover:shadow-lg"
+                                                                    : "bg-white/60 border-[#d7ccc8] hover:bg-white/80 hover:border-[#a1887f] hover:shadow-md"
+                                                        )}
+                                                    >
+                                                        {/* Subtle Background Pattern */}
+                                                        {isCurrent && (
+                                                            <div className="absolute inset-0 opacity-10" style={{
+                                                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f59e0b' fill-opacity='0.4'%3E%3Cpath d='M0 0h20L0 20z'/%3E%3C/g%3E%3C/svg%3E")`
+                                                            }} />
+                                                        )}
 
-                        {/* Icon Circle */}
-                        <div className={cn(
-                            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 flex-shrink-0 relative z-10",
-                            isCompleted
-                                ? "bg-[#81c784] border-[#2e7d32] text-white shadow-lg"
-                                : isCurrent
-                                    ? "bg-white border-[#f59e0b] text-[#f59e0b] shadow-md group-hover:scale-110"
-                                    : "bg-white border-[#8b4513] text-[#8b4513] group-hover:border-[#5d4037]"
-                        )}>
-                            {isCompleted ? (
-                                <Check className="w-5 h-5" strokeWidth={3} />
-                            ) : (
-                                <span className="font-serif">{lessonNum}</span>
-                            )}
-                        </div>
+                                                        {/* Icon Circle */}
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 flex-shrink-0 relative z-10",
+                                                            isCompleted
+                                                                ? "bg-[#81c784] border-[#2e7d32] text-white shadow-lg"
+                                                                : isCurrent
+                                                                    ? "bg-white border-[#f59e0b] text-[#f59e0b] shadow-md group-hover:scale-110"
+                                                                    : "bg-white border-[#8b4513] text-[#8b4513] group-hover:border-[#5d4037]"
+                                                        )}>
+                                                            {isCompleted ? (
+                                                                <Check className="w-5 h-5" strokeWidth={3} />
+                                                            ) : (
+                                                                <span className="font-serif">{lessonNum}</span>
+                                                            )}
+                                                        </div>
 
-                        {/* Lesson Title */}
-                        <div className="flex-1 relative z-10">
-                            <span className={cn(
-                                "text-base font-semibold block leading-tight",
-                                isCompleted
-                                    ? "text-[#1b5e20]"
-                                    : isCurrent
-                                        ? "text-[#2d1b0e]"
-                                        : "text-[#3e2723] group-hover:text-[#2d1b0e]"
-                            )}>
-                                {lessonTitle}
-                            </span>
-                            {isCompleted && (
-                                <span className="text-xs text-[#2e7d32] mt-1 flex items-center gap-1">
-                                    <Check className="w-3 h-3" /> Completed
-                                </span>
-                            )}
-                        </div>
+                                                        {/* Lesson Title */}
+                                                        <div className="flex-1 relative z-10">
+                                                            <span className={cn(
+                                                                "text-base font-semibold block leading-tight",
+                                                                isCompleted
+                                                                    ? "text-[#1b5e20]"
+                                                                    : isCurrent
+                                                                        ? "text-[#2d1b0e]"
+                                                                        : "text-[#3e2723] group-hover:text-[#2d1b0e]"
+                                                            )}>
+                                                                {lessonTitle}
+                                                            </span>
+                                                            {isCompleted && (
+                                                                <span className="text-xs text-[#2e7d32] mt-1 flex items-center gap-1">
+                                                                    <Check className="w-3 h-3" /> Completed
+                                                                </span>
+                                                            )}
+                                                        </div>
 
-                        {/* Arrow Indicator */}
-                        {!isCompleted && (
-                            <ChevronRight className={cn(
-                                "w-5 h-5 transition-all duration-300 relative z-10",
-                                isCurrent
-                                    ? "text-[#f59e0b] opacity-100 translate-x-0"
-                                    : "text-[#8b4513] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
-                            )} />
-                        )}
-                    </motion.div>
-                );
-            })
-        }
-                                        </div >
+                                                        {/* Arrow Indicator */}
+                                                        {!isCompleted && (
+                                                            <ChevronRight className={cn(
+                                                                "w-5 h-5 transition-all duration-300 relative z-10",
+                                                                isCurrent
+                                                                    ? "text-[#f59e0b] opacity-100 translate-x-0"
+                                                                    : "text-[#8b4513] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
+                                                            )} />
+                                                        )}
+                                                    </motion.div>
+                                                );
+                                            })}
+                                        </div>
 
-        {/* Action Buttons */ }
-        < div className = "space-y-3 pt-4 border-t-2 border-[#8b4513]/20" >
+                                        {/* Action Buttons */}
+                                        <div className="space-y-3 pt-4 border-t-2 border-[#8b4513]/20">
                                             <Button
                                                 className="w-full bg-gradient-to-r from-[#14b8a6] to-[#0d9488] hover:from-[#0d9488] hover:to-[#0f766e] text-white font-serif py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-[#0d9488]/30 group relative overflow-hidden"
                                                 onClick={() => {
@@ -432,244 +478,243 @@ export default function RoadmapPage() {
                                                     <Sparkles className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
                                                 </div>
                                             </Button>
-                                        </div >
-                                    </div >
-                                </div >
-                            </motion.div >
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
                         ) : (
-        // Standard theme panel
-        <motion.div
-            key={selectedNodeId}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="sticky top-24"
-        >
-            <Card
-                className="transition-all duration-500 relative overflow-hidden"
-                style={{
-                    borderColor: `${colors.primary}50`,
-                    backgroundColor: `${colors.backgroundCard}CC`,
-                }}
-            >
-                {selectedSkin === 'forest-quest' && (
-                    <div className="absolute inset-0 opacity-5 pointer-events-none"
-                        style={{
-                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                        }}
-                    />
-                )}
-                <div className="mb-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <span
-                            className="text-xs font-bold uppercase tracking-wider transition-colors duration-500"
-                            style={{ color: colors.accent }}
-                        >
-                            Current Module
-                        </span>
-                        <span
-                            className="text-xs transition-colors duration-500"
-                            style={{ color: colors.textSecondary }}
-                        >
-                            {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Lessons
-                        </span>
-                    </div>
-                    <h2
-                        className="text-2xl font-bold mb-4 transition-colors duration-500"
-                        style={{ color: colors.textPrimary }}
-                    >
-                        {selectedNodeDef.title}
-                    </h2>
-                    <p
-                        className="text-sm mb-4 transition-colors duration-500"
-                        style={{ color: colors.textSecondary }}
-                    >
-                        {selectedNodeDef.description}
-                    </p>
-                    <div className="relative w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${colors.primary}20` }}>
-                        <motion.div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                                backgroundColor: colors.accent,
-                                background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
-                            }}
-                            initial={{ width: 0 }}
-                            animate={{
-                                width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%`
-                            }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-4 mb-8">
-                    <h3
-                        className="font-semibold flex items-center gap-2 transition-colors duration-500"
-                        style={{ color: colors.textPrimary }}
-                    >
-                        <BookOpen className="w-4 h-4" style={{ color: colors.accent }} /> Lessons
-                    </h3>
-                    {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
-                        const lessonNum = i + 1;
-                        const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
-                        const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
-
-                        return (
+                            // Standard theme panel
                             <motion.div
-                                key={lessonNum}
-                                onClick={() => {
-                                    if (!isCompleted) {
-                                        router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
-                                    }
-                                }}
-                                className="flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer group"
-                                style={{
-                                    backgroundColor: isCompleted ? `${colors.nodeCompleted}15` : `${colors.backgroundCard}80`,
-                                    borderColor: isCompleted ? `${colors.nodeCompleted}40` : `${colors.primary}30`,
-                                }}
-                                whileHover={{
-                                    scale: 1.02,
-                                    borderColor: isCompleted ? colors.nodeCompleted : colors.accent,
-                                }}
+                                key={selectedNodeId}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="sticky top-24"
                             >
-                                <div
-                                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300"
+                                <Card
+                                    className="transition-all duration-500 relative overflow-hidden"
                                     style={{
-                                        backgroundColor: isCompleted ? `${colors.nodeCompleted}30` : "transparent",
-                                        borderColor: isCompleted ? colors.nodeCompleted : colors.textMuted,
-                                        color: isCompleted ? colors.nodeCompleted : colors.textMuted,
+                                        borderColor: `${colors.primary}50`,
+                                        backgroundColor: `${colors.backgroundCard}CC`,
                                     }}
                                 >
-                                    {isCompleted ? <Check className="w-3 h-3" /> : lessonNum}
-                                </div>
-                                <div className="flex-1">
-                                    <span
-                                        className={cn(
-                                            "text-sm font-medium transition-colors block",
-                                            isCompleted && "line-through"
-                                        )}
-                                        style={{
-                                            color: isCompleted ? colors.textMuted : colors.textPrimary,
-                                        }}
-                                    >
-                                        {lessonTitle}
-                                    </span>
-                                    {isCompleted && (
-                                        <span
-                                            className="text-xs transition-colors duration-500"
-                                            style={{ color: colors.nodeCompleted }}
-                                        >
-                                            ✓ Completed
-                                        </span>
+                                    {selectedSkin === 'forest-quest' && (
+                                        <div className="absolute inset-0 opacity-5 pointer-events-none"
+                                            style={{
+                                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                                            }}
+                                        />
                                     )}
-                                </div>
-                                <ChevronRight
-                                    className="w-4 h-4 ml-auto transition-colors duration-300"
-                                    style={{
-                                        color: colors.textMuted,
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.color = colors.accent;
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.color = colors.textMuted;
-                                    }}
-                                />
+                                    <div className="mb-6">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span
+                                                className="text-xs font-bold uppercase tracking-wider transition-colors duration-500"
+                                                style={{ color: colors.accent }}
+                                            >
+                                                Current Module
+                                            </span>
+                                            <span
+                                                className="text-xs transition-colors duration-500"
+                                                style={{ color: colors.textSecondary }}
+                                            >
+                                                {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Lessons
+                                            </span>
+                                        </div>
+                                        <h2
+                                            className="text-2xl font-bold mb-4 transition-colors duration-500"
+                                            style={{ color: colors.textPrimary }}
+                                        >
+                                            {selectedNodeDef.title}
+                                        </h2>
+                                        <p
+                                            className="text-sm mb-4 transition-colors duration-500"
+                                            style={{ color: colors.textSecondary }}
+                                        >
+                                            {selectedNodeDef.description}
+                                        </p>
+                                        <div className="relative w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${colors.primary}20` }}>
+                                            <motion.div
+                                                className="h-full rounded-full transition-all duration-500"
+                                                style={{
+                                                    backgroundColor: colors.accent,
+                                                    background: `linear-gradient(90deg, ${colors.primary}, ${colors.accent})`,
+                                                }}
+                                                initial={{ width: 0 }}
+                                                animate={{
+                                                    width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%`
+                                                }}
+                                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 mb-8">
+                                        <h3
+                                            className="font-semibold flex items-center gap-2 transition-colors duration-500"
+                                            style={{ color: colors.textPrimary }}
+                                        >
+                                            <BookOpen className="w-4 h-4" style={{ color: colors.accent }} /> Lessons
+                                        </h3>
+                                        {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
+                                            const lessonNum = i + 1;
+                                            const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
+                                            const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
+
+                                            return (
+                                                <motion.div
+                                                    key={lessonNum}
+                                                    onClick={() => {
+                                                        if (!isCompleted) {
+                                                            router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-3 p-3 rounded-xl border transition-all duration-300 cursor-pointer group"
+                                                    style={{
+                                                        backgroundColor: isCompleted ? `${colors.nodeCompleted}15` : `${colors.backgroundCard}80`,
+                                                        borderColor: isCompleted ? `${colors.nodeCompleted}40` : `${colors.primary}30`,
+                                                    }}
+                                                    whileHover={{
+                                                        scale: 1.02,
+                                                        borderColor: isCompleted ? colors.nodeCompleted : colors.accent,
+                                                    }}
+                                                >
+                                                    <div
+                                                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300"
+                                                        style={{
+                                                            backgroundColor: isCompleted ? `${colors.nodeCompleted}30` : "transparent",
+                                                            borderColor: isCompleted ? colors.nodeCompleted : colors.textMuted,
+                                                            color: isCompleted ? colors.nodeCompleted : colors.textMuted,
+                                                        }}
+                                                    >
+                                                        {isCompleted ? <Check className="w-3 h-3" /> : lessonNum}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <span
+                                                            className={cn(
+                                                                "text-sm font-medium transition-colors block",
+                                                                isCompleted && "line-through"
+                                                            )}
+                                                            style={{
+                                                                color: isCompleted ? colors.textMuted : colors.textPrimary,
+                                                            }}
+                                                        >
+                                                            {lessonTitle}
+                                                        </span>
+                                                        {isCompleted && (
+                                                            <span
+                                                                className="text-xs transition-colors duration-500"
+                                                                style={{ color: colors.nodeCompleted }}
+                                                            >
+                                                                ✓ Completed
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <ChevronRight
+                                                        className="w-4 h-4 ml-auto transition-colors duration-300"
+                                                        style={{
+                                                            color: colors.textMuted,
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            e.currentTarget.style.color = colors.accent;
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            e.currentTarget.style.color = colors.textMuted;
+                                                        }}
+                                                    />
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="flex flex-col gap-3">
+                                        <Button
+                                            className="w-full transition-all duration-300 hover:scale-105"
+                                            size="lg"
+                                            style={{
+                                                background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
+                                                color: colors.textPrimary,
+                                                border: "none",
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.boxShadow = `0 0 20px ${colors.primary}50`;
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.boxShadow = "none";
+                                            }}
+                                        >
+                                            {selectedNodeProgress.completedLessons >= selectedNodeDef.lessons ? "Module Completed" : "Continue Learning"}
+                                        </Button>
+
+                                        <Button
+                                            variant="outline"
+                                            className="w-full transition-all duration-300 hover:scale-105"
+                                            onClick={() => setIsQuizOpen(true)}
+                                            style={{
+                                                borderColor: colors.primary,
+                                                color: colors.textPrimary,
+                                                backgroundColor: `${colors.backgroundCard}80`,
+                                            }}
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.borderColor = colors.accent;
+                                                e.currentTarget.style.backgroundColor = `${colors.primary}20`;
+                                                e.currentTarget.style.boxShadow = `0 0 15px ${colors.primary}30`;
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.borderColor = colors.primary;
+                                                e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
+                                                e.currentTarget.style.boxShadow = "none";
+                                            }}
+                                        >
+                                            Take Quiz Challenge
+                                        </Button>
+                                    </div>
+                                </Card>
                             </motion.div>
-                        );
-                    })}
-                </div>
-
-                <div className="flex flex-col gap-3">
-                    <Button
-                        className="w-full transition-all duration-300 hover:scale-105"
-                        size="lg"
-                        style={{
-                            background: `linear-gradient(135deg, ${colors.primary}, ${colors.accent})`,
-                            color: colors.textPrimary,
-                            border: "none",
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.boxShadow = `0 0 20px ${colors.primary}50`;
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.boxShadow = "none";
-                        }}
-                    >
-                        {selectedNodeProgress.completedLessons >= selectedNodeDef.lessons ? "Module Completed" : "Continue Learning"}
-                    </Button>
-
-                    <Button
-                        variant="outline"
-                        className="w-full transition-all duration-300 hover:scale-105"
-                        onClick={() => setIsQuizOpen(true)}
-                        style={{
-                            borderColor: colors.primary,
-                            color: colors.textPrimary,
-                            backgroundColor: `${colors.backgroundCard}80`,
-                        }}
-                        onMouseEnter={(e) => {
-                            e.currentTarget.style.borderColor = colors.accent;
-                            e.currentTarget.style.backgroundColor = `${colors.primary}20`;
-                            e.currentTarget.style.boxShadow = `0 0 15px ${colors.primary}30`;
-                        }}
-                        onMouseLeave={(e) => {
-                            e.currentTarget.style.borderColor = colors.primary;
-                            e.currentTarget.style.backgroundColor = `${colors.backgroundCard}80`;
-                            e.currentTarget.style.boxShadow = "none";
-                        }}
-                    >
-                        Take Quiz Challenge
-                    </Button>
-                </div>
-            </Card>
-        </motion.div>
-    )
+                        )
                     ) : (
-        <div
-            className="h-full flex items-center justify-center transition-colors duration-500"
-            style={{ color: colors.textMuted }}
-        >
-            Select a node to view details
-        </div>
-    )
-}
-                </div >
-            </div >
+                        <div
+                            className="h-full flex items-center justify-center transition-colors duration-500"
+                            style={{ color: colors.textMuted }}
+                        >
+                            Select a node to view details
+                        </div>
+                    )}
+                </div>
+            </div>
 
 
-{
-    selectedNodeDef && (
-        <>
-            <QuizModal
-                isOpen={isQuizOpen}
-                onClose={() => setIsQuizOpen(false)}
-                topic={selectedNodeDef.title}
-                level={selectedNodeDef.level}
-                nodeId={selectedNodeDef.id}
-            />
-        </>
-    )
+            {
+                selectedNodeDef && (
+                    <>
+                        <QuizModal
+                            isOpen={isQuizOpen}
+                            onClose={() => setIsQuizOpen(false)}
+                            topic={selectedNodeDef.title}
+                            level={selectedNodeDef.level}
+                            nodeId={selectedNodeDef.id}
+                        />
+                    </>
+                )
             }
 
-{/* Achievement Toast */ }
-{
-    achievementToast && (
-        <AchievementToast
-            achievementName={achievementToast.name}
-            achievementIcon={achievementToast.icon}
-            stars={achievementToast.stars}
-            xpGained={achievementToast.xp}
-            isVisible={!!achievementToast}
-            onClose={() => setAchievementToast(null)}
-        />
-    )
-}
+            {/* Achievement Toast */}
+            {
+                achievementToast && (
+                    <AchievementToast
+                        achievementName={achievementToast.name}
+                        achievementIcon={achievementToast.icon}
+                        stars={achievementToast.stars}
+                        xpGained={achievementToast.xp}
+                        isVisible={!!achievementToast}
+                        onClose={() => setAchievementToast(null)}
+                    />
+                )
+            }
 
-{/* Skin Selector Modal */ }
-<SkinSelector
-    isOpen={isSkinSelectorOpen}
-    onClose={() => setIsSkinSelectorOpen(false)}
-/>
+            {/* Skin Selector Modal */}
+            <SkinSelector
+                isOpen={isSkinSelectorOpen}
+                onClose={() => setIsSkinSelectorOpen(false)}
+            />
         </div >
     );
 }

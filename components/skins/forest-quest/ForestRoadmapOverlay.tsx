@@ -93,202 +93,117 @@ export function ForestRoadmapOverlay({ selectedNodeId, onGenerateNew, onQuizOpen
                 </div>
             </div>
 
-            {/* Right Details Panel - The Premium Scroll */}
+            {/* Right Details Panel - The Scroll */}
             <div className="pointer-events-none flex justify-end p-6 h-full items-start mt-20">
                 <AnimatePresence>
                     {selectedNodeId && selectedNodeDef && selectedNodeProgress && (
                         <motion.div
                             key={selectedNodeId}
-                            initial={{ x: 300, opacity: 0, scale: 0.95 }}
-                            animate={{ x: 0, opacity: 1, scale: 1 }}
-                            exit={{ x: 300, opacity: 0, scale: 0.95 }}
-                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                            className="pointer-events-auto w-[420px] relative"
+                            initial={{ x: 300, opacity: 0, rotate: 5 }}
+                            animate={{ x: 0, opacity: 1, rotate: 0 }}
+                            exit={{ x: 300, opacity: 0 }}
+                            className="pointer-events-auto w-96 relative"
                         >
-                            {/* Scroll Container with Torn Edges */}
-                            <div className="relative">
-                                {/* Main Parchment Background */}
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#f5e6d3] via-[#ede0ce] to-[#f5e6d3] rounded-lg shadow-2xl">
-                                    {/* Paper Texture Overlay */}
-                                    <div className="absolute inset-0 opacity-40" style={{
-                                        backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E")`
-                                    }} />
+                            {/* Scroll Background */}
+                            <div className="absolute inset-0 bg-[#f5e6d3] rounded-sm shadow-2xl transform rotate-1 border-y-8 border-[#d7ccc8]">
+                                <div className="absolute inset-0 opacity-30" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E")` }} />
+                                {/* Rolled Ends */}
+                                <div className="absolute -top-3 left-0 right-0 h-6 bg-[#d7ccc8] rounded-full shadow-md border border-[#a1887f]" />
+                                <div className="absolute -bottom-3 left-0 right-0 h-6 bg-[#d7ccc8] rounded-full shadow-md border border-[#a1887f]" />
+                            </div>
 
-                                    {/* Torn Edge Effect - Top */}
-                                    <div className="absolute -top-2 left-0 right-0 h-4 bg-gradient-to-b from-[#d4c5b3] to-transparent opacity-60"
-                                        style={{
-                                            clipPath: 'polygon(0% 0%, 2% 100%, 5% 20%, 8% 80%, 12% 30%, 15% 90%, 18% 40%, 22% 100%, 25% 10%, 28% 70%, 32% 25%, 35% 85%, 38% 35%, 42% 95%, 45% 15%, 48% 75%, 52% 30%, 55% 90%, 58% 20%, 62% 80%, 65% 40%, 68% 100%, 72% 25%, 75% 85%, 78% 35%, 82% 95%, 85% 15%, 88% 75%, 92% 30%, 95% 90%, 98% 20%, 100% 0%)'
-                                        }}
-                                    />
-
-                                    {/* Torn Edge Effect - Bottom */}
-                                    <div className="absolute -bottom-2 left-0 right-0 h-4 bg-gradient-to-t from-[#d4c5b3] to-transparent opacity-60"
-                                        style={{
-                                            clipPath: 'polygon(0% 100%, 2% 0%, 5% 80%, 8% 20%, 12% 70%, 15% 10%, 18% 60%, 22% 0%, 25% 90%, 28% 30%, 32% 75%, 35% 15%, 38% 65%, 42% 5%, 45% 85%, 48% 25%, 52% 70%, 55% 10%, 58% 80%, 62% 20%, 65% 60%, 68% 0%, 72% 75%, 75% 15%, 78% 65%, 82% 5%, 85% 85%, 88% 25%, 92% 70%, 95% 10%, 98% 80%, 100% 100%)'
-                                        }}
-                                    />
-
-                                    {/* Shadow Depth Layers */}
-                                    <div className="absolute inset-0 rounded-lg shadow-[0_8px_32px_rgba(139,69,19,0.3)]" />
-                                    <div className="absolute inset-0 rounded-lg shadow-[inset_0_2px_8px_rgba(139,69,19,0.1)]" />
+                            {/* Content */}
+                            <div className="relative p-8 text-[#3e2723] font-serif max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                <div className="mb-6 border-b-2 border-[#8b4513]/20 pb-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-bold uppercase tracking-wider text-[#8b4513]">
+                                            Chapter {selectedNodeProgress.completedLessons + 1}
+                                        </span>
+                                        <span className="text-xs font-bold text-[#5d4037]">
+                                            {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Runes
+                                        </span>
+                                    </div>
+                                    <h2 className="text-2xl font-bold mb-2 leading-tight">
+                                        {selectedNodeDef.title}
+                                    </h2>
+                                    <p className="text-sm italic text-[#5d4037] leading-relaxed">
+                                        "{selectedNodeDef.description}"
+                                    </p>
                                 </div>
 
-                                {/* Content */}
-                                <div className="relative p-8 text-[#3e2723] font-serif max-h-[75vh] overflow-y-auto parchment-scrollbar">
-                                    {/* Header Section */}
-                                    <div className="mb-6 pb-6 border-b-2 border-[#8b4513]/20">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#8b4513]">
-                                                Current Module
-                                            </span>
-                                            <span className="text-sm font-bold text-[#5d4037] bg-[#fff8f0] px-3 py-1 rounded-full border border-[#e6d5c3]">
-                                                {selectedNodeProgress.completedLessons} / {selectedNodeDef.lessons} Lessons
-                                            </span>
-                                        </div>
-                                        <h2 className="text-3xl font-bold mb-3 leading-tight text-[#2d1b0e]">
-                                            {selectedNodeDef.title}
-                                        </h2>
-                                        <p className="text-sm leading-relaxed text-[#5d4037]">
-                                            {selectedNodeDef.description}
-                                        </p>
+                                {/* Progress Bar - Ink Line */}
+                                <div className="mb-6">
+                                    <div className="h-1 w-full bg-[#d7ccc8] rounded-full overflow-hidden">
+                                        <motion.div
+                                            className="h-full bg-[#8b4513]"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%` }}
+                                        />
                                     </div>
+                                </div>
 
-                                    {/* Gradient Progress Bar */}
-                                    <div className="mb-8">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold uppercase tracking-wider text-[#8b4513]">📖 Lessons</span>
-                                        </div>
-                                        <div className="h-2 w-full bg-[#d7ccc8] rounded-full overflow-hidden shadow-inner">
-                                            <motion.div
-                                                className="h-full bg-gradient-to-r from-[#4ade80] via-[#fbbf24] to-[#fb923c] relative"
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${(selectedNodeProgress.completedLessons / selectedNodeDef.lessons) * 100}%` }}
-                                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                {/* Lessons List */}
+                                <div className="space-y-3 mb-8">
+                                    {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
+                                        const lessonNum = i + 1;
+                                        const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
+                                        const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
+
+                                        return (
+                                            <div
+                                                key={lessonNum}
+                                                onClick={() => {
+                                                    if (!isCompleted) {
+                                                        router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
+                                                    }
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-3 p-3 rounded-lg border transition-all duration-300 cursor-pointer group",
+                                                    isCompleted
+                                                        ? "bg-[#e8f5e9]/50 border-[#a5d6a7] text-[#2e7d32]"
+                                                        : "bg-white/40 border-[#d7ccc8] hover:bg-white/60 hover:border-[#8b4513]"
+                                                )}
                                             >
-                                                {/* Glow Effect */}
-                                                <div className="absolute inset-0 bg-gradient-to-r from-white/30 to-transparent animate-pulse-slow" />
-                                            </motion.div>
-                                        </div>
-                                    </div>
-
-                                    {/* Lessons List */}
-                                    <div className="space-y-3 mb-8">
-                                        {Array.from({ length: selectedNodeDef.lessons }).map((_, i) => {
-                                            const lessonNum = i + 1;
-                                            const isCompleted = lessonNum <= selectedNodeProgress.completedLessons;
-                                            const isCurrent = lessonNum === selectedNodeProgress.completedLessons + 1;
-                                            const lessonTitle = selectedNodeDef.lessonTitles?.[i] || `Lesson ${lessonNum}`;
-
-                                            return (
-                                                <motion.div
-                                                    key={lessonNum}
-                                                    initial={{ opacity: 0, x: -20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: i * 0.05 }}
-                                                    onClick={() => {
-                                                        if (!isCompleted) {
-                                                            router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${lessonNum}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
-                                                        }
-                                                    }}
-                                                    className={cn(
-                                                        "flex items-center gap-4 p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer group relative overflow-hidden",
-                                                        isCompleted
-                                                            ? "bg-gradient-to-r from-[#d4f4dd] to-[#c8e6c9] border-[#81c784] shadow-sm"
-                                                            : isCurrent
-                                                                ? "bg-gradient-to-r from-[#fef3c7] to-[#fde68a] border-[#fbbf24] shadow-md hover:shadow-lg"
-                                                                : "bg-white/60 border-[#d7ccc8] hover:bg-white/80 hover:border-[#a1887f] hover:shadow-md"
-                                                    )}
-                                                >
-                                                    {/* Subtle Background Pattern */}
-                                                    {isCurrent && (
-                                                        <div className="absolute inset-0 opacity-10" style={{
-                                                            backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23f59e0b' fill-opacity='0.4'%3E%3Cpath d='M0 0h20L0 20z'/%3E%3C/g%3E%3C/svg%3E")`
-                                                        }} />
-                                                    )}
-
-                                                    {/* Icon Circle */}
-                                                    <div className={cn(
-                                                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all duration-300 flex-shrink-0 relative z-10",
-                                                        isCompleted
-                                                            ? "bg-[#81c784] border-[#2e7d32] text-white shadow-lg"
-                                                            : isCurrent
-                                                                ? "bg-white border-[#f59e0b] text-[#f59e0b] shadow-md group-hover:scale-110"
-                                                                : "bg-white border-[#8b4513] text-[#8b4513] group-hover:border-[#5d4037]"
-                                                    )}>
-                                                        {isCompleted ? (
-                                                            <Check className="w-5 h-5" strokeWidth={3} />
-                                                        ) : (
-                                                            <span className="font-serif">{lessonNum}</span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Lesson Title */}
-                                                    <div className="flex-1 relative z-10">
-                                                        <span className={cn(
-                                                            "text-base font-semibold block leading-tight",
-                                                            isCompleted
-                                                                ? "text-[#1b5e20]"
-                                                                : isCurrent
-                                                                    ? "text-[#2d1b0e]"
-                                                                    : "text-[#3e2723] group-hover:text-[#2d1b0e]"
-                                                        )}>
-                                                            {lessonTitle}
-                                                        </span>
-                                                        {isCompleted && (
-                                                            <span className="text-xs text-[#2e7d32] mt-1 flex items-center gap-1">
-                                                                <Check className="w-3 h-3" /> Completed
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Arrow Indicator */}
-                                                    {!isCompleted && (
-                                                        <ChevronRight className={cn(
-                                                            "w-5 h-5 transition-all duration-300 relative z-10",
-                                                            isCurrent
-                                                                ? "text-[#f59e0b] opacity-100 translate-x-0"
-                                                                : "text-[#8b4513] opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
-                                                        )} />
-                                                    )}
-                                                </motion.div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="space-y-3 pt-4 border-t-2 border-[#8b4513]/20">
-                                        <Button
-                                            className="w-full bg-gradient-to-r from-[#14b8a6] to-[#0d9488] hover:from-[#0d9488] hover:to-[#0f766e] text-white font-serif py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-[#0d9488]/30 group relative overflow-hidden"
-                                            onClick={() => {
-                                                const nextLesson = selectedNodeProgress.completedLessons + 1;
-                                                const lessonTitle = selectedNodeDef.lessonTitles?.[nextLesson - 1] || `Lesson ${nextLesson}`;
-                                                router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${nextLesson}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
-                                            }}
-                                        >
-                                            {/* Shimmer Effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-
-                                            <div className="flex items-center justify-center gap-3 relative z-10">
-                                                <BookOpen className="w-5 h-5" />
-                                                <span>{selectedNodeProgress.completedLessons >= selectedNodeDef.lessons ? "Review Lessons" : "Continue Learning"}</span>
-                                                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                                <div className={cn(
+                                                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border",
+                                                    isCompleted ? "bg-[#c8e6c9] border-[#2e7d32]" : "border-[#8b4513] text-[#8b4513]"
+                                                )}>
+                                                    {isCompleted ? <Check className="w-3 h-3" /> : lessonNum}
+                                                </div>
+                                                <span className={cn(
+                                                    "text-sm font-medium flex-1",
+                                                    isCompleted && "line-through opacity-70"
+                                                )}>
+                                                    {lessonTitle}
+                                                </span>
+                                                {!isCompleted && <ChevronRight className="w-4 h-4 text-[#8b4513] opacity-0 group-hover:opacity-100 transition-opacity" />}
                                             </div>
-                                        </Button>
+                                        );
+                                    })}
+                                </div>
 
-                                        <Button
-                                            className="w-full bg-gradient-to-r from-[#a855f7] to-[#7c3aed] hover:from-[#7c3aed] hover:to-[#6d28d9] text-white font-serif py-6 text-lg shadow-lg hover:shadow-xl transition-all duration-300 border-2 border-[#7c3aed]/30 group relative overflow-hidden"
-                                            onClick={onQuizOpen}
-                                        >
-                                            {/* Shimmer Effect */}
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                                {/* Actions */}
+                                <div className="space-y-3">
+                                    <Button
+                                        className="w-full bg-[#2d4a22] hover:bg-[#1a2f16] text-[#e2d5c3] font-serif py-6 text-lg shadow-lg hover:shadow-emerald-900/30 border border-[#4a6741]"
+                                        onClick={() => {
+                                            const nextLesson = selectedNodeProgress.completedLessons + 1;
+                                            const lessonTitle = selectedNodeDef.lessonTitles?.[nextLesson - 1] || `Lesson ${nextLesson}`;
+                                            router.push(`/lesson?nodeId=${selectedNodeId}&lessonIndex=${nextLesson}&lessonTitle=${encodeURIComponent(lessonTitle)}`);
+                                        }}
+                                    >
+                                        <Scroll className="w-5 h-5 mr-2" />
+                                        {selectedNodeProgress.completedLessons >= selectedNodeDef.lessons ? "Review Wisdom" : "Continue Journey"}
+                                    </Button>
 
-                                            <div className="flex items-center justify-center gap-3 relative z-10">
-                                                <Sparkles className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                                                <span>Take Quiz Challenge</span>
-                                                <Sparkles className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
-                                            </div>
-                                        </Button>
-                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        className="w-full border-[#8b4513] text-[#3e2723] hover:bg-[#8b4513]/10 font-serif py-4"
+                                        onClick={onQuizOpen}
+                                    >
+                                        <Sparkles className="w-4 h-4 mr-2" />
+                                        Face the Trial
+                                    </Button>
                                 </div>
                             </div>
                         </motion.div>
