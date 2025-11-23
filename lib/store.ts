@@ -14,14 +14,76 @@ export interface Project {
     createdAt: Date;
 }
 
+// Hierarchical Roadmap Interfaces (Universal Domain Support)
+export interface Prerequisite {
+    name: string;
+    description?: string; // Detailed 2-3 sentence explanation of what this prerequisite is
+    reason: string; // Why this prerequisite is essential
+    estimatedTime?: string; // How long to learn this prerequisite
+    resources?: string[]; // Learning resources
+}
+
+export interface Subtopic {
+    id: string;
+    name: string;
+    description?: string; // Detailed 2-3 sentence description
+    why: string; // Why this subtopic matters
+    estimatedTime?: string; // Time to learn
+    keyPoints?: string[]; // Key learning points
+    examples?: string[]; // Concrete examples
+}
+
+export interface Topic {
+    id: string;
+    name: string;
+    description?: string; // Detailed 2-3 sentence description
+    why: string; // Why this topic is important
+    estimatedTime?: string; // Time to learn this topic
+    difficulty?: string; // Beginner/Intermediate/Advanced
+    keyConcepts?: string[]; // Key concepts to master
+    practicalApplications?: string[]; // Real-world applications
+    subtopics: Subtopic[];
+}
+
+export interface LearningArea {
+    id: string;
+    name: string;
+    order: number;
+    description?: string; // Detailed 3-4 sentence description
+    why: string; // Why this area is crucial
+    estimatedDuration?: string; // Time to complete this area
+    difficulty?: string; // Beginner/Intermediate/Advanced
+    learningObjectives?: string[]; // Clear, actionable objectives
+    topics: Topic[];
+}
+
 export interface RoadmapDefinition {
     id: string;
     title: string;
     level: number;
     lessons: number;
     lessonTitles?: string[];
+    lessonDescriptions?: string[]; // Detailed description for each lesson
     position: { x: number; y: number };
     description?: string;
+
+    // Module Details
+    learningObjectives?: string[]; // What you'll learn
+    estimatedDuration?: string; // Time to complete module
+    difficulty?: string; // Beginner/Intermediate/Advanced
+    keyTakeaways?: string[]; // Key learning points
+    practicalProjects?: string[]; // Project ideas
+
+    // Hierarchical Learning Structure
+    prerequisites?: Prerequisite[]; // What to learn first + why
+    learningAreas?: LearningArea[]; // Hierarchical breakdown
+    learningPath?: string[]; // Sequential list of areas
+    topics?: string[]; // Legacy support - list of topic names
+
+    // Roadmap Overview
+    overview?: string; // Comprehensive overview of learning journey
+    goalEstimatedDuration?: string; // Total estimated time
+    goalDifficultyLevel?: string; // Overall difficulty
 }
 
 export interface RoadmapNode {
@@ -63,6 +125,10 @@ export interface UserState {
     roadmapProgress: Record<string, RoadmapNode>;
     roadmapDefinitions: RoadmapDefinition[];
     currentTopic: string;
+    // Guide Mode Data
+    learningAreas: LearningArea[];
+    prerequisites: Prerequisite[];
+    roadmapGoal: string;
     totalLessonsCompleted: number;
     lessonCache: Record<string, any>; // Cache for generated lessons
 
@@ -93,7 +159,8 @@ export interface UserState {
     updateProjectProgress: (id: string, progress: number) => void;
     completeLesson: (nodeId: string) => void;
     prefetchLesson: (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => Promise<void>;
-    setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string) => void;
+    setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string, learningAreas?: LearningArea[], prerequisites?: Prerequisite[], goal?: string) => void;
+    updateLearningArea: (areaId: string, details: Partial<LearningArea>) => void;
     completeRoadmap: (roadmapId: string) => void;
     setUserName: (name: string) => void;
     updateAchievementProgress: (achievementId: string, progress: number) => { newStarsUnlocked: number[]; totalXpGained: number };
@@ -141,6 +208,9 @@ const defaultState = {
     roadmapProgress: {},
     roadmapDefinitions: [],
     currentTopic: "",
+    learningAreas: [],
+    prerequisites: [],
+    roadmapGoal: "",
     totalLessonsCompleted: 0,
     lessonCache: {},
     postsCount: 0,
@@ -185,8 +255,8 @@ export const useUserStore = create<UserState>()(
                     // Track daily activity
                     const today = new Date().toISOString().split('T')[0];
                     const activeDays = state.activeDays || [];
-                    const updatedActiveDays = activeDays.includes(today) 
-                        ? activeDays 
+                    const updatedActiveDays = activeDays.includes(today)
+                        ? activeDays
                         : [...activeDays, today];
 
                     // Update XP Collector achievement
@@ -223,24 +293,24 @@ export const useUserStore = create<UserState>()(
                     const updatedProjects = state.projects.map((p) =>
                         p.id === id ? { ...p, progress } : p
                     );
-                    
+
                     // Check if project is completed (progress >= 100)
                     const project = updatedProjects.find(p => p.id === id);
                     if (project && progress >= 100 && project.status !== 'Completed') {
                         const completedProject = { ...project, status: 'Completed' as const };
-                        const finalProjects = updatedProjects.map(p => 
+                        const finalProjects = updatedProjects.map(p =>
                             p.id === id ? completedProject : p
                         );
                         const completedCount = finalProjects.filter(p => p.status === 'Completed').length;
-                        
+
                         // Update Master Architect achievement
                         state.updateAchievementProgress('architect', completedCount);
-                        
+
                         return {
                             projects: finalProjects,
                         };
                     }
-                    
+
                     return {
                         projects: updatedProjects,
                     };
@@ -338,7 +408,7 @@ export const useUserStore = create<UserState>()(
                 }
             },
 
-            setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string) => {
+            setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string, learningAreas: LearningArea[] = [], prerequisites: Prerequisite[] = [], goal: string = "") => {
                 const state = get();
                 const initialProgress: Record<string, RoadmapNode> = {};
                 definitions.forEach((def, index) => {
@@ -368,6 +438,9 @@ export const useUserStore = create<UserState>()(
                 set({
                     currentTopic: topic,
                     roadmapDefinitions: definitions,
+                    learningAreas,
+                    prerequisites,
+                    roadmapGoal: goal,
                     roadmapProgress: initialProgress,
                     roadmapHistory: [...state.roadmapHistory, roadmapEntry],
                     totalRoadmapsGenerated: state.totalRoadmapsGenerated + 1,
@@ -393,6 +466,14 @@ export const useUserStore = create<UserState>()(
                 }
             },
 
+            updateLearningArea: (areaId: string, details: Partial<LearningArea>) => {
+                set((state) => ({
+                    learningAreas: state.learningAreas.map(area =>
+                        area.id === areaId ? { ...area, ...details } : area
+                    )
+                }));
+            },
+
             completeRoadmap: (roadmapId: string) => {
                 const state = get();
                 const roadmap = state.roadmapHistory.find(r => r.id === roadmapId);
@@ -413,8 +494,8 @@ export const useUserStore = create<UserState>()(
                 // Check if completed on weekend
                 const dayOfWeek = new Date().getDay();
                 const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-                const newWeekendCompletions = isWeekend 
-                    ? state.weekendCompletions + 1 
+                const newWeekendCompletions = isWeekend
+                    ? state.weekendCompletions + 1
                     : state.weekendCompletions;
 
                 set({
@@ -515,7 +596,7 @@ export const useUserStore = create<UserState>()(
                 const state = get();
                 const { SKIN_CONFIGS } = require('./types/skins');
                 const skinConfig = SKIN_CONFIGS[skinId];
-                
+
                 if (!skinConfig) return;
 
                 // All skins are unlocked for everyone
@@ -558,7 +639,7 @@ export const useUserStore = create<UserState>()(
                     const newSocialTotal = state.socialInteractionsTotal + 1;
                     state.updateAchievementProgress('appreciator', newCount);
                     state.updateAchievementProgress('social_butterfly', newSocialTotal);
-                    return { 
+                    return {
                         likesGivenCount: newCount,
                         socialInteractionsTotal: newSocialTotal,
                     };
@@ -571,7 +652,7 @@ export const useUserStore = create<UserState>()(
                     const newSocialTotal = state.socialInteractionsTotal + 1;
                     state.updateAchievementProgress('commentator', newCount);
                     state.updateAchievementProgress('social_butterfly', newSocialTotal);
-                    return { 
+                    return {
                         commentsCount: newCount,
                         socialInteractionsTotal: newSocialTotal,
                     };
@@ -592,7 +673,7 @@ export const useUserStore = create<UserState>()(
                     const newSocialTotal = state.socialInteractionsTotal + 1;
                     state.updateAchievementProgress('networker', newCount);
                     state.updateAchievementProgress('social_butterfly', newSocialTotal);
-                    return { 
+                    return {
                         followingCount: newCount,
                         socialInteractionsTotal: newSocialTotal,
                     };
