@@ -202,23 +202,23 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
 
                                         {/* Intro View */}
                                         {isIntro && (
-                                            <div className="text-center space-y-8">
-                                                <div className="w-24 h-24 mx-auto rounded-3xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30 mb-8">
-                                                    <span className="text-4xl font-black text-white">{currentSubtopicIndex + 1}</span>
+                                            <div className="text-center space-y-6">
+                                                <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl shadow-blue-500/40 mb-6 ring-2 ring-white/10">
+                                                    <span className="text-3xl font-black text-white drop-shadow-md">{currentSubtopicIndex + 1}</span>
                                                 </div>
-                                                <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight">
+                                                <h1 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-xl">
                                                     {currentSubtopic.name}
                                                 </h1>
-                                                <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed">
+                                                <p className="text-lg md:text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed font-medium drop-shadow-md line-clamp-3">
                                                     {currentSubtopic.description}
                                                 </p>
-                                                <div className="pt-8">
+                                                <div className="pt-6">
                                                     <Button
                                                         size="lg"
                                                         onClick={handleNext}
-                                                        className="px-10 py-7 text-xl rounded-2xl bg-white text-black hover:bg-blue-50 hover:scale-105 transition-all shadow-xl"
+                                                        className="px-8 py-6 text-lg rounded-xl bg-white text-blue-900 hover:bg-blue-50 hover:scale-105 transition-all shadow-[0_0_30px_rgba(255,255,255,0.3)] font-black tracking-wide"
                                                     >
-                                                        Start Learning <ArrowRight className="ml-2 w-6 h-6" />
+                                                        Start Learning <ArrowRight className="ml-2 w-5 h-5" />
                                                     </Button>
                                                 </div>
                                             </div>
@@ -226,24 +226,26 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
 
                                         {/* Key Point View */}
                                         {isKeyPoint && (
-                                            <div className="text-center space-y-8">
-                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/20 text-white/80 text-sm font-bold uppercase tracking-wider mb-4 border border-white/10">
-                                                    <Sparkles className="w-4 h-4 text-yellow-400" />
+                                            <div className="text-center space-y-8 px-4">
+                                                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/30 text-white font-bold uppercase tracking-widest text-xs border border-white/20 backdrop-blur-md shadow-lg">
+                                                    <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
                                                     Key Intel {currentPointIndex + 1} / {keyPoints.length}
                                                 </div>
 
-                                                <h3 className="text-3xl md:text-5xl font-bold text-white leading-tight drop-shadow-lg">
+                                                <h3 className="text-2xl md:text-4xl font-bold text-white leading-snug drop-shadow-2xl tracking-tight">
                                                     "{keyPoints[currentPointIndex]}"
                                                 </h3>
 
-                                                <div className="pt-12 flex justify-center gap-4">
-                                                    <div className="flex gap-2">
+                                                <div className="pt-8 flex justify-center gap-4">
+                                                    <div className="flex gap-3 p-3 rounded-full bg-black/20 backdrop-blur-sm border border-white/10">
                                                         {keyPoints.map((_, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 className={cn(
-                                                                    "w-3 h-3 rounded-full transition-all duration-300",
-                                                                    idx === currentPointIndex ? "bg-white scale-125" : "bg-white/30"
+                                                                    "w-3 h-3 rounded-full transition-all duration-500 shadow-lg",
+                                                                    idx === currentPointIndex
+                                                                        ? "bg-white scale-125 shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+                                                                        : "bg-white/20 hover:bg-white/40"
                                                                 )}
                                                             />
                                                         ))}
@@ -255,31 +257,31 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
                                         {/* Completion View */}
                                         {isCompletion && (
                                             <div className="text-center space-y-8">
-                                                <div className="w-32 h-32 mx-auto rounded-full bg-green-500/20 flex items-center justify-center mb-6 animate-bounce">
-                                                    <Trophy className="w-16 h-16 text-green-400" />
+                                                <div className="w-28 h-28 mx-auto rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-6 animate-bounce shadow-[0_0_40px_rgba(34,197,94,0.4)] ring-4 ring-white/10">
+                                                    <Trophy className="w-14 h-14 text-white drop-shadow-md" />
                                                 </div>
 
-                                                <h2 className="text-4xl md:text-5xl font-black text-white">
+                                                <h2 className="text-4xl md:text-5xl font-black text-white drop-shadow-2xl tracking-tight">
                                                     Objective Complete!
                                                 </h2>
 
-                                                <div className="flex flex-col items-center gap-4 py-6">
-                                                    <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-bold text-xl">
-                                                        <Zap className="w-6 h-6 fill-yellow-400" />
+                                                <div className="flex flex-col items-center gap-4 py-4">
+                                                    <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-black text-2xl backdrop-blur-md shadow-[0_0_20px_rgba(234,179,8,0.2)]">
+                                                        <Zap className="w-6 h-6 fill-yellow-300 animate-pulse" />
                                                         +50 XP Earned
                                                     </div>
                                                 </div>
 
-                                                <div className="pt-8">
+                                                <div className="pt-6">
                                                     <Button
                                                         size="lg"
                                                         onClick={handleComplete}
                                                         disabled={isCurrentCompleted}
                                                         className={cn(
-                                                            "px-12 py-8 text-2xl font-bold rounded-2xl transition-all duration-300 shadow-2xl hover:scale-105",
+                                                            "px-10 py-6 text-xl font-black rounded-2xl transition-all duration-300 shadow-[0_0_30px_rgba(16,185,129,0.4)] hover:scale-105 hover:shadow-[0_0_50px_rgba(16,185,129,0.6)]",
                                                             isCurrentCompleted
                                                                 ? "bg-slate-800 text-slate-400 cursor-default"
-                                                                : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white shadow-green-500/30"
+                                                                : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white"
                                                         )}
                                                     >
                                                         {isCurrentCompleted ? "Completed" : "Claim Reward"}
