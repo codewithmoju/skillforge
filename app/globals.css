@@ -337,3 +337,30 @@ body {
 .theme-transition {
   transition: all 0.5s ease-in-out;
 }
+
+/* Parchment Scrollbar for Lesson Module */
+.parchment-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.parchment-scrollbar::-webkit-scrollbar-track {
+  background: #d7ccc8;
+  border-radius: 10px;
+  margin: 4px;
+}
+
+.parchment-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8b4513 0%, #5d4037 100%);
+  border-radius: 10px;
+  border: 2px solid #d7ccc8;
+}
+
+.parchment-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #5d4037 0%, #3e2723 100%);
+}
+
+/* Firefox */
+.parchment-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #8b4513 #d7ccc8;
+}
