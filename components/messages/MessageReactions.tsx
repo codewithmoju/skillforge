@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { MessageReaction } from '@/lib/services/messages';
 
 interface MessageReactionsProps {
@@ -40,10 +40,11 @@ export function MessageReactions({
 
     return (
         <div className="relative">
-            {/* Existing reactions */}
+            {/* Existing reactions - Enforce single reaction display */}
             {existingReactions.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1">
-                    {existingReactions.map((reaction) => {
+                    {/* Only show the last reaction to enforce single reaction visual */}
+                    {existingReactions.slice(-1).map((reaction) => {
                         const hasReacted = currentUserId && reaction.userIds.includes(currentUserId);
                         return (
                             <button

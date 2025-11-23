@@ -324,7 +324,7 @@ export default function RoadmapPage() {
                                     </div>
 
                                     {/* Content */}
-                                    <div className="relative p-8 text-[#3e2723] font-serif">
+                                    <div className="relative p-8 text-[#3e2723] font-serif">{/* Removed max-h and overflow */}
                                         {/* Header Section */}
                                         <div className="mb-6 pb-6 border-b-2 border-[#8b4513]/20">
                                             <div className="flex items-center justify-between mb-3">

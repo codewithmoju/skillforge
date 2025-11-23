@@ -158,24 +158,25 @@ export function BrandMark({
                 />
             </LogoContainer>
 
-            {showName && (
-                <div
-                    className={cn(
-                        "flex flex-col leading-tight",
-                        direction === "column" ? "items-center" : "items-start",
-                        textClassName
-                    )}
-                >
-                    <span className="text-base font-black tracking-tight sm:text-lg">
-                        EDUMATE AI
+            <div
+                className={cn(
+                    "flex flex-col leading-tight whitespace-nowrap overflow-hidden transition-all duration-700 ease-in-out",
+                    direction === "column" ? "items-center" : "items-start",
+                    showName
+                        ? "max-w-[200px] opacity-100 translate-x-0"
+                        : "max-w-0 opacity-0 -translate-x-4",
+                    textClassName
+                )}
+            >
+                <span className="text-base font-black tracking-tight sm:text-lg pl-3">
+                    EDUMATE AI
+                </span>
+                {tagline && (
+                    <span className="text-[0.6rem] uppercase tracking-[0.35em] text-slate-400 pl-3">
+                        {tagline}
                     </span>
-                    {tagline && (
-                        <span className="text-[0.6rem] uppercase tracking-[0.35em] text-slate-400">
-                            {tagline}
-                        </span>
-                    )}
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }
