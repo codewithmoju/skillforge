@@ -186,7 +186,7 @@ export default function RoadmapPage() {
                 <MissionControl
                     topic={currentTopic}
                     progress={0} // TODO: Calculate real progress
-                    userLevel={userLevel}
+                    userLevel={userLevel.level}
                     xp={xp}
                     streak={streakData.currentStreak}
                     onLaunch={() => {
