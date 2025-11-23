@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, LogOut, Globe, Trophy, MessageCircle } from "@/lib/icons";
+import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, Globe, Trophy, MessageCircle, PlusCircle } from "@/lib/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -15,6 +15,7 @@ const navItems = [
     { name: "Roadmap", href: "/roadmap", icon: Map },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Social", href: "/social", icon: Users },
+    { name: "Create Post", href: "/create", icon: PlusCircle },
     { name: "Messages", href: "/messages", icon: MessageCircle },
     { name: "Achievements", href: "/achievements", icon: Trophy },
     { name: "Explore", href: "/explore", icon: Globe },
@@ -22,7 +23,7 @@ const navItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const [username, setUsername] = useState<string>("");
     const [isHovered, setIsHovered] = useState(false);
     const skinContext = useSkinContext();
@@ -37,14 +38,6 @@ export function Sidebar() {
             });
         }
     }, [user]);
-
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } catch (error) {
-            console.error("Logout failed:", error);
-        }
-    };
 
     // Skin overrides (undefined if not applying skin)
     const sidebarBg = shouldApplySkin && colors
@@ -258,36 +251,6 @@ export function Sidebar() {
                         Settings
                     </span>
                 </Link>
-                <button
-                    onClick={handleLogout}
-                    className={cn(
-                        "flex items-center gap-4 px-3 py-3 w-full rounded-xl transition-all duration-700 mt-1 relative",
-                        isHovered ? "" : "justify-center"
-                    )}
-                    style={{
-                        color: shouldApplySkin && colors ? colors.error + "CC" : undefined,
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = shouldApplySkin && colors
-                            ? `${colors.error}20`
-                            : undefined;
-                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.error : "";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.error + "CC" : "";
-                    }}
-                >
-                    <LogOut className="w-6 h-6 flex-shrink-0" />
-                    <span className={cn(
-                        "font-medium whitespace-nowrap transition-all duration-700 absolute left-12",
-                        isHovered
-                            ? "opacity-100 translate-x-0"
-                            : "opacity-0 -translate-x-4 pointer-events-none"
-                    )}>
-                        Logout
-                    </span>
-                </button>
             </div>
         </aside>
     );

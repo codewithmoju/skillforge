@@ -11,6 +11,10 @@ export interface FirestoreUserData {
     username: string;
     bio?: string;
     profilePicture?: string;
+    website?: string;
+    location?: string;
+    occupation?: string;
+    phone?: string;
     isPrivate: boolean;
     followers: number;
     following: number;
@@ -83,7 +87,7 @@ export async function createUserData(uid: string, email: string, name: string, u
     }
 }
 
-export async function updateUserData(uid: string, data: Partial<UserState> & { achievements?: string[], totalLessonsCompleted?: number, completedRoadmaps?: number, username?: string, bio?: string, profilePicture?: string, isPrivate?: boolean, profileComplete?: boolean }): Promise<void> {
+export async function updateUserData(uid: string, data: Partial<UserState> & { achievements?: string[], totalLessonsCompleted?: number, completedRoadmaps?: number, username?: string, bio?: string, profilePicture?: string, website?: string, location?: string, occupation?: string, phone?: string, isPrivate?: boolean, profileComplete?: boolean }): Promise<void> {
     try {
         const now = new Date().toISOString();
 
