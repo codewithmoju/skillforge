@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Lock, ArrowRight, MapPin, Flag } from "lucide-react";
+import { CheckCircle2, Lock, ArrowRight, MapPin, Flag, Zap, Clock, BookOpen, ChevronRight } from "lucide-react";
 import type { Prerequisite } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -14,109 +14,146 @@ export function QuestPath({ prerequisites, goal }: QuestPathProps) {
     if (!prerequisites || prerequisites.length === 0) return null;
 
     return (
-        <div className="mb-12 relative">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <MapPin className="text-purple-400" />
-                    Quest Path
-                </h2>
-                <span className="text-sm text-purple-300/60 uppercase tracking-widest font-semibold">
-                    Sequence Required
-                </span>
+        <div className="mb-16 relative group/container">
+            {/* Section Header */}
+            <div className="flex items-center justify-between mb-8 px-2">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                        <MapPin className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">Quest Path</h2>
+                        <p className="text-xs text-slate-400 font-medium">Strategic Sequence Required</p>
+                    </div>
+                </div>
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/5 border border-blue-500/10 text-[10px] font-bold text-blue-300 uppercase tracking-widest">
+                    <Zap className="w-3 h-3" />
+                    <span>Sync Active</span>
+                </div>
             </div>
 
-            {/* Scroll Container */}
-            <div className="relative overflow-x-auto pb-8 scrollbar-thin scrollbar-thumb-purple-500/20 scrollbar-track-transparent">
-                <div className="flex items-center gap-8 min-w-max px-4">
+            {/* Horizontal Scroll Container - Hidden Scrollbar */}
+            <div className="relative w-full">
+                {/* Fade Masks */}
+                <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-950 to-transparent z-20 pointer-events-none" />
+                <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-slate-950 to-transparent z-20 pointer-events-none" />
 
-                    {/* Start Node */}
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center shadow-lg shadow-black/50">
-                            <Flag className="w-6 h-6 text-slate-400" />
-                        </div>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Start</span>
-                    </div>
+                <div className="overflow-x-auto scrollbar-hide pb-12 pt-8 -mx-4 px-4">
+                    <div className="flex items-center gap-4 min-w-max px-8">
 
-                    {/* Connection Line */}
-                    <div className="h-1 w-16 bg-slate-800 rounded-full" />
-
-                    {prerequisites.map((prereq, index) => (
-                        <div key={index} className="flex items-center gap-8">
+                        {/* START NODE */}
+                        <div className="relative z-10 flex flex-col items-center gap-4 group/start">
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: index * 0.1 }}
-                                className="group relative"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="relative"
                             >
-                                {/* Connector Line (Animated) */}
-                                <div className="absolute top-1/2 -left-8 w-8 h-1 bg-slate-800 -z-10">
+                                <div className="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full animate-pulse" />
+                                <div className="w-20 h-20 rounded-full bg-slate-900 border-2 border-emerald-500/30 flex items-center justify-center shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)] group-hover/start:scale-110 group-hover/start:border-emerald-500 transition-all duration-500 z-10 relative">
+                                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-900/50 to-slate-900 flex items-center justify-center border border-emerald-500/20">
+                                        <Flag className="w-8 h-8 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]" />
+                                    </div>
+                                </div>
+                                {/* Orbiting Dot */}
+                                <div className="absolute inset-0 animate-spin-slow">
+                                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_10px_rgba(52,211,153,1)]" />
+                                </div>
+                            </motion.div>
+                            <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Start</span>
+                        </div>
+
+                        {/* PREREQUISITES LOOP */}
+                        {prerequisites.map((prereq, index) => (
+                            <div key={index} className="flex items-center gap-4">
+
+                                {/* Connection Pipe */}
+                                <div className="w-12 h-2 bg-slate-800/50 rounded-full relative overflow-hidden backdrop-blur-sm border border-white/5">
                                     <motion.div
-                                        className="h-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.5)]"
-                                        initial={{ width: "0%" }}
-                                        animate={{ width: "100%" }}
-                                        transition={{ delay: index * 0.2, duration: 0.5 }}
+                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent w-1/2"
+                                        animate={{ x: ["-100%", "200%"] }}
+                                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear", delay: index * 0.2 }}
                                     />
                                 </div>
 
-                                {/* Node Card */}
-                                <div className="w-64 p-5 rounded-2xl bg-slate-900/80 border border-purple-500/30 backdrop-blur-sm hover:border-purple-500 hover:bg-slate-800/80 transition-all duration-300 group-hover:shadow-[0_0_30px_-5px_rgba(168,85,247,0.3)] hover:-translate-y-1 cursor-pointer">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 text-xs font-bold">
-                                            {index + 1}
-                                        </span>
-                                        {prereq.estimatedTime && (
-                                            <span className="text-[10px] text-slate-400 bg-slate-950/50 px-2 py-1 rounded-full border border-slate-800">
-                                                {prereq.estimatedTime}
-                                            </span>
-                                        )}
+                                <motion.div
+                                    initial={{ opacity: 0, x: 50 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.1 }}
+                                    className="group relative"
+                                >
+                                    {/* Card Container */}
+                                    <div className="relative w-72 h-40 perspective-1000">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-purple-600/20 rounded-2xl transform rotate-3 scale-95 opacity-0 group-hover:opacity-100 group-hover:rotate-6 transition-all duration-500 blur-md" />
+
+                                        <div className="relative h-full p-5 rounded-2xl bg-slate-900/80 backdrop-blur-xl border border-white/10 hover:border-blue-500/50 transition-all duration-300 flex flex-col justify-between group-hover:-translate-y-2 group-hover:shadow-[0_10px_30px_-10px_rgba(59,130,246,0.3)]">
+
+                                            {/* Header */}
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800 border border-white/10 text-blue-400 font-bold font-mono shadow-inner">
+                                                        {index + 1}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Step</span>
+                                                        <span className="text-[10px] text-blue-400 font-bold uppercase tracking-wider">Required</span>
+                                                    </div>
+                                                </div>
+                                                {prereq.estimatedTime && (
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-400 bg-slate-950/50 px-2 py-1 rounded-full border border-white/5">
+                                                        <Clock className="w-3 h-3 text-blue-400" />
+                                                        {prereq.estimatedTime}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Content */}
+                                            <div>
+                                                <h3 className="font-bold text-white text-lg leading-tight group-hover:text-blue-300 transition-colors line-clamp-1 mb-1">
+                                                    {prereq.name}
+                                                </h3>
+                                                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                                                    {prereq.description}
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
+                                </motion.div>
+                            </div>
+                        ))}
 
-                                    <h3 className="font-bold text-white text-lg mb-1 group-hover:text-purple-300 transition-colors">
-                                        {prereq.name}
-                                    </h3>
+                        {/* FINAL GOAL NODE */}
+                        <div className="flex items-center gap-4">
+                            {/* Final Connection */}
+                            <div className="w-12 h-2 bg-slate-800/50 rounded-full relative overflow-hidden backdrop-blur-sm border border-white/5">
+                                <motion.div
+                                    className="absolute inset-0 bg-gradient-to-r from-blue-500 to-yellow-500"
+                                    initial={{ x: "-100%" }}
+                                    animate={{ x: "0%" }}
+                                    transition={{ delay: prerequisites.length * 0.2, duration: 1 }}
+                                />
+                            </div>
 
-                                    <p className="text-xs text-slate-400 line-clamp-2 mb-3">
-                                        {prereq.description}
-                                    </p>
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: prerequisites.length * 0.2 + 0.3 }}
+                                className="relative group/goal"
+                            >
+                                <div className="absolute inset-0 bg-yellow-500/20 blur-3xl rounded-full animate-pulse" />
+                                <div className="relative w-28 h-28 rounded-3xl bg-gradient-to-br from-yellow-500 to-orange-600 p-0.5 shadow-[0_0_50px_-10px_rgba(234,179,8,0.5)] group-hover/goal:scale-105 transition-transform duration-500">
+                                    <div className="w-full h-full bg-slate-950 rounded-[22px] flex flex-col items-center justify-center p-3 text-center relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-30" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-yellow-500/10 to-transparent" />
 
-                                    <div className="flex items-center gap-2 text-[10px] text-purple-300/80 font-medium">
-                                        <CheckCircle2 className="w-3 h-3" />
-                                        <span>Essential Prerequisite</span>
+                                        <TrophyIcon className="w-10 h-10 text-yellow-400 mb-2 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)] relative z-10 transform group-hover/goal:rotate-12 transition-transform duration-500" />
+                                        <span className="text-[10px] font-bold text-yellow-500/80 uppercase tracking-widest mb-0.5 relative z-10">Target</span>
+                                        <span className="text-xs font-bold text-white line-clamp-1 w-full relative z-10">{goal}</span>
                                     </div>
                                 </div>
                             </motion.div>
                         </div>
-                    ))}
 
-                    {/* Final Goal Node */}
-                    <div className="flex items-center gap-8">
-                        {/* Connector Line */}
-                        <div className="h-1 w-16 bg-slate-800 rounded-full relative overflow-hidden">
-                            <motion.div
-                                className="absolute inset-0 bg-gradient-to-r from-purple-500 to-blue-500"
-                                initial={{ x: "-100%" }}
-                                animate={{ x: "0%" }}
-                                transition={{ delay: prerequisites.length * 0.2, duration: 0.5 }}
-                            />
-                        </div>
-
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: prerequisites.length * 0.2 + 0.2 }}
-                            className="relative"
-                        >
-                            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full animate-pulse" />
-                            <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-purple-600 p-0.5 shadow-lg shadow-blue-500/30">
-                                <div className="w-full h-full bg-slate-950 rounded-[14px] flex flex-col items-center justify-center p-2 text-center">
-                                    <TrophyIcon className="w-8 h-8 text-yellow-400 mb-1 drop-shadow-lg" />
-                                    <span className="text-[10px] font-bold text-white uppercase tracking-wider">Goal</span>
-                                    <span className="text-xs font-bold text-blue-300 line-clamp-1 w-full">{goal}</span>
-                                </div>
-                            </div>
-                        </motion.div>
                     </div>
-
                 </div>
             </div>
         </div>

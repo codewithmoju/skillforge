@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trophy, Target, Zap, Activity, Rocket, Star } from "lucide-react";
+import { Trophy, Target, Zap, Activity, Rocket, Star, RotateCcw } from "lucide-react";
 import { useSkin } from "@/lib/hooks/useSkin";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,10 @@ interface MissionControlProps {
     xp: number;
     streak: number;
     onLaunch?: () => void;
+    onRegenerate?: () => void;
 }
 
-export function MissionControl({ topic, progress, userLevel, xp, streak, onLaunch }: MissionControlProps) {
+export function MissionControl({ topic, progress, userLevel, xp, streak, onLaunch, onRegenerate }: MissionControlProps) {
     const { colors } = useSkin();
 
     return (
@@ -30,6 +31,24 @@ export function MissionControl({ topic, progress, userLevel, xp, streak, onLaunc
             />
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2" />
+
+            {/* Regenerate Button - Top Right */}
+            {onRegenerate && (
+                <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 }}
+                    className="absolute top-4 right-4 z-20"
+                >
+                    <Button
+                        onClick={onRegenerate}
+                        className="group flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border-2 border-slate-700 hover:border-cyan-500/50 transition-all hover:scale-105 backdrop-blur-md shadow-lg"
+                    >
+                        <RotateCcw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
+                        <span className="text-sm font-bold hidden sm:inline">New Roadmap</span>
+                    </Button>
+                </motion.div>
+            )}
 
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                 {/* Mission Info */}

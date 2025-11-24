@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Check, Lock, Star, ChevronRight, BookOpen, Loader2, Trophy, RotateCcw, Palette, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,26 +24,23 @@ import { useRouter } from "next/navigation";
 import { MissionControl } from "@/components/roadmap/MissionControl";
 import { QuestPath } from "@/components/roadmap/QuestPath";
 import { SkillTree } from "@/components/roadmap/SkillTree";
-import type { Prerequisite, LearningArea } from "@/lib/store";
 
 export default function RoadmapPage() {
-    const router = useRouter();
+    const { colors } = useSkin();
     const {
         roadmapProgress,
         roadmapDefinitions,
-        completeLesson,
-        setRoadmap,
         currentTopic,
-        xp,
-        streakData,
-        updateStreak,
-        selectedSkin,
         learningAreas,
+        completedKeyPoints,
+        updateLearningArea,
+        setRoadmap,
+        xp,
+        updateStreak,
+        streakData,
         prerequisites,
-        roadmapGoal,
-        updateLearningArea
+        roadmapGoal
     } = useUserStore();
-    const { colors } = useSkin();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -150,6 +147,23 @@ export default function RoadmapPage() {
         }
     };
 
+    // Calculate overall progress
+    const totalKeyPoints = useMemo(() => {
+        return (learningAreas || []).reduce((acc, area) => {
+            return acc + area.topics.reduce((tAcc, topic) => {
+                return tAcc + topic.subtopics.reduce((sAcc, sub) => {
+                    return sAcc + (sub.keyPoints?.length || 0);
+                }, 0);
+            }, 0);
+        }, 0);
+    }, [learningAreas]);
+
+    const completedPointsCount = useMemo(() => {
+        return completedKeyPoints.length;
+    }, [completedKeyPoints]);
+
+    const overallProgress = totalKeyPoints > 0 ? Math.round((completedPointsCount / totalKeyPoints) * 100) : 0;
+
     // Show loading screen
     if (isGenerating) {
         return (
@@ -160,7 +174,7 @@ export default function RoadmapPage() {
     }
 
     // Show hero component when no roadmap exists
-    if (!currentTopic && learningAreas.length === 0 && roadmapDefinitions.length === 0) {
+    if (!currentTopic || (learningAreas || []).length === 0) {
         return (
             <div className="min-h-screen">
                 <RoadmapGenerationHero
@@ -185,7 +199,7 @@ export default function RoadmapPage() {
                 {/* Mission Control Dashboard */}
                 <MissionControl
                     topic={currentTopic}
-                    progress={0} // TODO: Calculate real progress
+                    progress={overallProgress}
                     userLevel={userLevel.level}
                     xp={xp}
                     streak={streakData.currentStreak}
@@ -194,10 +208,16 @@ export default function RoadmapPage() {
                         const element = document.getElementById('quest-path');
                         element?.scrollIntoView({ behavior: 'smooth' });
                     }}
+                    onRegenerate={() => {
+                        if (confirm("Are you sure you want to start a new roadmap? This will reset all your current progress.")) {
+                            setRoadmap("", [], "", [], [], "");
+                            window.location.reload();
+                        }
+                    }}
                 />
 
                 {/* Main Content Area */}
-                {(prerequisites.length > 0 || learningAreas.length > 0) && (
+                {((prerequisites || []).length > 0 || (learningAreas || []).length > 0) && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -207,7 +227,7 @@ export default function RoadmapPage() {
                         {/* Quest Path (Prerequisites) */}
                         <div id="quest-path">
                             <QuestPath
-                                prerequisites={prerequisites}
+                                prerequisites={prerequisites || []}
                                 goal={roadmapGoal || currentTopic}
                             />
                         </div>

@@ -114,6 +114,7 @@ export interface UserState {
     currentTopic: string;
     completedTopics: string[];
     completedSubtopics: string[];
+    completedKeyPoints: string[]; // Format: "subtopicId-index"
     // Guide Mode Data
     learningAreas: LearningArea[];
     prerequisites: Prerequisite[];
@@ -121,43 +122,36 @@ export interface UserState {
     totalLessonsCompleted: number;
     lessonCache: Record<string, any>; // Cache for generated lessons
 
-    // Social Tracking
+    // Social Stats
     postsCount: number;
     likesGivenCount: number;
     commentsCount: number;
     savesCount: number;
     followingCount: number;
     followersCount: number;
-    socialInteractionsTotal: number; // Sum of likes + comments + follows
-
-    // Challenge Tracking
+    socialInteractionsTotal: number;
     challengesJoined: number;
     challengesCompleted: number;
+    activeDays: string[];
 
-    // Activity Tracking
-    activeDays: string[]; // Array of unique dates (YYYY-MM-DD) when user was active
-    lastActivityDate: string; // Last date user was active (YYYY-MM-DD)
-
-    // Skin System
-    selectedSkin: SkinId;
-    ownedSkins: SkinId[];
+    // Skins
+    selectedSkin: string;
+    ownedSkins: string[];
 
     // Actions
-    addXp: (amount: number, source: XPGainEvent['source'], multiplier?: number) => void;
+    addXp: (amount: number, source: "social" | "roadmap_generation" | "roadmap_completion" | "module_completion" | "achievement" | "streak" | "daily_login", multiplier?: number) => void;
     addProject: (project: Project) => void;
     updateProjectProgress: (id: string, progress: number) => void;
-    completeLesson: (nodeId: string) => void;
-    prefetchLesson: (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => Promise<void>;
-    setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string, learningAreas?: LearningArea[], prerequisites?: Prerequisite[], goal?: string) => void;
-    updateLearningArea: (areaId: string, details: Partial<LearningArea>) => void;
+    completeLesson: (lessonId: string) => void;
     completeRoadmap: (roadmapId: string) => void;
     setUserName: (name: string) => void;
-    updateAchievementProgress: (achievementId: string, progress: number) => { newStarsUnlocked: number[]; totalXpGained: number };
-    updateStreak: () => void;
-    setSkin: (skinId: SkinId) => void;
-    loadUserData: (data: Partial<UserState>) => void;
+    updateAchievementProgress: (achievementId: string, progress: number) => void;
+    setSkin: (skinId: string) => void;
+    loadUserData: () => Promise<void>;
     resetToDefaults: () => void;
-    // Social actions
+    prefetchLesson: (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => Promise<void>;
+
+    // Social Tracking
     incrementPostCount: () => void;
     incrementShares: () => void; // For Knowledge Sharer achievement
     incrementLikesGiven: () => void;
@@ -170,6 +164,12 @@ export interface UserState {
     incrementChallengesJoined: () => void;
     incrementChallengesCompleted: () => void;
     toggleSubtopicCompletion: (subtopicId: string) => void;
+    toggleKeyPointCompletion: (subtopicId: string, pointIndex: number) => void;
+
+    // Guide Mode Actions
+    setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string, learningAreas: LearningArea[], prerequisites: Prerequisite[], goal: string) => void;
+    updateLearningArea: (areaId: string, details: Partial<LearningArea>) => void;
+    updateStreak: () => void;
 }
 
 const defaultState = {
@@ -194,17 +194,20 @@ const defaultState = {
     uniqueDomainsExplored: [],
     roadmapsViewedCount: 0,
     weekendCompletions: 0,
+    // Data
     projects: [],
     roadmapProgress: {},
     roadmapDefinitions: [],
     currentTopic: "",
+    completedTopics: [],
+    completedSubtopics: [],
+    completedKeyPoints: [],
+    // Guide Mode Data
     learningAreas: [],
     prerequisites: [],
     roadmapGoal: "",
     totalLessonsCompleted: 0,
     lessonCache: {},
-    completedTopics: [],
-    completedSubtopics: [],
     postsCount: 0,
     likesGivenCount: 0,
     commentsCount: 0,
@@ -699,8 +702,42 @@ export const useUserStore = create<UserState>()(
             incrementChallengesCompleted: () => {
                 set((state) => {
                     const newCount = state.challengesCompleted + 1;
-                    state.updateAchievementProgress('champion', newCount);
-                    return { challengesCompleted: newCount };
+                    // Ensure all achievement definitions are present
+                    const existingAchievementIds = new Set(state.achievements.map(a => a.id));
+                    const missingAchievements = ACHIEVEMENT_DEFINITIONS.filter(
+                        def => !existingAchievementIds.has(def.id)
+                    ).map(def => ({
+                        ...def,
+                        currentProgress: 0,
+                        totalXpEarned: 0,
+                    }));
+
+                    let achievements = state.achievements;
+                    if (missingAchievements.length > 0) {
+                        achievements = [...state.achievements, ...missingAchievements];
+                    }
+
+                    // Ensure all skins are owned (unlock all skins for everyone)
+                    const allSkins: SkinId[] = ["cyber-neon", "forest-quest", "space-odyssey", "dragons-lair", "ocean-depths"];
+                    let ownedSkins = state.ownedSkins;
+                    if (!ownedSkins || ownedSkins.length < allSkins.length) {
+                        ownedSkins = allSkins;
+                    }
+
+                    // Ensure selectedSkin is valid
+                    let selectedSkin = state.selectedSkin;
+                    if (!selectedSkin) {
+                        selectedSkin = DEFAULT_SKIN;
+                    }
+
+                    state.updateAchievementProgress('challenger', newCount);
+
+                    return {
+                        challengesCompleted: newCount,
+                        achievements,
+                        ownedSkins,
+                        selectedSkin
+                    };
                 });
             },
 
@@ -717,37 +754,26 @@ export const useUserStore = create<UserState>()(
                     return { completedSubtopics: Array.from(completed) };
                 });
             },
+
+            toggleKeyPointCompletion: (subtopicId: string, pointIndex: number) => {
+                set((state) => {
+                    const key = `${subtopicId}-${pointIndex}`;
+                    const completed = new Set(state.completedKeyPoints || []);
+
+                    if (completed.has(key)) {
+                        completed.delete(key);
+                    } else {
+                        completed.add(key);
+                        // Add small XP for key point
+                        state.addXp(10, 'lesson_complete');
+                    }
+
+                    return { completedKeyPoints: Array.from(completed) };
+                });
+            },
         }),
         {
-            name: 'edumate-storage',
-            onRehydrateStorage: () => (state) => {
-                if (state) {
-                    // Ensure all achievement definitions are present
-                    const existingAchievementIds = new Set(state.achievements.map(a => a.id));
-                    const missingAchievements = ACHIEVEMENT_DEFINITIONS.filter(
-                        def => !existingAchievementIds.has(def.id)
-                    ).map(def => ({
-                        ...def,
-                        currentProgress: 0,
-                        totalXpEarned: 0,
-                    }));
-
-                    if (missingAchievements.length > 0) {
-                        state.achievements = [...state.achievements, ...missingAchievements];
-                    }
-
-                    // Ensure all skins are owned (unlock all skins for everyone)
-                    const allSkins: SkinId[] = ["cyber-neon", "forest-quest", "space-odyssey", "dragons-lair", "ocean-depths"];
-                    if (!state.ownedSkins || state.ownedSkins.length < allSkins.length) {
-                        state.ownedSkins = allSkins;
-                    }
-
-                    // Ensure selectedSkin is valid
-                    if (!state.selectedSkin) {
-                        state.selectedSkin = DEFAULT_SKIN;
-                    }
-                }
-            },
+            name: 'skillforge-storage',
         }
     )
 );
