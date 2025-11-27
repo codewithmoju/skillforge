@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, orde
 import { UserState } from '../store';
 import { Achievement, shouldIncrementStreak, shouldResetStreak } from '../utils/achievements';
 import { updateLeaderboard } from './leaderboard';
+import { StreakData } from '../types/gamification';
 
 export interface FirestoreUserData {
     uid: string;
@@ -22,14 +23,16 @@ export interface FirestoreUserData {
     xp: number;
     level: number;
     streak: number;
+    streakData?: StreakData;
     lastActive: string;
     roadmapDefinitions: any[];
     roadmapProgress: Record<string, any>;
     currentTopic: string | null;
     projects: any[];
-    achievements: string[];
+    achievements: Achievement[];
     totalLessonsCompleted: number;
     completedRoadmaps: number;
+    totalRoadmapsCompleted?: number;
     createdAt: string;
     updatedAt: string;
     profileComplete: boolean;
@@ -87,15 +90,18 @@ export async function createUserData(uid: string, email: string, name: string, u
     }
 }
 
-export async function updateUserData(uid: string, data: Partial<UserState> & { achievements?: string[], totalLessonsCompleted?: number, completedRoadmaps?: number, username?: string, bio?: string, profilePicture?: string, website?: string, location?: string, occupation?: string, phone?: string, isPrivate?: boolean, profileComplete?: boolean }): Promise<void> {
+export async function updateUserData(uid: string, data: Partial<UserState> & { totalLessonsCompleted?: number, completedRoadmaps?: number, username?: string, bio?: string, profilePicture?: string, website?: string, location?: string, occupation?: string, phone?: string, isPrivate?: boolean, profileComplete?: boolean }): Promise<void> {
     try {
         const now = new Date().toISOString();
 
         // Get current data to check streak
         const currentData = await getUserData(uid);
-        let newStreak = data.streak || currentData?.streak || 0;
 
-        if (currentData) {
+        // Use streakData from input if available, otherwise fallback to legacy logic
+        let newStreak = data.streakData?.currentStreak;
+        let newStreakData = data.streakData;
+
+        if (newStreak === undefined && currentData) {
             if (shouldResetStreak(currentData.lastActive)) {
                 newStreak = 1; // Reset to 1 (today)
             } else if (shouldIncrementStreak(currentData.lastActive)) {
@@ -107,7 +113,8 @@ export async function updateUserData(uid: string, data: Partial<UserState> & { a
 
         const updateData = {
             ...data,
-            streak: newStreak,
+            streak: newStreak || 0,
+            streakData: newStreakData,
             updatedAt: now,
             lastActive: now,
         };
@@ -115,13 +122,13 @@ export async function updateUserData(uid: string, data: Partial<UserState> & { a
         await updateDoc(doc(db, 'users', uid), updateData);
 
         // Update leaderboard if XP or level changed
-        if (data.xp !== undefined || data.level !== undefined || newStreak !== currentData?.streak) {
+        if (data.xp !== undefined || data.level !== undefined || (newStreak !== undefined && newStreak !== currentData?.streak)) {
             await updateLeaderboard(
                 uid,
                 data.name || currentData?.name || 'User',
                 data.xp || currentData?.xp || 0,
                 data.level || currentData?.level || 1,
-                newStreak
+                newStreak || 0
             );
         }
     } catch (error) {

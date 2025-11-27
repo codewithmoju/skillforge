@@ -43,12 +43,12 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
     const subtopics = topic.subtopics || [];
     const currentSubtopic = subtopics[currentSubtopicIndex];
     const keyPoints = currentSubtopic?.keyPoints || [];
-    const isCurrentCompleted = currentSubtopic && completedSubtopics.includes(currentSubtopic.id);
+    const isCurrentCompleted = currentSubtopic && completedSubtopics.includes(`${topic.id}-${currentSubtopic.id}`);
 
     useEffect(() => {
         if (currentSubtopic) {
             const firstUncompletedIndex = keyPoints.findIndex((_, idx) =>
-                !completedKeyPoints.includes(`${currentSubtopic.id}-${idx}`)
+                !completedKeyPoints.includes(`${topic.id}-${currentSubtopic.id}-${idx}`)
             );
 
             if (firstUncompletedIndex !== -1) {
@@ -101,7 +101,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
 
     const handleMarkNode = () => {
         if (currentSubtopic && currentPointIndex >= 0 && currentPointIndex < keyPoints.length) {
-            toggleKeyPointCompletion(currentSubtopic.id, currentPointIndex);
+            toggleKeyPointCompletion(topic.id, currentSubtopic.id, currentPointIndex);
             handleNext();
         }
     };
@@ -124,7 +124,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
                     confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
                 }, 250);
             }
-            toggleSubtopicCompletion(currentSubtopic.id);
+            toggleSubtopicCompletion(topic.id, currentSubtopic.id);
 
             if (currentSubtopicIndex < subtopics.length - 1) {
                 setTimeout(() => {
@@ -139,7 +139,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
     const isIntro = currentPointIndex === -1;
     const isCompletion = currentPointIndex === keyPoints.length;
     const isKeyPoint = !isIntro && !isCompletion;
-    const isPointCompleted = isKeyPoint && completedKeyPoints.includes(`${currentSubtopic.id}-${currentPointIndex}`);
+    const isPointCompleted = isKeyPoint && completedKeyPoints.includes(`${topic.id}-${currentSubtopic.id}-${currentPointIndex}`);
     const currentGradient = isKeyPoint
         ? GRADIENTS[currentPointIndex % GRADIENTS.length]
         : "from-slate-900 via-cyan-950 to-slate-900";
@@ -147,7 +147,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
     const totalKeyPoints = subtopics.reduce((acc, sub) => acc + (sub.keyPoints?.length || 0), 0);
     const completedPointsCount = subtopics.reduce((acc, sub) => {
         const points = sub.keyPoints || [];
-        return acc + points.filter((_, idx) => completedKeyPoints.includes(`${sub.id}-${idx}`)).length;
+        return acc + points.filter((_, idx) => completedKeyPoints.includes(`${topic.id}-${sub.id}-${idx}`)).length;
     }, 0);
     const progressPercentage = totalKeyPoints > 0 ? Math.min(100, Math.round((completedPointsCount / totalKeyPoints) * 100)) : 0;
 
@@ -221,7 +221,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
                 <div className="flex items-center gap-4">
                     <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
                         onClick={onClose}
                         className="text-slate-400 hover:text-white hover:bg-cyan-500/10 rounded-lg border border-transparent hover:border-cyan-500/30 transition-all"
                     >
@@ -287,7 +287,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
                     <div className="hidden lg:flex lg:col-span-1 justify-center">
                         <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             onClick={handlePrev}
                             disabled={currentSubtopicIndex === 0 && currentPointIndex === -1}
                             className="h-14 w-14 rounded-xl border-2 border-cyan-500/20 bg-black/30 hover:bg-cyan-500/10 text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all hover:scale-110 hover:border-cyan-500/50 backdrop-blur-md group"
@@ -463,7 +463,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
                                                                     "w-2.5 h-2.5 rounded-full transition-all duration-500",
                                                                     idx === currentPointIndex
                                                                         ? "bg-cyan-400 scale-150 shadow-[0_0_15px_rgba(6,182,212,1)]"
-                                                                        : completedKeyPoints.includes(`${currentSubtopic.id}-${idx}`)
+                                                                        : completedKeyPoints.includes(`${topic.id}-${currentSubtopic.id}-${idx}`)
                                                                             ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
                                                                             : "bg-white/20"
                                                                 )}
@@ -560,7 +560,7 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
                     <div className="hidden lg:flex lg:col-span-1 justify-center">
                         <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             onClick={handleNext}
                             disabled={currentSubtopicIndex === subtopics.length - 1 && isCompletion}
                             className="h-14 w-14 rounded-xl border-2 border-cyan-500/20 bg-black/30 hover:bg-cyan-500/10 text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all hover:scale-110 hover:border-cyan-500/50 backdrop-blur-md group"

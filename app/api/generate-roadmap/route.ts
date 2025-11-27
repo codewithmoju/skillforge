@@ -28,6 +28,11 @@ CRITICAL: Return ONLY valid JSON. NO markdown, NO code blocks, NO quotes in text
   "overview": "What mastering this skill means (1 sentence)",
   "estimatedDuration": "Total time needed (e.g. '6-8 months')",
   "difficultyLevel": "Beginner to Expert",
+  "theme": {
+    "primary": "#hexcode (Main brand color, e.g. #F7DF1E for JS)",
+    "secondary": "#hexcode (Complementary color)",
+    "accent": "#hexcode (Highlight color)"
+  },
   "prerequisites": [
     {
       "name": "Prerequisite skill",
@@ -76,6 +81,7 @@ REQUIREMENTS:
 5. Focus on terms, concepts, skills to master.
 6. Keep text SHORT and clear.
 7. NO quotes or apostrophes in text.
+8. GENERATE A THEME: Pick valid hex codes that match the topic's brand identity.
 
 Return ONLY the JSON skeleton.
     `;
@@ -127,6 +133,7 @@ Return ONLY the JSON skeleton.
     return NextResponse.json({
       // roadmap: roadmapWithPositions,
       goal: data.goal,
+      theme: data.theme,
       prerequisites: data.prerequisites,
       learningAreas: data.learningAreas,
       learningPath: data.learningPath

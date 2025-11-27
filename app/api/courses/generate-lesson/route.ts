@@ -1,0 +1,70 @@
+import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+export async function POST(req: Request) {
+    try {
+        const { topic, lessonTitle, moduleTitle, previousContext } = await req.json();
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const prompt = `
+        You are an expert educational content creator for a gamified learning platform called "SkillForge".
+        Your goal is to create a "Micro-Lesson" about "${lessonTitle}" which is part of the module "${moduleTitle}" in the course "${topic}".
+
+        The lesson should be broken down into 3-4 "Atomic Sections".
+        Each section must be short, punchy, and focused on ONE key concept.
+
+        Structure the response as a JSON object with the following schema:
+        {
+            "title": "Exciting Lesson Title",
+            "analogy": {
+                "story": "A short, relatable real-world analogy (e.g., comparing variables to labeled boxes).",
+                "connection": "How this analogy maps to the technical concept."
+            },
+            "diagram": "Mermaid JS chart code (graph TD or sequenceDiagram) visualizing the concept. Keep it simple.",
+            "sections": [
+                {
+                    "type": "text",
+                    "content": "Markdown text explaining the concept. Use bolding for key terms."
+                },
+                {
+                    "type": "code",
+                    "language": "python/javascript/etc",
+                    "code": "Short code snippet demonstrating the concept.",
+                    "explanation": "Brief explanation of what the code does."
+                },
+                {
+                    "type": "interactive",
+                    "interactionType": "fill-in-blank",
+                    "question": "A question based STRICTLY on the above content.",
+                    "codeContext": "Code or sentence with a ______ for the missing part.",
+                    "answer": "The exact word or value that fills the blank (must be from the lesson content)."
+                }
+            ]
+        }
+        
+        IMPORTANT RULES:
+        1. Keep it "Atomic": Short paragraphs, clear examples.
+        2. Gamify it: Use an enthusiastic, encouraging tone.
+        3. Visuals: The Mermaid diagram should be valid and simple.
+        4. Interactive: The "fill-in-blank" MUST be solvable by reading the previous sections. Do not ask for external knowledge.
+        5. Output ONLY valid JSON. No markdown formatting around the JSON.
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Clean up JSON
+        const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const content = JSON.parse(jsonStr);
+
+        return NextResponse.json({ content });
+
+    } catch (error) {
+        console.error("Lesson generation failed:", error);
+        return NextResponse.json({ error: "Failed to generate lesson" }, { status: 500 });
+    }
+}

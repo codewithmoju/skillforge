@@ -60,8 +60,8 @@ export function ForestRoadmapOverlay({ selectedNodeId, onGenerateNew, onQuizOpen
                         {/* Stats Container - Stone Tablet */}
                         <div className="flex items-center gap-4 bg-[#1a2f16]/90 backdrop-blur-md border border-[#2d4a22] rounded-xl p-2 px-4 shadow-lg">
                             <div className="flex items-center gap-2 border-r border-[#2d4a22] pr-4">
-                                <LevelBadge userLevel={userLevel} size="sm" />
-                                <span className="text-[#e2d5c3] font-serif font-bold text-sm">Circle {userLevel}</span>
+                                <LevelBadge userLevel={userLevel.level} size="sm" />
+                                <span className="text-[#e2d5c3] font-serif font-bold text-sm">Circle {userLevel.level}</span>
                             </div>
                             <StreakDisplay
                                 currentStreak={streakData.currentStreak}
@@ -127,7 +127,7 @@ export function ForestRoadmapOverlay({ selectedNodeId, onGenerateNew, onQuizOpen
                                         {selectedNodeDef.title}
                                     </h2>
                                     <p className="text-sm italic text-[#5d4037] leading-relaxed">
-                                        "{selectedNodeDef.description}"
+                                        "{selectedNodeDef.overview || "No description available."}"
                                     </p>
                                 </div>
 

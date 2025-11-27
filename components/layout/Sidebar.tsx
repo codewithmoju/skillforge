@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, Globe, Trophy, MessageCircle, PlusCircle } from "@/lib/icons";
+import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, Globe, Trophy, MessageCircle, PlusCircle, BookOpen } from "@/lib/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import { useSkinContext } from "@/lib/contexts/SkinContext";
 const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Roadmap", href: "/roadmap", icon: Map },
+    { name: "Courses", href: "/courses", icon: BookOpen },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Social", href: "/social", icon: Users },
     { name: "Create Post", href: "/create", icon: PlusCircle },

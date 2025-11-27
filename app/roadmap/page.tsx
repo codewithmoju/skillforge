@@ -124,16 +124,20 @@ export default function RoadmapPage() {
                 setIsGenerating(false);
 
                 // PHASE 2: Fetch detailed content for each area in background
+                // PHASE 2: Fetch detailed content for each area in sequence
                 if (data.learningAreas && data.learningAreas.length > 0) {
-                    // Start with first area immediately for quick detail loading
-                    fetchAreaDetails(topic, data.learningAreas[0].id);
+                    // Define sequential fetcher
+                    const fetchAllDetails = async () => {
+                        for (const area of data.learningAreas) {
+                            // Check if we should continue (e.g., if user navigated away, though hard to check here without ref)
+                            await fetchAreaDetails(topic, area.id);
+                            // Small natural delay between updates
+                            await new Promise(resolve => setTimeout(resolve, 800));
+                        }
+                    };
 
-                    // Then load rest in sequence with small delays
-                    for (let i = 1; i < data.learningAreas.length; i++) {
-                        setTimeout(() => {
-                            fetchAreaDetails(topic, data.learningAreas[i].id);
-                        }, i * 2000); // Stagger by 2 seconds
-                    }
+                    // Start fetching in background
+                    fetchAllDetails();
                 }
             } else if (data.error) {
                 console.error("API Error:", data.error, data.details);
@@ -150,8 +154,8 @@ export default function RoadmapPage() {
     // Calculate overall progress
     const totalKeyPoints = useMemo(() => {
         return (learningAreas || []).reduce((acc, area) => {
-            return acc + area.topics.reduce((tAcc, topic) => {
-                return tAcc + topic.subtopics.reduce((sAcc, sub) => {
+            return acc + (area.topics || []).reduce((tAcc, topic) => {
+                return tAcc + (topic.subtopics || []).reduce((sAcc, sub) => {
                     return sAcc + (sub.keyPoints?.length || 0);
                 }, 0);
             }, 0);

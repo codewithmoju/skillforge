@@ -9,41 +9,43 @@ import Link from "next/link";
 import { useSkinContext } from "@/lib/contexts/SkinContext";
 
 export function TopBar() {
-    const { xp, level, streak } = useUserStore();
+    const { xp, level, streakData } = useUserStore();
+    const streak = streakData.currentStreak;
     const { user, logout } = useAuth();
     const skinContext = useSkinContext();
     const { shouldApplySkin, colors } = skinContext || { shouldApplySkin: false, colors: null };
+    const safeColors = shouldApplySkin && colors ? colors : null;
 
     return (
-        <header 
+        <header
             className="hidden md:flex h-20 px-8 items-center justify-between sticky top-0 z-40 backdrop-blur-sm transition-all duration-500"
             style={{
-                backgroundColor: shouldApplySkin && colors ? `${colors.background}EE` : "transparent",
+                backgroundColor: safeColors ? `${safeColors.background}EE` : "transparent",
             }}
         >
             <div className="flex items-center gap-4 flex-1">
                 <div className="relative w-96 hidden md:block">
-                    <Search 
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-500" 
-                        style={{ color: shouldApplySkin && colors ? colors.textMuted : undefined }}
+                    <Search
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-500"
+                        style={{ color: safeColors ? safeColors.textMuted : undefined }}
                     />
                     <input
                         type="text"
                         placeholder="Search your roadmaps, projects, or posts..."
                         className="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all duration-500"
                         style={{
-                            backgroundColor: shouldApplySkin && colors ? `${colors.backgroundCard}80` : undefined,
-                            borderColor: shouldApplySkin && colors ? `${colors.primary}40` : undefined,
-                            color: shouldApplySkin && colors ? colors.textPrimary : undefined,
+                            backgroundColor: safeColors ? `${safeColors.backgroundCard}80` : undefined,
+                            borderColor: safeColors ? `${safeColors.primary}40` : undefined,
+                            color: safeColors ? safeColors.textPrimary : undefined,
                         }}
                         onFocus={(e) => {
-                            e.currentTarget.style.borderColor = shouldApplySkin && colors ? colors.accent : undefined;
-                            e.currentTarget.style.boxShadow = shouldApplySkin && colors 
-                                ? `0 0 0 1px ${colors.accent}50` 
-                                : undefined;
+                            e.currentTarget.style.borderColor = safeColors ? safeColors.accent : "";
+                            e.currentTarget.style.boxShadow = safeColors
+                                ? `0 0 0 1px ${safeColors.accent}50`
+                                : "";
                         }}
                         onBlur={(e) => {
-                            e.currentTarget.style.borderColor = shouldApplySkin && colors ? `${colors.primary}40` : undefined;
+                            e.currentTarget.style.borderColor = safeColors ? `${safeColors.primary}40` : "";
                             e.currentTarget.style.boxShadow = "none";
                         }}
                     />
@@ -52,19 +54,19 @@ export function TopBar() {
 
             <div className="flex items-center gap-6">
                 {/* Streak */}
-                <div 
+                <div
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500"
                     style={{
-                        backgroundColor: shouldApplySkin && colors ? `${colors.warning}20` : undefined,
-                        borderColor: shouldApplySkin && colors ? `${colors.warning}40` : undefined,
-                        color: shouldApplySkin && colors ? colors.warning : undefined,
+                        backgroundColor: safeColors ? `${safeColors.warning}20` : undefined,
+                        borderColor: safeColors ? `${safeColors.warning}40` : undefined,
+                        color: safeColors ? safeColors.warning : undefined,
                     }}
                 >
-                    <Flame 
-                        className="w-4 h-4" 
-                        style={{ 
-                            fill: shouldApplySkin && colors ? colors.warning : undefined,
-                            color: shouldApplySkin && colors ? colors.warning : undefined,
+                    <Flame
+                        className="w-4 h-4"
+                        style={{
+                            fill: safeColors ? safeColors.warning : undefined,
+                            color: safeColors ? safeColors.warning : undefined,
                         }}
                     />
                     <span className="font-bold text-sm">{streak} Day Streak</span>
@@ -73,15 +75,15 @@ export function TopBar() {
                 {/* XP & Level */}
                 <div className="flex items-center gap-3">
                     <div className="text-right hidden sm:block">
-                        <div 
+                        <div
                             className="text-xs font-medium transition-colors duration-500"
-                            style={{ color: shouldApplySkin && colors ? colors.textSecondary : undefined }}
+                            style={{ color: safeColors ? safeColors.textSecondary : undefined }}
                         >
                             Level {level}
                         </div>
-                        <div 
+                        <div
                             className="text-sm font-bold transition-colors duration-500"
-                            style={{ color: shouldApplySkin && colors ? colors.accent : undefined }}
+                            style={{ color: safeColors ? safeColors.accent : undefined }}
                         >
                             {xp} XP
                         </div>
@@ -118,28 +120,28 @@ export function TopBar() {
                 </div>
 
                 {/* Notifications */}
-                <button 
+                <button
                     className="relative p-2 rounded-full transition-all duration-300"
                     style={{
-                        color: shouldApplySkin && colors ? colors.textSecondary : undefined,
+                        color: safeColors ? safeColors.textSecondary : undefined,
                     }}
                     onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = shouldApplySkin && colors 
-                            ? `${colors.primary}20` 
-                            : undefined;
-                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.textPrimary : undefined;
+                        e.currentTarget.style.backgroundColor = safeColors
+                            ? `${safeColors.primary}20`
+                            : "";
+                        e.currentTarget.style.color = safeColors ? safeColors.textPrimary : "";
                     }}
                     onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = shouldApplySkin && colors ? colors.textSecondary : undefined;
+                        e.currentTarget.style.color = safeColors ? safeColors.textSecondary : "";
                     }}
                 >
                     <Bell className="w-5 h-5" />
-                    <span 
+                    <span
                         className="absolute top-2 right-2 w-2 h-2 rounded-full border-2 transition-colors duration-500"
                         style={{
-                            backgroundColor: shouldApplySkin && colors ? colors.error : undefined,
-                            borderColor: shouldApplySkin && colors ? colors.background : undefined,
+                            backgroundColor: safeColors ? safeColors.error : undefined,
+                            borderColor: safeColors ? safeColors.background : undefined,
                         }}
                     />
                 </button>

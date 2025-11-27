@@ -54,10 +54,12 @@ export function CreatePost({ isOpen, onClose, onPostCreated }: CreatePostProps) 
                 userData.username,
                 userData.name,
                 userData.profilePicture,
-                "text",
                 {
-                    text: text.trim(),
-                    images: images.length > 0 ? images : undefined,
+                    type: "text",
+                    content: {
+                        text: text.trim(),
+                        images: images.length > 0 ? images : undefined,
+                    }
                 }
             );
 

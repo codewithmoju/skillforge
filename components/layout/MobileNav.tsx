@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Users, PlusCircle, Bell, UserCircle, Globe } from "@/lib/icons";
+import { Home, Users, PlusCircle, Bell, UserCircle, BookOpen } from "@/lib/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
     { name: "Home", href: "/dashboard", icon: Home },
-    { name: "Search", href: "/search", icon: Globe }, // Updated to Search
+    { name: "Courses", href: "/courses", icon: BookOpen },
     { name: "Create", href: "/create", icon: PlusCircle },
     { name: "Notifications", href: "/notifications", icon: Bell },
     { name: "Profile", href: "/profile", icon: UserCircle },

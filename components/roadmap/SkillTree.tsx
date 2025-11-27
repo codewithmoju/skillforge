@@ -569,7 +569,7 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
 
 function MissionObjective({ sub, index, topic, onPlay }: { sub: any, index: number, topic: Topic, onPlay: () => void }) {
     const { completedSubtopics } = useUserStore();
-    const isCompleted = completedSubtopics.includes(sub.id);
+    const isCompleted = completedSubtopics.includes(`${topic.id}-${sub.id}`);
 
     return (
         <motion.div
