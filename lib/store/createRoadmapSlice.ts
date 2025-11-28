@@ -129,9 +129,9 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
             category,
         };
 
-        const currentDomains = state.uniqueDomainsExplored instanceof Set
-            ? Array.from(state.uniqueDomainsExplored)
-            : (Array.isArray(state.uniqueDomainsExplored) ? state.uniqueDomainsExplored : []);
+        const currentDomains = Array.isArray(state.uniqueDomainsExplored)
+            ? state.uniqueDomainsExplored
+            : [];
 
         const newDomains = new Set(currentDomains);
         newDomains.add(category);

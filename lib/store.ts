@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { StoreState } from './store/types';
 import { createUserSlice } from './store/createUserSlice';
 import { createRoadmapSlice } from './store/createRoadmapSlice';
@@ -14,9 +14,18 @@ export const useUserStore = create<StoreState>()(
             ...createUserSlice(...a),
             ...createRoadmapSlice(...a),
             ...createSocialSlice(...a),
+            _hasHydrated: false,
+            setHasHydrated: (state) => {
+                const set = a[0];
+                set({ _hasHydrated: state });
+            },
         }),
         {
             name: 'skillforge-storage',
+            storage: createJSONStorage(() => localStorage),
+            onRehydrateStorage: () => (state) => {
+                state?.setHasHydrated(true);
+            },
         }
     )
 );

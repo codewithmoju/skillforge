@@ -33,7 +33,7 @@ interface Syllabus {
     theme?: Theme;
 }
 
-function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson, index: number, isLeft: boolean, onClick: () => void, theme?: Theme }) {
+function LessonCard({ lesson, index, isLeft, onClick, theme, isCompleted }: { lesson: Lesson, index: number, isLeft: boolean, onClick: () => void, theme?: Theme, isCompleted: boolean }) {
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
 
@@ -64,7 +64,7 @@ function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson,
             {/* Mobile Connector */}
             <div
                 className="absolute left-8 w-8 h-1 md:hidden"
-                style={{ backgroundColor: `${primaryColor}4D` }} // 30% opacity
+                style={{ backgroundColor: isCompleted ? '#22c55e' : `${primaryColor}4D` }}
             />
 
             {/* 3D Tilt Card */}
@@ -77,7 +77,9 @@ function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson,
                     isLeft ? "md:flex-row-reverse md:text-right" : ""
                 )}
                 style={{
-                    background: `linear-gradient(135deg, ${primaryColor}1A, transparent)`
+                    background: isCompleted
+                        ? `linear-gradient(135deg, #22c55e33, transparent)`
+                        : `linear-gradient(135deg, ${primaryColor}1A, transparent)`
                 }}
             >
                 {/* Spotlight Effect */}
@@ -87,7 +89,7 @@ function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson,
                         background: useMotionTemplate`
                             radial-gradient(
                                 650px circle at ${mouseX}px ${mouseY}px,
-                                ${primaryColor}26,
+                                ${isCompleted ? '#22c55e26' : `${primaryColor}26`},
                             )
                         `,
                     }}
@@ -99,7 +101,8 @@ function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson,
                 )}
                     style={{
                         backgroundColor: `${backgroundColor}F2`, // 95% opacity
-                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderColor: isCompleted ? '#22c55e4D' : 'rgba(255,255,255,0.1)',
+                        boxShadow: isCompleted ? '0 0 30px #22c55e1A' : 'none'
                     }}
                 >
 
@@ -111,22 +114,22 @@ function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson,
                             isLeft ? "md:-mr-7" : "md:-ml-7"
                         )}
                         style={{
-                            borderColor: `${primaryColor}4D`,
-                            color: primaryColor,
-                            boxShadow: `0 0 20px ${primaryColor}33`
+                            borderColor: isCompleted ? '#22c55e' : `${primaryColor}4D`,
+                            color: isCompleted ? '#22c55e' : primaryColor,
+                            boxShadow: isCompleted ? '0 0 20px #22c55e33' : `0 0 20px ${primaryColor}33`
                         }}
                     >
-                        {index + 1}
+                        {isCompleted ? <CheckCircle className="w-6 h-6" /> : index + 1}
                         <div
                             className="absolute inset-0 rounded-full border animate-ping opacity-0 group-hover:opacity-100"
-                            style={{ borderColor: `${primaryColor}80` }}
+                            style={{ borderColor: isCompleted ? '#22c55e80' : `${primaryColor}80` }}
                         />
                     </div>
 
                     <div className="flex-1 min-w-0 z-10">
                         <h3 className="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-transparent transition-all"
                             style={{
-                                backgroundImage: `linear-gradient(to right, ${primaryColor}, white)`,
+                                backgroundImage: `linear-gradient(to right, ${isCompleted ? '#22c55e' : primaryColor}, white)`,
                                 WebkitBackgroundClip: 'text',
                                 backgroundClip: 'text'
                             }}
@@ -140,10 +143,10 @@ function LessonCard({ lesson, index, isLeft, onClick, theme }: { lesson: Lesson,
                         "opacity-0 group-hover:opacity-100 transition-all duration-500 transform scale-50 group-hover:scale-100",
                         isLeft ? "md:mr-auto" : "md:ml-auto"
                     )}
-                        style={{ color: primaryColor }}
+                        style={{ color: isCompleted ? '#22c55e' : primaryColor }}
                     >
-                        <div className="p-3 rounded-full border" style={{ backgroundColor: `${primaryColor}33`, borderColor: `${primaryColor}4D` }}>
-                            <Rocket className="w-5 h-5 fill-current" />
+                        <div className="p-3 rounded-full border" style={{ backgroundColor: isCompleted ? '#22c55e33' : `${primaryColor}33`, borderColor: isCompleted ? '#22c55e4D' : `${primaryColor}4D` }}>
+                            {isCompleted ? <Trophy className="w-5 h-5 fill-current" /> : <Rocket className="w-5 h-5 fill-current" />}
                         </div>
                     </div>
                 </div>
@@ -157,6 +160,7 @@ export default function CourseSyllabusPage() {
     const router = useRouter();
     const [syllabus, setSyllabus] = useState<Syllabus | null>(null);
     const [loading, setLoading] = useState(true);
+    const [completedLessons, setCompletedLessons] = useState<string[]>([]);
 
     useEffect(() => {
         const slug = params.slug as string;
@@ -164,6 +168,13 @@ export default function CourseSyllabusPage() {
         if (stored) {
             setSyllabus(JSON.parse(stored));
         }
+
+        // Load progress
+        const progress = localStorage.getItem(`progress-${slug}`);
+        if (progress) {
+            setCompletedLessons(JSON.parse(progress));
+        }
+
         setLoading(false);
     }, [params.slug]);
 
@@ -412,6 +423,7 @@ export default function CourseSyllabusPage() {
                                             isLeft={lessonIdx % 2 === 0}
                                             onClick={() => router.push(`/courses/${params.slug}/lesson/${moduleIdx}-${lessonIdx}`)}
                                             theme={syllabus.theme}
+                                            isCompleted={completedLessons.includes(`${moduleIdx}-${lessonIdx}`)}
                                         />
                                     ))}
                                     {/* Spacer */}
@@ -436,7 +448,7 @@ export default function CourseSyllabusPage() {
                         style={{ background: `linear-gradient(to right, ${primaryColor}4D, ${secondaryColor}4D, ${accentColor}4D)` }}
                     >
                         <div className="bg-[#0a0a16] rounded-[2.4rem] p-12 text-center relative overflow-hidden">
-                            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10" />
+                            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10" />
                             <div className="relative z-10">
                                 <Trophy className="w-20 h-20 mx-auto mb-8 animate-bounce"
                                     style={{ color: primaryColor, filter: `drop-shadow(0 0 30px ${primaryColor}80)` }}

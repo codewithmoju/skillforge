@@ -39,7 +39,8 @@ export default function RoadmapPage() {
         updateStreak,
         streakData,
         prerequisites,
-        roadmapGoal
+        roadmapGoal,
+        _hasHydrated
     } = useUserStore();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
@@ -169,7 +170,7 @@ export default function RoadmapPage() {
     const overallProgress = totalKeyPoints > 0 ? Math.round((completedPointsCount / totalKeyPoints) * 100) : 0;
 
     // Show loading screen
-    if (isGenerating) {
+    if (isGenerating || !_hasHydrated) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-950">
                 <RoadmapLoading />

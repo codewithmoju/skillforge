@@ -4,6 +4,8 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Sparkles, Rocket, Award, Users, TrendingUp, Search } from "lucide-react";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { userBehavior } from "@/lib/services/behavior";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 interface CourseLandingHeroProps {
     onGenerate: (topic: string) => void;
@@ -15,6 +17,7 @@ interface CourseLandingHeroProps {
  * Performance optimized with lazy loading and efficient animations
  */
 export function CourseLandingHero({ onGenerate, isGenerating }: CourseLandingHeroProps) {
+    const { user } = useAuth();
     const containerRef = useRef<HTMLDivElement>(null);
     const { scrollYProgress } = useScroll({
         target: containerRef,
@@ -30,6 +33,12 @@ export function CourseLandingHero({ onGenerate, isGenerating }: CourseLandingHer
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (topic.trim()) {
+            if (user) {
+                userBehavior.log(user.uid, 'generate_course', {
+                    targetId: 'new_course',
+                    metadata: { topic }
+                });
+            }
             onGenerate(topic);
         }
     };

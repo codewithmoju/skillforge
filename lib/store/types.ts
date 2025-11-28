@@ -158,5 +158,8 @@ export interface SocialSlice {
     incrementChallengesCompleted: () => void;
 }
 
-export type StoreState = UserSlice & RoadmapSlice & SocialSlice;
+export type StoreState = UserSlice & RoadmapSlice & SocialSlice & {
+    _hasHydrated: boolean;
+    setHasHydrated: (state: boolean) => void;
+};
 export type UserState = StoreState;

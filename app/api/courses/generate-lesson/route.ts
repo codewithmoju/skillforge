@@ -42,13 +42,19 @@ export async function POST(req: Request) {
                     "codeContext": "Code or sentence with a ______ for the missing part.",
                     "answer": "The exact word or value that fills the blank (must be from the lesson content)."
                 }
-            ]
+            ],
+            "bossChallenge": {
+                "title": "Name of the Boss (e.g., The Null Pointer Demon)",
+                "description": "A short, dramatic scenario description.",
+                "question": "A final challenge question that tests the core concept of the lesson.",
+                "answer": "The correct answer to the challenge."
+            }
         }
         
         IMPORTANT RULES:
         1. Keep it "Atomic": Short paragraphs, clear examples.
         2. Gamify it: Use an enthusiastic, encouraging tone.
-        3. Visuals: The Mermaid diagram should be valid and simple.
+        3. Visuals: The Mermaid diagram should be valid and simple. IMPORTANT: Enclose all node labels in double quotes (e.g., A["Label (Info)"]) to avoid syntax errors with special characters.
         4. Interactive: The "fill-in-blank" MUST be solvable by reading the previous sections. Do not ask for external knowledge.
         5. Output ONLY valid JSON. No markdown formatting around the JSON.
         `;
