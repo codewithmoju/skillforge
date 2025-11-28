@@ -1,0 +1,64 @@
+import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+export async function POST(req: Request) {
+    try {
+        const { topic, level } = await req.json();
+
+        if (!topic) {
+            return NextResponse.json({ error: "Topic is required" }, { status: 400 });
+        }
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const prompt = `
+        You are a world-class technical curriculum designer.
+        Create a comprehensive, granular course syllabus for:
+        Topic: "${topic}"
+        Level: "${level}"
+
+        The course should be structured for "Atomic Learning" - breaking complex topics into small, digestible lessons.
+        Avoid broad lessons like "Basics". Instead, use specific titles like "Your First Variable", "Understanding Loops", etc.
+
+        Return ONLY valid JSON with this structure:
+        {
+            "title": "Course Title",
+            "description": "A compelling description of what the user will learn.",
+            "theme": {
+                "primary": "#hexcode", // EXACT Official Brand Color (e.g. #61DAFB for React, #F7DF1E for JS)
+                "secondary": "#hexcode", // A complementary color that contrasts well with the primary
+                "accent": "#hexcode", // A bright neon variant for glowing effects
+                "background": "#hexcode" // A very dark, rich, premium background color (e.g. #0a0a16, #050505). MUST be dark enough for white text.
+            },
+            "modules": [
+                {
+                    "title": "Module Title",
+                    "description": "Short module description",
+                    "lessons": [
+                        {
+                            "title": "Lesson Title",
+                            "description": "What this specific lesson covers"
+                        }
+                    ]
+                }
+            ]
+        }
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Clean up JSON
+        const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        const syllabus = JSON.parse(jsonStr);
+
+        return NextResponse.json({ syllabus });
+
+    } catch (error) {
+        console.error("Syllabus generation failed:", error);
+        return NextResponse.json({ error: "Failed to generate syllabus" }, { status: 500 });
+    }
+}

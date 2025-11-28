@@ -81,7 +81,7 @@ export function QuizModal({ isOpen, onClose, topic, level, nodeId }: QuizModalPr
     const handleCompletion = (finalScore: number) => {
         const percentage = (finalScore / questions.length) * 100;
         if (percentage >= 60) {
-            addXp(100); // Bonus XP for passing quiz
+            addXp(100, 'quiz_completion'); // Bonus XP for passing quiz
             // We could also mark the module as "mastered" here if we had that state
         }
     };

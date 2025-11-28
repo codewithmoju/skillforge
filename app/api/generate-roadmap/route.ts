@@ -11,93 +11,133 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 });
     }
 
-    // Use gemini-2.0-flash model as requested
+    // Use gemini-2.0-flash model
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const prompt = `
-Create an EXTREMELY DETAILED and COMPREHENSIVE gamified learning roadmap for: "${topic}".
+    // PHASE 1: Generate lightweight skeleton only (fast, ~5 seconds)
+    const skeletonPrompt = `
+Create a LEARNING GUIDE SKELETON for: "${topic}"
 
-CRITICAL REQUIREMENTS:
-1. GRANULARITY: Break down the topic into 10-15 highly specific modules
-2. DEPTH: Each module should focus on ONE specific subtopic or skill area
-3. PROGRESSION: Start from absolute basics and progress to advanced mastery
-4. COMPLETENESS: Cover EVERY important aspect of the topic - leave nothing out
-5. GUIDANCE-FOCUSED: Provide conceptual understanding, not step-by-step tutorials
+PURPOSE: This is a "ZERO TO HERO" ROADMAP showing the complete path from absolute beginner to world-class expert.
+It must be a GUIDE showing WHAT to learn - NOT teaching material.
 
-STRUCTURE GUIDELINES:
-- For programming languages: Cover syntax, data structures, OOP, async, testing, frameworks, best practices, etc.
-- For technologies: Cover fundamentals, core concepts, advanced features, ecosystem, tools, deployment, optimization
-- For skills: Cover theory, fundamentals, intermediate techniques, advanced strategies, real-world application
-- Each module should have 5-8 lessons covering different aspects of that subtopic
-- Include 6-10 specific topics per module that learners will explore
+CRITICAL: Return ONLY valid JSON. NO markdown, NO code blocks, NO quotes in text.
 
-Return ONLY a valid JSON object with this exact structure:
 {
-  "roadmap": [
+  "goal": "${topic}",
+  "overview": "What mastering this skill means (1 sentence)",
+  "estimatedDuration": "Total time needed (e.g. '6-8 months')",
+  "difficultyLevel": "Beginner to Expert",
+  "theme": {
+    "primary": "#hexcode (Main brand color, e.g. #F7DF1E for JS)",
+    "secondary": "#hexcode (Complementary color)",
+    "accent": "#hexcode (Highlight color)"
+  },
+  "prerequisites": [
     {
-      "id": "unique_short_id",
-      "title": "Epic, Specific Module Title (e.g., 'Variables & Data Types Mastery', 'Async Programming Citadel')",
-      "level": 1,
-      "lessons": 6,
-      "lessonTitles": [
-        "Engaging Lesson Title 1",
-        "Engaging Lesson Title 2",
-        "Engaging Lesson Title 3",
-        "Engaging Lesson Title 4",
-        "Engaging Lesson Title 5",
-        "Engaging Lesson Title 6"
-      ],
-      "description": "Detailed 2-3 sentence description explaining EXACTLY what concepts will be covered, why they're important, and how they fit into the bigger picture",
+      "name": "Prerequisite skill",
+      "reason": "Why you need this first"
+    }
+  ],
+  "learningAreas": [
+    {
+      "id": "area_1",
+      "name": "1. Foundations & Basics",
+      "order": 1,
+      "why": "Building the bedrock",
+      "estimatedDuration": "Time to master",
+      "difficulty": "Beginner",
       "topics": [
-        "Specific Concept 1 (be very specific)",
-        "Specific Concept 2",
-        "Specific Concept 3",
-        "Specific Concept 4",
-        "Specific Concept 5",
-        "Specific Concept 6",
-        "Specific Concept 7",
-        "Specific Concept 8"
+        {
+          "id": "topic_1",
+          "name": "Topic Name",
+          "why": "Why this matters",
+          "estimatedTime": "Time",
+          "difficulty": "Beginner",
+          "subtopics": [
+            {
+              "id": "sub_1",
+              "name": "Specific Term/Concept",
+              "why": "Importance"
+            }
+          ]
+        }
       ]
     }
-  ]
+  ],
+  "learningPath": ["Foundations", "Core Concepts", "Intermediate", "Advanced", "Mastery"]
 }
 
-EXAMPLE PROGRESSION (for a programming language like JavaScript):
-1. "Foundation Forge" - Variables, data types, operators, basic syntax
-2. "Control Flow Citadel" - Conditionals, loops, switch statements, error handling basics
-3. "Function Fundamentals" - Function declarations, parameters, return values, scope
-4. "Array Architect" - Array methods, iteration, manipulation, advanced techniques
-5. "Object Odyssey" - Object creation, properties, methods, prototypes
-6. "DOM Dominion" - DOM manipulation, events, dynamic content
-7. "Async Ascension" - Callbacks, promises, async/await, fetch API
-8. "ES6+ Evolution" - Modern syntax, destructuring, spread, modules
-9. "Class Constructor" - OOP concepts, classes, inheritance, encapsulation
-10. "Testing Temple" - Unit testing, TDD, debugging strategies
-11. "Framework Frontier" - React/Vue/Angular basics and ecosystem
-12. "Performance Peak" - Optimization, memory management, best practices
-13. "Tooling Mastery" - Build tools, package managers, dev environment
-14. "Deployment Domain" - Hosting, CI/CD, production considerations
-15. "Master's Summit" - Advanced patterns, architecture, real-world projects
+REQUIREMENTS:
+1. STRICTLY follow this 5-stage structure for "learningAreas":
+   - Area 1: Foundations & Basics (Absolute zero, setup, syntax)
+   - Area 2: Core Concepts & Standard Library (Competence)
+   - Area 3: Intermediate Skills, Patterns & Tooling (Proficiency)
+   - Area 4: Advanced Mastery, Internals & Performance (Expertise)
+   - Area 5: Specialized Applications & Niche Edge Cases (Mastery)
+2. 4-6 topics per area
+3. 3-5 subtopics per topic (specific terms/concepts)
+4. This is a GUIDE - list WHAT to learn.
+5. Focus on terms, concepts, skills to master.
+6. Keep text SHORT and clear.
+7. NO quotes or apostrophes in text.
+8. GENERATE A THEME: Pick valid hex codes that match the topic's brand identity.
 
-Make each module title exciting and game-like while being SPECIFIC about what it covers.
-Ensure comprehensive coverage - think of this as the ULTIMATE guide to mastering the topic.
+Return ONLY the JSON skeleton.
     `;
 
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent(skeletonPrompt);
     const response = await result.response;
     const text = response.text();
 
-    // Clean up markdown code blocks if present
-    const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
-    const data = JSON.parse(jsonStr);
+    // Comprehensive JSON cleanup
+    let jsonStr = text.trim();
 
-    // Add positions for visualization
-    const roadmapWithPositions = data.roadmap.map((node: any, index: number) => ({
-      ...node,
-      position: { x: 50, y: index * 150 }
-    }));
+    // Remove markdown code blocks
+    jsonStr = jsonStr.replace(/```json\s*/g, "").replace(/```\s*/g, "");
 
-    return NextResponse.json({ roadmap: roadmapWithPositions });
+    // Remove any text before the first { and after the last }
+    const firstBrace = jsonStr.indexOf("{");
+    const lastBrace = jsonStr.lastIndexOf("}");
+    if (firstBrace !== -1 && lastBrace !== -1) {
+      jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+    }
+
+    // Fix common JSON errors
+    jsonStr = jsonStr
+      .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
+      .replace(/\n/g, " ") // Replace newlines with spaces
+      .replace(/\r/g, "") // Remove carriage returns
+      .replace(/\t/g, " ") // Replace tabs with spaces
+      .replace(/\s+/g, " "); // Normalize whitespace
+
+    let data;
+    try {
+      data = JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error("JSON Parse Error:", parseError);
+      console.error("Attempted to parse:", jsonStr.substring(0, 500));
+      throw new Error(`Invalid JSON from AI: ${parseError instanceof Error ? parseError.message : "Unknown error"}`);
+    }
+
+    // Add hierarchical data to each module
+    // const roadmapWithPositions = data.roadmap.map((node: any, index: number) => ({
+    //   ...node,
+    //   position: { x: 50, y: index * 150 },
+    //   // Add hierarchical data to each module
+    //   prerequisites: data.prerequisites,
+    //   learningAreas: data.learningAreas,
+    //   learningPath: data.learningPath
+    // }));
+
+    return NextResponse.json({
+      // roadmap: roadmapWithPositions,
+      goal: data.goal,
+      theme: data.theme,
+      prerequisites: data.prerequisites,
+      learningAreas: data.learningAreas,
+      learningPath: data.learningPath
+    });
   } catch (error) {
     console.error("Error generating roadmap:", error);
     return NextResponse.json({

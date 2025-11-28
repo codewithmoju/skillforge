@@ -69,7 +69,17 @@ const ForestParticles = () => {
     );
 };
 
+import { usePathname } from 'next/navigation';
+
+// ... (keep existing imports)
+
+import { Sidebar } from "@/components/layout/Sidebar";
+
+// ... (keep existing imports)
+
 export function ForestQuestWrapper({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const isMessagesPage = pathname === "/messages";
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     return (
@@ -90,14 +100,22 @@ export function ForestQuestWrapper({ children }: { children: React.ReactNode }) 
                 )}
             </AnimatePresence>
 
-            {/* Sidebar */}
-            <ForestSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            {/* Mobile Sidebar */}
+            <div className="md:hidden">
+                <ForestSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+            </div>
+
+            {/* Desktop Sidebar (Standard) */}
+            <Sidebar />
 
             {/* Main Content Wrapper */}
-            <div className="flex-1 flex flex-col min-h-screen md:ml-72 relative z-10 transition-all duration-300">
-                <ForestHeader onMenuClick={() => setIsSidebarOpen(true)} />
+            <div className="flex-1 flex flex-col min-h-screen md:ml-20 relative z-10 transition-all duration-300">
+                {!isMessagesPage && <ForestHeader onMenuClick={() => setIsSidebarOpen(true)} />}
 
-                <main className="flex-1 p-4 md:p-8 overflow-y-auto relative">
+                <main className={`flex-1 overflow-y-auto relative ${isMessagesPage
+                    ? 'h-screen p-0'
+                    : 'p-4 md:p-8'
+                    }`}>
                     {children}
                 </main>
             </div>

@@ -38,6 +38,7 @@ export function AnimatedLogo({
                             style={{
                                 left: conn.x,
                                 height: conn.height,
+                                transformOrigin: "bottom",
                             }}
                             initial={{ scaleY: 0, opacity: 0 }}
                             animate={{
@@ -51,7 +52,6 @@ export function AnimatedLogo({
                                 repeatDelay: 1,
                                 ease: "easeInOut",
                             }}
-                            style={{ transformOrigin: "bottom" }}
                         />
                     ))}
 

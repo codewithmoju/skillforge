@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { DailyChallenge, getDailyChallenges } from '@/lib/services/challenges';
 import { Trophy, CheckCircle2, Circle } from 'lucide-react';
 import { AchievementsGuide } from './AchievementsGuide';

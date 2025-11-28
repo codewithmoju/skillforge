@@ -37,7 +37,12 @@ export function useFirestoreSync() {
                     store.loadUserData({
                         xp: firestoreData.xp,
                         level: firestoreData.level,
-                        streak: firestoreData.streak,
+                        streakData: firestoreData.streakData || {
+                            currentStreak: firestoreData.streak || 0,
+                            longestStreak: 0,
+                            lastActivityDate: new Date(),
+                            multiplier: 1.0,
+                        },
                         name: firestoreData.name,
                         projects: firestoreData.projects,
                         roadmapProgress: firestoreData.roadmapProgress,
@@ -45,14 +50,12 @@ export function useFirestoreSync() {
                         currentTopic: firestoreData.currentTopic || "",
                         achievements: firestoreData.achievements || [],
                         totalLessonsCompleted: firestoreData.totalLessonsCompleted || 0,
-                        completedRoadmaps: firestoreData.completedRoadmaps || 0,
+                        totalRoadmapsCompleted: firestoreData.totalRoadmapsCompleted || firestoreData.completedRoadmaps || 0,
                     });
                     syncedRef.current = true;
                 }
             } else {
                 // New user - create Firestore document
-                // We only do this if we are sure it's a new user and not just a latency issue
-                // But for now, we stick to the existing logic
                 if (!syncedRef.current) {
                     await createUserData(
                         user.uid,
@@ -77,7 +80,7 @@ export function useFirestoreSync() {
         const currentState = JSON.stringify({
             xp: store.xp,
             level: store.level,
-            streak: store.streak,
+            streakData: store.streakData,
             name: store.name,
             projects: store.projects,
             roadmapProgress: store.roadmapProgress,
@@ -85,7 +88,7 @@ export function useFirestoreSync() {
             currentTopic: store.currentTopic,
             achievements: store.achievements,
             totalLessonsCompleted: store.totalLessonsCompleted,
-            completedRoadmaps: store.completedRoadmaps,
+            totalRoadmapsCompleted: store.totalRoadmapsCompleted,
         });
 
         // Only sync if data actually changed
@@ -97,7 +100,7 @@ export function useFirestoreSync() {
                 await updateUserData(user.uid, {
                     xp: store.xp,
                     level: store.level,
-                    streak: store.streak,
+                    streakData: store.streakData,
                     name: store.name,
                     projects: store.projects,
                     roadmapProgress: store.roadmapProgress,
@@ -105,7 +108,7 @@ export function useFirestoreSync() {
                     currentTopic: store.currentTopic,
                     achievements: store.achievements,
                     totalLessonsCompleted: store.totalLessonsCompleted,
-                    completedRoadmaps: store.completedRoadmaps,
+                    totalRoadmapsCompleted: store.totalRoadmapsCompleted,
                 });
             } catch (error) {
                 console.error('Error saving user data:', error);
@@ -115,7 +118,7 @@ export function useFirestoreSync() {
         // Debounce saves
         const timeoutId = setTimeout(saveData, 1000);
         return () => clearTimeout(timeoutId);
-    }, [user, store.xp, store.level, store.streak, store.name, store.projects, store.roadmapProgress, store.roadmapDefinitions, store.currentTopic, store.achievements, store.totalLessonsCompleted, store.completedRoadmaps]);
+    }, [user, store.xp, store.level, store.streakData, store.name, store.projects, store.roadmapProgress, store.roadmapDefinitions, store.currentTopic, store.achievements, store.totalLessonsCompleted, store.totalRoadmapsCompleted]);
 
     // Reset store when user logs out
     useEffect(() => {
