@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { db } from "@/lib/firebase";
+import { addDoc, collection } from "firebase/firestore";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -22,7 +24,7 @@ export async function POST(req: Request) {
         The course should be structured for "Atomic Learning" - breaking complex topics into small, digestible lessons.
         Avoid broad lessons like "Basics". Instead, use specific titles like "Your First Variable", "Understanding Loops", etc.
 
-        Return ONLY valid JSON with this structure:
+        Return ONLY valid JSON with this structure. DO NOT wrap the JSON in markdown code blocks (e.g. \`\`\`json ... \`\`\`). Return raw JSON only.
         {
             "title": "Course Title",
             "description": "A compelling description of what the user will learn.",
@@ -51,11 +53,27 @@ export async function POST(req: Request) {
         const response = await result.response;
         const text = response.text();
 
-        // Clean up JSON
-        const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
+        // Robust JSON extraction
+        const jsonStart = text.indexOf('{');
+        const jsonEnd = text.lastIndexOf('}');
+
+        if (jsonStart === -1 || jsonEnd === -1) {
+            throw new Error("No JSON found in response");
+        }
+
+        const jsonStr = text.substring(jsonStart, jsonEnd + 1);
         const syllabus = JSON.parse(jsonStr);
 
-        return NextResponse.json({ syllabus });
+        // Store in Firestore
+        const courseRef = await addDoc(collection(db, "courses"), {
+            topic,
+            level,
+            syllabus,
+            createdAt: new Date(),
+            userId: "anonymous" // TODO: Replace with actual user ID when auth is ready
+        });
+
+        return NextResponse.json({ syllabus, courseId: courseRef.id });
 
     } catch (error) {
         console.error("Syllabus generation failed:", error);

@@ -10,12 +10,14 @@ import { MermaidRenderer } from "@/components/lesson/MermaidRenderer";
 import ReactMarkdown from "react-markdown";
 import { userBehavior } from "@/lib/services/behavior";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { AISensei } from "@/components/lesson/AISensei";
 import { PodcastPlayer } from "@/components/lesson/PodcastPlayer";
 import { LessonSkeleton } from "@/components/lesson/LessonSkeleton";
 import { MagneticButton } from "@/components/ui/MagneticButton";
-import { ParallaxLayer } from "@/components/ui/ParallaxLayer";
 import { useSwipe } from "@/lib/hooks/useSwipe";
+import { useScrambleText } from "@/lib/hooks/useScrambleText";
 
 interface LessonContent {
     title: string;
@@ -47,6 +49,9 @@ export default function LessonPage() {
     const slug = params.slug as string;
     const [moduleIdx, lessonIdx] = lessonId.split('-').map(Number);
 
+    // Always call hooks at the top level
+    const scrambledTitle = useScrambleText(content?.title || "", !loading && !!content);
+
     const [showVictory, setShowVictory] = useState(false);
     const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
     const [theme, setTheme] = useState<Theme | null>(null);
@@ -73,11 +78,30 @@ export default function LessonPage() {
 
     useEffect(() => {
         const loadLesson = async () => {
-            // Get syllabus from local storage to get titles
+            // Get syllabus from local storage or Firestore
+            let syllabus = null;
             const stored = localStorage.getItem(`course-${slug}`);
-            if (!stored) return;
 
-            const syllabus = JSON.parse(stored);
+            if (stored) {
+                syllabus = JSON.parse(stored);
+            } else {
+                try {
+                    const courseDoc = await getDoc(doc(db, "courses", slug));
+                    if (courseDoc.exists()) {
+                        const data = courseDoc.data();
+                        syllabus = data.syllabus;
+                        localStorage.setItem(`course-${slug}`, JSON.stringify(syllabus));
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch course:", err);
+                }
+            }
+
+            if (!syllabus) {
+                console.error("Syllabus not found");
+                return;
+            }
+
             if (syllabus.theme) {
                 setTheme(syllabus.theme);
             }
@@ -90,12 +114,25 @@ export default function LessonPage() {
 
             if (cachedContent) {
                 const parsed = JSON.parse(cachedContent);
-                // Only use cache if it has the new bossChallenge field
                 if (parsed.bossChallenge) {
                     setContent(parsed);
                     setLoading(false);
                     return;
                 }
+            }
+
+            // Check Firestore for lesson
+            try {
+                const lessonDoc = await getDoc(doc(db, "courses", slug, "lessons", `${moduleIdx}-${lessonIdx}`));
+                if (lessonDoc.exists()) {
+                    const data = lessonDoc.data();
+                    setContent(data as LessonContent);
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("Failed to fetch lesson from DB:", err);
             }
 
             try {
@@ -105,7 +142,9 @@ export default function LessonPage() {
                     body: JSON.stringify({
                         topic: syllabus.title,
                         lessonTitle,
-                        moduleTitle
+                        moduleTitle,
+                        courseId: slug,
+                        lessonId: `${moduleIdx}-${lessonIdx}`
                     })
                 });
                 const data = await res.json();
@@ -158,7 +197,9 @@ export default function LessonPage() {
                     body: JSON.stringify({
                         topic: syllabus.title,
                         lessonTitle: nextLessonTitle,
-                        moduleTitle: nextModuleTitle
+                        moduleTitle: nextModuleTitle,
+                        courseId: slug,
+                        lessonId: `${nextModuleIdx}-${nextLessonIdx}`
                     })
                 });
                 const data = await res.json();
@@ -329,43 +370,45 @@ export default function LessonPage() {
                 .animation-delay-4000 {
                     animation-delay: 4s;
                 }
+                /* Aurora Animation */
+                @keyframes aurora {
+                    0% { background-position: 50% 50%, 50% 50%; }
+                    100% { background-position: 350% 50%, 350% 50%; }
+                }
+                .animate-aurora {
+                    animation: aurora 60s linear infinite;
+                }
             `}</style>
 
-            {/* Immersive Dynamic Background - Aurora & Nebula Effect */}
+            {/* Immersive Aurora Background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                {/* Deep Space Base */}
-                <div className="absolute inset-0 transition-colors duration-1000"
-                    style={{ background: `radial-gradient(circle at 50% 50%, ${backgroundColor}, #000000)` }}
+                <div className="absolute inset-0 bg-[#030014]" />
+                <div
+                    className="absolute inset-[-50%] opacity-40 animate-aurora mix-blend-screen"
+                    style={{
+                        backgroundImage: `
+                            repeating-linear-gradient(100deg, ${primaryColor}00 10%, ${primaryColor}1A 20%, ${secondaryColor}1A 30%, ${accentColor}00 40%),
+                            repeating-linear-gradient(180deg, ${secondaryColor}00 10%, ${accentColor}1A 20%, ${primaryColor}1A 30%, ${secondaryColor}00 40%)
+                        `,
+                        backgroundSize: '200% 200%'
+                    }}
                 />
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
+                <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay" />
 
-                {/* Animated Aurora Gradients */}
-                <ParallaxLayer speed={-0.1} className="absolute inset-0 opacity-40 mix-blend-screen">
-                    <div className="absolute top-[-50%] left-[-20%] w-[150vw] h-[150vw] rounded-full blur-[150px] animate-blob"
-                        style={{ background: `conic-gradient(from 0deg, ${primaryColor}, ${secondaryColor}, ${primaryColor})` }}
-                    />
-                </ParallaxLayer>
-
-                <ParallaxLayer speed={-0.2} className="absolute inset-0 opacity-30 mix-blend-screen">
-                    <div className="absolute bottom-[-50%] right-[-20%] w-[150vw] h-[150vw] rounded-full blur-[180px] animate-blob animation-delay-4000"
-                        style={{ background: `conic-gradient(from 180deg, ${secondaryColor}, ${accentColor}, ${secondaryColor})` }}
-                    />
-                </ParallaxLayer>
-
-                {/* Floating Orbs */}
-                <ParallaxLayer speed={-0.15} className="absolute inset-0">
-                    <div className="absolute top-[20%] right-[10%] w-96 h-96 rounded-full blur-[120px] animate-pulse-slow"
-                        style={{ backgroundColor: `${accentColor}40` }}
-                    />
-                    <div className="absolute bottom-[20%] left-[10%] w-80 h-80 rounded-full blur-[100px] animate-pulse-slow animation-delay-2000"
-                        style={{ backgroundColor: `${primaryColor}40` }}
-                    />
-                </ParallaxLayer>
-
-                {/* Texture Overlays */}
-                <ParallaxLayer speed={-0.05} className="absolute inset-0">
-                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.08]" />
-                    <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay" />
-                </ParallaxLayer>
+                {/* Floating Geometric Shapes */}
+                <motion.div
+                    className="absolute top-20 right-[10%] w-96 h-96 opacity-20 blur-3xl rounded-full"
+                    style={{ background: `radial-gradient(circle, ${primaryColor}, transparent)` }}
+                    animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
+                    transition={{ duration: 20, repeat: Infinity }}
+                />
+                <motion.div
+                    className="absolute bottom-20 left-[10%] w-[30rem] h-[30rem] opacity-10 blur-3xl rounded-full"
+                    style={{ background: `radial-gradient(circle, ${secondaryColor}, transparent)` }}
+                    animate={{ scale: [1.2, 1, 1.2], rotate: [0, -90, 0] }}
+                    transition={{ duration: 25, repeat: Infinity }}
+                />
             </div>
 
             {/* Gamified Header */}
@@ -376,8 +419,7 @@ export default function LessonPage() {
                     <div className="flex items-center gap-4">
                         <MagneticButton
                             onClick={handlePodcast}
-                            disabled={isGeneratingPodcast}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-300"
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-300 ${isGeneratingPodcast ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                             {isGeneratingPodcast ? (
                                 <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
@@ -442,7 +484,7 @@ export default function LessonPage() {
                     <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text mb-8 tracking-tight drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] leading-[1.1]"
                         style={{ backgroundImage: `linear-gradient(to bottom, white, ${primaryColor}33, ${primaryColor}80)` }}
                     >
-                        {content.title}
+                        {scrambledTitle}
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-light">
                         Prepare to download new knowledge into your neural network.
@@ -457,18 +499,29 @@ export default function LessonPage() {
                     transition={{ duration: 0.5, ease: "easeOut" }}
                     className="mb-24 relative group"
                 >
-                    <div className="absolute -inset-0.5 rounded-[2.5rem] opacity-30 group-hover:opacity-50 blur-xl transition duration-1000"
-                        style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${accentColor})` }}
+                    {/* Holographic Border */}
+                    <div className="absolute -inset-[2px] rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                        style={{
+                            background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor}, ${accentColor}, ${primaryColor})`,
+                            backgroundSize: '200% 100%',
+                            animation: 'aurora 2s linear infinite'
+                        }}
                     />
-                    <div className="relative p-10 md:p-12 rounded-[2.2rem] border border-white/10 backdrop-blur-2xl overflow-hidden shadow-2xl"
-                        style={{ backgroundColor: `${backgroundColor}E6` }}
+
+                    <div className="relative p-10 md:p-12 rounded-[2.4rem] border border-white/10 backdrop-blur-2xl overflow-hidden shadow-2xl transition-all duration-500"
+                        style={{
+                            backgroundColor: `${backgroundColor}CC`,
+                            boxShadow: `0 0 40px -10px ${primaryColor}4D`
+                        }}
                     >
+                        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03]" />
+
                         <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
                             <Brain className="w-64 h-64 text-white" />
                         </div>
 
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3.5 rounded-2xl border shadow-[0_0_20px_rgba(0,0,0,0.1)]"
+                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                            <div className="p-3.5 rounded-2xl border shadow-[0_0_20px_rgba(0,0,0,0.1)] backdrop-blur-md"
                                 style={{ backgroundColor: `${primaryColor}1A`, color: primaryColor, borderColor: `${primaryColor}33` }}
                             >
                                 <Scroll className="w-6 h-6" />
@@ -479,11 +532,11 @@ export default function LessonPage() {
                             </div>
                         </div>
 
-                        <div className="prose prose-invert prose-lg max-w-none">
-                            <p className="text-3xl text-slate-200 italic font-light leading-relaxed mb-8 relative z-10">
+                        <div className="prose prose-invert prose-lg max-w-none relative z-10">
+                            <p className="text-3xl text-slate-200 italic font-light leading-relaxed mb-8">
                                 "{content.analogy.story}"
                             </p>
-                            <div className="flex items-start gap-5 p-6 rounded-2xl border relative overflow-hidden"
+                            <div className="flex items-start gap-5 p-6 rounded-2xl border relative overflow-hidden backdrop-blur-md"
                                 style={{ backgroundColor: `${primaryColor}0D`, borderColor: `${primaryColor}1A` }}
                             >
                                 <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: `${primaryColor}0D` }} />
@@ -539,10 +592,10 @@ export default function LessonPage() {
                             className="relative"
                             onViewportEnter={() => setActiveSection(idx)}
                         >
-                            {/* Connector Line */}
+                            {/* Connector Line - Fixed Alignment */}
                             {idx !== content.sections.length - 1 && (
-                                <div className="absolute left-[2.25rem] top-24 bottom-[-8rem] w-0.5 -z-10 md:left-[3.25rem]"
-                                    style={{ background: `linear-gradient(to bottom, ${primaryColor}4D, ${primaryColor}1A, transparent)` }}
+                                <div className="absolute left-[2.5rem] top-24 bottom-[-8rem] w-0.5 -z-10 md:left-[2.5rem]"
+                                    style={{ background: `linear-gradient(to bottom, ${primaryColor}80, ${primaryColor}33, transparent)` }}
                                 />
                             )}
 
@@ -580,11 +633,25 @@ export default function LessonPage() {
                                             backgroundColor: `${backgroundColor}CC`,
                                             borderColor: `${primaryColor}4D`,
                                             boxShadow: `0 0 50px ${primaryColor}1A`
-                                        } : {}}
+                                        } : {
+                                            backgroundColor: `${backgroundColor}66`,
+                                            borderColor: 'rgba(255,255,255,0.05)'
+                                        }}
                                     >
-                                        {/* Hover Glow */}
-                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
-                                            style={{ background: `linear-gradient(to bottom right, ${primaryColor}0D, ${secondaryColor}0D, ${accentColor}0D)` }}
+                                        {/* Noise Texture */}
+                                        <div className="absolute inset-0 opacity-[0.03] bg-[url('/noise.svg')]" />
+
+                                        {/* Holographic Border on Hover */}
+                                        <div className="absolute -inset-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                                            style={{
+                                                background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor}, ${accentColor}, ${primaryColor})`,
+                                                backgroundSize: '200% 100%',
+                                                animation: 'aurora 2s linear infinite',
+                                                mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                                                maskComposite: 'exclude',
+                                                WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                                                WebkitMaskComposite: 'xor'
+                                            }}
                                         />
 
                                         {section.type === 'text' && (
@@ -667,23 +734,35 @@ export default function LessonPage() {
                                                             style={{ backgroundColor: `${primaryColor}33` }}
                                                         />
 
-                                                        <div className="flex items-center gap-5 mb-10 relative">
-                                                            <div className="p-4 rounded-2xl text-white shadow-lg"
-                                                                style={{ backgroundColor: primaryColor, boxShadow: `0 0 20px ${primaryColor}4D` }}
+                                                        <div className="flex items-center gap-8 mb-12 relative">
+                                                            <div className="p-5 rounded-2xl text-white shadow-[0_0_30px_rgba(0,0,0,0.3)] border border-white/10 backdrop-blur-md relative overflow-hidden group/icon"
+                                                                style={{ backgroundColor: `${primaryColor}CC`, boxShadow: `0 0 30px ${primaryColor}66` }}
                                                             >
-                                                                <Sword className="w-8 h-8" />
+                                                                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity" />
+                                                                <Sword className="w-10 h-10 relative z-10" />
                                                             </div>
                                                             <div>
-                                                                <h4 className="text-2xl font-black text-white uppercase italic tracking-wider">Challenge Encounter</h4>
+                                                                <h4 className="text-3xl font-black text-white uppercase italic tracking-widest drop-shadow-lg"
+                                                                    style={{ textShadow: `0 0 20px ${primaryColor}80` }}
+                                                                >
+                                                                    Boss Challenge
+                                                                </h4>
+                                                                <p className="text-xs font-mono uppercase tracking-[0.3em] mt-2 opacity-80" style={{ color: accentColor }}>
+                                                                    // Protocol: Elimination
+                                                                </p>
                                                             </div>
                                                         </div>
 
-                                                        <p className="text-2xl text-slate-200 mb-10 font-medium leading-relaxed">{section.question}</p>
+                                                        <p className="text-3xl text-slate-100 mb-14 font-light leading-relaxed tracking-wide border-l-4 pl-8 py-2"
+                                                            style={{ borderColor: primaryColor }}
+                                                        >
+                                                            {section.question}
+                                                        </p>
 
                                                         {section.interactionType === 'fill-in-blank' && (
                                                             <div className="space-y-10">
-                                                                <div className="p-10 bg-[#05050a] rounded-3xl font-mono text-xl border border-slate-800/50 shadow-inner flex flex-wrap items-center gap-4 leading-loose relative overflow-hidden">
-                                                                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
+                                                                <div className="p-12 bg-[#05050a]/80 rounded-[2rem] font-mono text-2xl border border-slate-800/50 shadow-inner flex flex-wrap items-center gap-x-6 gap-y-8 leading-loose relative overflow-hidden backdrop-blur-sm">
+                                                                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
                                                                     {section.codeContext.split('______').map((part: string, i: number) => (
                                                                         <span key={i} className="text-slate-300 relative z-10">
                                                                             {part}
@@ -691,12 +770,11 @@ export default function LessonPage() {
                                                                                 <span className="relative inline-block mx-2 group/input">
                                                                                     <input
                                                                                         type="text"
-                                                                                        className="border-b-2 text-white px-6 py-2 focus:outline-none transition-all w-48 text-center font-bold rounded-t-lg"
+                                                                                        className="border-b-4 text-white px-8 py-3 focus:outline-none transition-all w-64 text-center font-bold rounded-t-xl bg-white/5 focus:bg-white/10"
                                                                                         style={{
-                                                                                            backgroundColor: `${primaryColor}1A`,
                                                                                             borderColor: primaryColor,
-                                                                                            '--placeholder-color': `${primaryColor}4D`
-                                                                                        } as any}
+                                                                                            boxShadow: `0 10px 30px -10px ${primaryColor}33`
+                                                                                        }}
                                                                                         placeholder="???"
                                                                                         onKeyDown={(e) => {
                                                                                             if (e.key === 'Enter') {
@@ -704,9 +782,11 @@ export default function LessonPage() {
                                                                                             }
                                                                                         }}
                                                                                     />
-                                                                                    <div className="absolute -bottom-8 left-0 right-0 text-[10px] text-center uppercase tracking-[0.2em] font-bold opacity-0 group-focus-within/input:opacity-100 transition-opacity"
+                                                                                    <div className="absolute -bottom-10 left-0 right-0 text-[10px] text-center uppercase tracking-[0.2em] font-bold opacity-0 group-focus-within/input:opacity-100 transition-all duration-500 transform translate-y-2 group-focus-within/input:translate-y-0"
                                                                                         style={{ color: primaryColor }}
-                                                                                    >Type & Enter</div>
+                                                                                    >
+                                                                                        Press Enter
+                                                                                    </div>
                                                                                 </span>
                                                                             )}
                                                                         </span>
@@ -749,8 +829,8 @@ export default function LessonPage() {
                         className="mb-32 relative z-10"
                     >
                         <div className="absolute inset-0 bg-red-500/10 blur-3xl rounded-full" />
-                        <div className="relative p-1 rounded-[2.5rem] bg-gradient-to-br from-red-500 to-orange-600 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
-                            <div className="bg-[#0a0a16] rounded-[2.4rem] p-10 md:p-16 overflow-hidden relative">
+                        <div className="relative p-[1px] rounded-[2.5rem] bg-gradient-to-b from-red-500 to-orange-600 shadow-[0_0_100px_rgba(239,68,68,0.2)]">
+                            <div className="bg-[#050505]/90 backdrop-blur-3xl rounded-[2.5rem] p-10 md:p-20 overflow-hidden relative">
                                 <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
                                 <div className="relative z-10 text-center">
                                     <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-black uppercase tracking-widest mb-8 animate-pulse">
@@ -762,23 +842,13 @@ export default function LessonPage() {
                                     <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto leading-relaxed">
                                         {content.bossChallenge.description}
                                     </p>
-
-                                    <div className="bg-black/50 rounded-2xl border border-white/10 p-8 text-left mb-12 relative overflow-hidden group">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <h4 className="text-red-400 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                                            <Terminal className="w-5 h-5" /> Mission Objective
-                                        </h4>
-                                        <p className="text-lg text-white font-mono leading-relaxed">
-                                            {content.bossChallenge.question}
-                                        </p>
-                                    </div>
-
                                     {/* Boss Interaction */}
-                                    <div className="max-w-xl mx-auto relative">
+                                    <div className="max-w-xl mx-auto relative group/input">
+                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl opacity-20 group-hover/input:opacity-40 blur transition-opacity duration-500" />
                                         <input
                                             type="text"
                                             placeholder="Enter solution protocol..."
-                                            className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-8 py-5 text-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 focus:bg-white/10 transition-all text-center font-mono"
+                                            className="w-full bg-[#0a0a16]/80 border-2 border-red-500/30 rounded-2xl px-8 py-6 text-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 focus:bg-[#0a0a16] transition-all text-center font-mono relative z-10 shadow-[0_0_30px_rgba(239,68,68,0.1)] focus:shadow-[0_0_50px_rgba(239,68,68,0.2)]"
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter') {
                                                     const val = (e.target as HTMLInputElement).value;
@@ -791,7 +861,7 @@ export default function LessonPage() {
                                                 }
                                             }}
                                         />
-                                        <div className="mt-4 text-sm text-slate-500 uppercase tracking-widest font-bold">
+                                        <div className="absolute -bottom-8 left-0 right-0 text-xs text-red-500/60 uppercase tracking-[0.3em] font-bold opacity-0 group-focus-within/input:opacity-100 transition-all duration-500 transform translate-y-2 group-focus-within/input:translate-y-0">
                                             Press Enter to Execute
                                         </div>
                                     </div>

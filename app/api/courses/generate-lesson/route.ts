@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
     try {
-        const { topic, lessonTitle, moduleTitle, previousContext } = await req.json();
+        const { topic, lessonTitle, moduleTitle, previousContext, courseId, lessonId } = await req.json();
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -66,6 +68,15 @@ export async function POST(req: Request) {
         // Clean up JSON
         const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
         const content = JSON.parse(jsonStr);
+
+        // Store in Firestore if courseId is provided
+        if (courseId && lessonId) {
+            const lessonRef = doc(db, "courses", courseId, "lessons", lessonId);
+            await setDoc(lessonRef, {
+                ...content,
+                createdAt: new Date()
+            });
+        }
 
         return NextResponse.json({ content });
 

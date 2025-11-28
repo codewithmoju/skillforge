@@ -39,7 +39,7 @@ type QuickAction = {
     meta?: string;
 };
 
-export default function DashboardPage() {
+function DashboardContent() {
     const { user } = useAuth();
     const router = useRouter();
     const [userData, setUserData] = useState<FirestoreUserData | null>(null);
@@ -53,11 +53,6 @@ export default function DashboardPage() {
     const fetchDashboard = useCallback(async () => {
         if (!user) {
             setLoading(false);
-            setUserData(null);
-            setRecentPosts([]);
-            setChallenges([]);
-            setLeaderboard([]);
-            setUserRank(null);
             return;
         }
 
@@ -89,17 +84,6 @@ export default function DashboardPage() {
     useEffect(() => {
         fetchDashboard();
     }, [fetchDashboard]);
-
-    if (!user && !loading) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center text-center space-y-4">
-                <h1 className="text-3xl font-bold text-white">Sign in to access your dashboard</h1>
-                <p className="text-slate-400 max-w-md">
-                    Connect your account to restore your gamified control center, track missions, and sync rewards.
-                </p>
-            </div>
-        );
-    }
 
     const xp = userData?.xp ?? 0;
     const level = userData?.level ?? 1;
@@ -726,9 +710,8 @@ export default function DashboardPage() {
                                             {achievement.stars.map((star, index) => (
                                                 <span
                                                     key={`${achievement.id}-star-${star.star}-${index}`}
-                                                    className={`h-2 w-2 rounded-full ${
-                                                        star.unlocked ? "bg-amber-300" : "bg-white/20"
-                                                    }`}
+                                                    className={`h-2 w-2 rounded-full ${star.unlocked ? "bg-amber-300" : "bg-white/20"
+                                                        }`}
                                                 />
                                             ))}
                                         </div>
@@ -800,20 +783,8 @@ export default function DashboardPage() {
                                 <p className="text-3xl font-bold text-white">{lessonsCompleted}</p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Followers / Following</p>
-                                <p className="text-3xl font-bold text-white">
-                                    {followers.toLocaleString()} / {following.toLocaleString()}
-                                </p>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Posts Shared</p>
-                                <p className="text-3xl font-bold text-white">{postsCount}</p>
-                            </div>
-                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Roadmap Nodes</p>
-                                <p className="text-3xl font-bold text-white">
-                                    {completedNodes}/{roadmapNodes.length || 0}
-                                </p>
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Projects Built</p>
+                                <p className="text-3xl font-bold text-white">{userData?.projects?.length || 0}</p>
                             </div>
                         </div>
                     </div>
@@ -821,6 +792,35 @@ export default function DashboardPage() {
             </div>
         </div>
     );
+}
+
+export default function DashboardPage() {
+    const { user, loading: authLoading } = useAuth();
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center space-y-6 text-center">
+                <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
+                    className="h-16 w-16 rounded-full border-4 border-cyan-400/30 border-t-cyan-300"
+                />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center text-center space-y-4">
+                <h1 className="text-3xl font-bold text-white">Sign in to access your dashboard</h1>
+                <p className="text-slate-400 max-w-md">
+                    Connect your account to restore your gamified control center, track missions, and sync rewards.
+                </p>
+            </div>
+        );
+    }
+
+    return <DashboardContent />;
 }
 
 function TrophyIcon() {
