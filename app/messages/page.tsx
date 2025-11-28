@@ -1,16 +1,15 @@
 'use client';
 
-import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Conversation, subscribeToConversations, createConversation } from '@/lib/services/messages';
 import { ChatWindow } from '@/components/messages/ChatWindow';
 import { EmptyStateEnhanced } from '@/components/messages/EmptyStateEnhanced';
-import { ConversationListItem } from '@/components/messages/ConversationListItem';
-import { DailyChallenges } from '@/components/messages/DailyChallenges';
-import { Loader2, Plus, MessageSquare } from 'lucide-react';
+import { MessageList } from '@/components/messages/MessageList';
+import { Loader2, X, Search } from 'lucide-react';
 import { searchUsers } from '@/lib/services/search';
 import { FirestoreUserData } from '@/lib/services/firestore';
+import Image from 'next/image';
 
 export default function MessagesPage() {
     const { user } = useAuth();
@@ -93,16 +92,13 @@ export default function MessagesPage() {
                 [recipient.uid]: { name: recipient.name, photo: recipient.profilePicture }
             };
 
-            const conversationId = await createConversation([user.uid, recipient.uid], participantDetails);
+            await createConversation([user.uid, recipient.uid], participantDetails);
 
-            // Find the new conversation object to select it immediately
-            // We might need to wait for the subscription to update, but for now let's just close the modal
-            // Ideally we would set selectedConversation here if we had the full object, 
-            // but we only have the ID. The subscription will pick it up.
-
+            // Close modal
             setShowNewMessageModal(false);
             setSearchQuery('');
             setSearchResults([]);
+
         } catch (error) {
             console.error('Error starting conversation:', error);
         }
@@ -110,65 +106,42 @@ export default function MessagesPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
+            <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-8 h-8 text-accent-indigo animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="h-[calc(100vh-80px)] max-w-6xl mx-auto p-4 flex gap-6">
+        <div className="h-screen w-full flex bg-slate-50 dark:bg-slate-950 overflow-hidden">
             {/* Sidebar */}
-            <div className={`w-full md:w-80 flex flex-col bg-slate-900/50 rounded-2xl border border-slate-800 overflow-hidden ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
-                <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                    <h2 className="font-bold text-white text-lg">Messages</h2>
-                    <button
-                        onClick={() => setShowNewMessageModal(true)}
-                        className="p-2 bg-accent-indigo/20 text-accent-indigo rounded-full hover:bg-accent-indigo/30 transition-colors"
-                    >
-                        <Plus className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto">
-                    {conversations.length > 0 ? (
-                        conversations.map((conv) => (
-                            <ConversationListItem
-                                key={conv.id}
-                                conversation={conv}
-                                currentUserId={user?.uid || ''}
-                                isSelected={selectedConversation?.id === conv.id}
-                                onSelect={setSelectedConversation}
-                            />
-                        ))
-                    ) : (
-                        <div className="p-8 text-center text-slate-500">
-                            <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                            <p>No conversations yet</p>
-                            <button
-                                onClick={() => setShowNewMessageModal(true)}
-                                className="mt-4 text-accent-cyan hover:underline block mx-auto mb-8"
-                            >
-                                Start a chat
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Daily Challenges */}
-                {user && <DailyChallenges userId={user.uid} />}
+            <div className={`
+                w-full md:w-[380px] flex flex-col border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-20
+                ${selectedConversation ? 'hidden md:flex' : 'flex'}
+            `}>
+                <MessageList
+                    conversations={conversations}
+                    selectedId={selectedConversation?.id}
+                    onSelect={setSelectedConversation}
+                    loading={loading}
+                    onNewMessage={() => setShowNewMessageModal(true)}
+                />
             </div>
 
             {/* Chat Area */}
-            <div className={`flex-1 ${selectedConversation ? 'flex' : 'hidden md:flex'}`}>
+            <div className={`
+                flex-1 flex flex-col bg-white dark:bg-slate-950 min-w-0
+                ${selectedConversation ? 'flex fixed inset-0 md:static z-30 md:z-auto' : 'hidden md:flex'}
+            `}>
                 {selectedConversation ? (
-                    <div className="w-full h-full flex flex-col">
-                        <div className="md:hidden mb-2">
+                    <div className="w-full h-full flex flex-col relative">
+                        {/* Mobile Back Button Overlay - Only visible on mobile */}
+                        <div className="md:hidden absolute top-3 left-3 z-50">
                             <button
                                 onClick={() => setSelectedConversation(null)}
-                                className="text-slate-400 hover:text-white flex items-center gap-2"
+                                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur text-slate-900 dark:text-white p-2 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm"
                             >
-                                ← Back to messages
+                                ←
                             </button>
                         </div>
                         <ChatWindow
@@ -178,48 +151,53 @@ export default function MessagesPage() {
                         />
                     </div>
                 ) : (
-                    <EmptyStateEnhanced
-                        onStartConversation={startConversation}
-                        suggestedUsers={suggestedUsers}
-                        loading={suggestedLoading}
-                    />
+                    <div className="hidden md:flex w-full h-full">
+                        <EmptyStateEnhanced
+                            onStartConversation={startConversation}
+                            suggestedUsers={suggestedUsers}
+                            loading={suggestedLoading}
+                        />
+                    </div>
                 )}
             </div>
 
             {/* New Message Modal */}
             {showNewMessageModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md overflow-hidden">
-                        <div className="p-4 border-b border-slate-800 flex justify-between items-center">
-                            <h3 className="font-bold text-white">New Message</h3>
+                <div className="fixed inset-0 bg-black/50 dark:bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+                        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50">
+                            <h3 className="font-bold text-slate-900 dark:text-white text-lg">New Message</h3>
                             <button
                                 onClick={() => setShowNewMessageModal(false)}
-                                className="text-slate-400 hover:text-white"
+                                className="text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                             >
-                                ✕
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
                         <div className="p-4">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => handleSearchUsers(e.target.value)}
-                                placeholder="Search users..."
-                                className="w-full bg-slate-800 border-none rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none mb-4"
-                                autoFocus
-                            />
+                            <div className="relative mb-4">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => handleSearchUsers(e.target.value)}
+                                    placeholder="Search users..."
+                                    className="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl pl-10 pr-4 py-3 text-slate-900 dark:text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none"
+                                    autoFocus
+                                />
+                            </div>
 
-                            <div className="max-h-60 overflow-y-auto space-y-2">
+                            <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar">
                                 {searching ? (
-                                    <div className="flex justify-center py-4">
-                                        <Loader2 className="w-6 h-6 text-accent-cyan animate-spin" />
+                                    <div className="flex justify-center py-8">
+                                        <Loader2 className="w-6 h-6 text-accent-indigo animate-spin" />
                                     </div>
                                 ) : searchResults.length > 0 ? (
                                     searchResults.map(result => (
                                         <button
                                             key={result.uid}
                                             onClick={() => startConversation(result)}
-                                            className="w-full flex items-center gap-3 p-3 hover:bg-slate-800 rounded-xl transition-colors text-left"
+                                            className="w-full flex items-center gap-3 p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-left group"
                                         >
                                             {result.profilePicture ? (
                                                 <Image
@@ -227,22 +205,26 @@ export default function MessagesPage() {
                                                     alt={result.name}
                                                     width={40}
                                                     height={40}
-                                                    className="w-10 h-10 rounded-full object-cover"
+                                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800"
                                                 />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-bold">
+                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center text-white font-bold">
                                                     {result.name.charAt(0).toUpperCase()}
                                                 </div>
                                             )}
                                             <div>
-                                                <p className="font-semibold text-white">{result.name}</p>
-                                                <p className="text-xs text-slate-400">@{result.username}</p>
+                                                <p className="font-semibold text-slate-900 dark:text-white">{result.name}</p>
+                                                <p className="text-xs text-slate-500">@{result.username}</p>
                                             </div>
                                         </button>
                                     ))
                                 ) : searchQuery.length >= 2 ? (
-                                    <p className="text-center text-slate-500 py-4">No users found</p>
-                                ) : null}
+                                    <p className="text-center text-slate-500 py-8">No users found</p>
+                                ) : (
+                                    <div className="text-center text-slate-500 py-8">
+                                        <p>Search for people to chat with</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -251,3 +233,4 @@ export default function MessagesPage() {
         </div>
     );
 }
+

@@ -1,34 +1,24 @@
-"use client";
-
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Scroll, BookOpen, Star, Feather, Sparkles, CheckCircle, XCircle, Shield, Sword, Crown } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { useUserStore } from '@/lib/store';
-
-// Duplicate interface for now to avoid circular deps or refactoring
-interface GamifiedLessonContent {
+title: string;
+missionBriefing: string;
+realWorldAnalogy: {
     title: string;
-    missionBriefing: string;
-    realWorldAnalogy: {
-        title: string;
-        analogy: string;
-        connection: string;
-    };
-    powerUps: string[];
-    interactiveDemo: {
-        title: string;
-        description: string;
-        code: string;
-        explanation: string;
-    };
-    bossChallenge: {
-        question: string;
-        options: string[];
-        correctAnswer: number;
-        explanation: string;
-    };
-    victoryRewards: string[];
+    analogy: string;
+    connection: string;
+};
+powerUps: string[];
+interactiveDemo: {
+    title: string;
+    description: string;
+    code: string;
+    explanation: string;
+};
+bossChallenge: {
+    question: string;
+    options: string[];
+    correctAnswer: number;
+    explanation: string;
+};
+victoryRewards: string[];
 }
 
 interface ForestLessonModalProps {
@@ -281,14 +271,14 @@ export function ForestLessonModal({ isOpen, onClose, onComplete, topic, moduleTi
                                                             onClick={() => !isQuizSubmitted && setSelectedOption(idx)}
                                                             disabled={isQuizSubmitted}
                                                             className={`w-full p-6 text-left rounded-lg border-2 transition-all font-serif text-lg ${isQuizSubmitted
-                                                                    ? idx === content.bossChallenge.correctAnswer
-                                                                        ? "bg-[#e8f5e9] border-[#2e7d32] text-[#1b5e20]"
-                                                                        : idx === selectedOption
-                                                                            ? "bg-[#ffebee] border-[#c62828] text-[#b71c1c]"
-                                                                            : "bg-white/20 border-[#d7ccc8] text-[#8d6e63]"
-                                                                    : selectedOption === idx
-                                                                        ? "bg-[#efebe9] border-[#8b4513] text-[#3e2723] shadow-md"
-                                                                        : "bg-white/20 border-[#d7ccc8] text-[#5d4037] hover:bg-white/40 hover:border-[#a1887f]"
+                                                                ? idx === content.bossChallenge.correctAnswer
+                                                                    ? "bg-[#e8f5e9] border-[#2e7d32] text-[#1b5e20]"
+                                                                    : idx === selectedOption
+                                                                        ? "bg-[#ffebee] border-[#c62828] text-[#b71c1c]"
+                                                                        : "bg-white/20 border-[#d7ccc8] text-[#8d6e63]"
+                                                                : selectedOption === idx
+                                                                    ? "bg-[#efebe9] border-[#8b4513] text-[#3e2723] shadow-md"
+                                                                    : "bg-white/20 border-[#d7ccc8] text-[#5d4037] hover:bg-white/40 hover:border-[#a1887f]"
                                                                 }`}
                                                         >
                                                             <div className="flex items-center justify-between">

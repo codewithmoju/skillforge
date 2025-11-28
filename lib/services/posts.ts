@@ -135,6 +135,28 @@ export async function getFeedPosts(followingIds: string[], limitCount: number = 
     }
 }
 
+export async function getTrendingPosts(limitCount: number = 50): Promise<Post[]> {
+    try {
+        const q = query(
+            collection(db, 'posts'),
+            orderBy('createdAt', 'desc'),
+            limit(limitCount)
+        );
+        const snapshot = await getDocs(q);
+        const posts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+
+        // Sort by engagement (likes + comments) in memory
+        return posts.sort((a, b) => {
+            const engagementA = (a.likes || 0) + (a.comments || 0);
+            const engagementB = (b.likes || 0) + (b.comments || 0);
+            return engagementB - engagementA;
+        });
+    } catch (error) {
+        console.error('Error getting trending posts:', error);
+        return [];
+    }
+}
+
 export async function likePost(userId: string, postId: string): Promise<void> {
     try {
         const likeId = `${userId}_${postId}`;

@@ -4,6 +4,10 @@ import {
     getDoc,
     setDoc,
     updateDoc,
+    collection,
+    query,
+    where,
+    getDocs,
     Timestamp
 } from 'firebase/firestore';
 
@@ -123,4 +127,39 @@ export async function updateChallengeProgress(
     }
 
     return { xpGained, completedChallenges };
+}
+
+export interface Challenge {
+    id: string;
+    title: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+    participants: string[];
+    participantsCount: number;
+    xpReward: number;
+    status: 'active' | 'completed' | 'upcoming';
+    type: 'community' | 'event';
+}
+
+export async function getChallenges(status: 'active' | 'completed' | 'upcoming' = 'active'): Promise<Challenge[]> {
+    try {
+        const challengesRef = collection(db, 'challenges');
+        const q = query(challengesRef, where('status', '==', status));
+        const querySnapshot = await getDocs(q);
+
+        return querySnapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                ...data,
+                // Ensure dates are strings if they are Timestamps
+                startDate: data.startDate instanceof Timestamp ? data.startDate.toDate().toISOString() : data.startDate,
+                endDate: data.endDate instanceof Timestamp ? data.endDate.toDate().toISOString() : data.endDate,
+            } as Challenge;
+        });
+    } catch (error) {
+        console.error("Error fetching challenges:", error);
+        return [];
+    }
 }

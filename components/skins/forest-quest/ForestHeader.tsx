@@ -12,7 +12,8 @@ interface ForestHeaderProps {
 }
 
 export function ForestHeader({ onMenuClick }: ForestHeaderProps) {
-    const { xp, level, streak } = useUserStore();
+    const { xp, level, streakData } = useUserStore();
+    const streak = streakData.currentStreak;
     const { user, logout } = useAuth();
 
     return (

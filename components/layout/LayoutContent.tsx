@@ -17,8 +17,11 @@ import { ForestQuestWrapper } from "@/components/skins/forest-quest/ForestQuestW
 export function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/signup";
+    const isMessagesPage = pathname === "/messages";
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const selectedSkin = useUserStore((state) => state.selectedSkin);
+
+    const showForestSkin = selectedSkin === 'forest-quest' && pathname?.startsWith('/roadmap');
 
     // Sync Firestore data with Zustand store
     const { needsProfileCompletion, user, onProfileComplete } = useFirestoreSync();
@@ -41,12 +44,12 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
 
             <ProtectedRoute>
                 <SkinProvider>
-                    {selectedSkin === 'forest-quest' ? (
+                    {showForestSkin ? (
                         <ForestQuestWrapper>{children}</ForestQuestWrapper>
                     ) : (
                         <>
                             {/* Mobile Header */}
-                            <MobileHeader onMenuClick={() => setIsDrawerOpen(true)} />
+                            {!isMessagesPage && <MobileHeader onMenuClick={() => setIsDrawerOpen(true)} />}
 
                             {/* Mobile Drawer */}
                             <MobileDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} />
@@ -55,19 +58,25 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
                                 {/* Desktop Sidebar */}
                                 <Sidebar />
 
-                                <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+                                <div className={`flex-1 flex flex-col ${isMessagesPage
+                                    ? 'fixed inset-0 md:left-20 z-0 bg-slate-950'
+                                    : 'md:ml-20 min-h-screen'
+                                    }`}>
                                     {/* Desktop TopBar */}
-                                    <TopBar />
+                                    {!isMessagesPage && <TopBar />}
 
                                     {/* Main Content */}
-                                    <main className="flex-1 p-4 md:p-8 pt-16 md:pt-0 pb-20 md:pb-8 overflow-y-auto">
+                                    <main className={`flex-1 w-full ${isMessagesPage
+                                        ? 'h-full overflow-hidden p-0'
+                                        : 'p-4 md:p-8 pt-16 md:pt-0 pb-20 md:pb-8 overflow-y-auto'
+                                        }`}>
                                         {children}
                                     </main>
                                 </div>
                             </div>
 
                             {/* Mobile Bottom Navigation */}
-                            <MobileNav />
+                            {!isMessagesPage && <MobileNav />}
                         </>
                     )}
                 </SkinProvider>

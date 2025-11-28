@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { MessageSquare, Users, Zap, Hash, ArrowRight } from 'lucide-react';
 import { FirestoreUserData } from '@/lib/services/firestore';
 import Image from 'next/image';

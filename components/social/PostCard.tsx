@@ -38,7 +38,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
             setIsLiked(newLiked);
             const newLikes = isLiked ? likes - 1 : likes + 1;
             setLikes(newLikes);
-            
+
             // Update achievements
             if (newLiked) {
                 incrementLikesGiven();
@@ -60,7 +60,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
             const newSaved = !isSaved;
             setIsSaved(newSaved);
             setSaves(isSaved ? saves - 1 : saves + 1);
-            
+
             // Update achievements
             if (newSaved) {
                 incrementSaves();
@@ -237,7 +237,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
             {/* Comments Section */}
             {showComments && (
                 <div className="px-4 pb-4">
-                    <CommentSection postId={post.id} />
+                    <CommentSection postId={post.id} postOwnerId={post.userId} />
                 </div>
             )}
         </motion.div>
