@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
   try {
-    const { topic } = await req.json();
+    const { topic, answers, difficulty, persona } = await req.json();
 
     if (!topic) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 });
@@ -14,12 +14,23 @@ export async function POST(req: Request) {
     // Use gemini-2.0-flash model
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
+    // Construct personalization context
+    const personalizationContext = `
+    USER CONTEXT:
+    - Difficulty Level: ${difficulty?.level || "Beginner"} (${difficulty?.description || "Standard"})
+    - Persona/Tone: ${persona?.name || "Standard Mentor"} (${persona?.description || "Helpful"})
+    - Specific Goals/Answers: ${JSON.stringify(answers || [])}
+    `;
+
     // PHASE 1: Generate lightweight skeleton only (fast, ~5 seconds)
     const skeletonPrompt = `
 Create a LEARNING GUIDE SKELETON for: "${topic}"
 
+${personalizationContext}
+
 PURPOSE: This is a "ZERO TO HERO" ROADMAP showing the complete path from absolute beginner to world-class expert.
 It must be a GUIDE showing WHAT to learn - NOT teaching material.
+The content must be tailored to the USER CONTEXT above.
 
 CRITICAL: Return ONLY valid JSON. NO markdown, NO code blocks, NO quotes in text.
 
@@ -27,7 +38,7 @@ CRITICAL: Return ONLY valid JSON. NO markdown, NO code blocks, NO quotes in text
   "goal": "${topic}",
   "overview": "What mastering this skill means (1 sentence)",
   "estimatedDuration": "Total time needed (e.g. '6-8 months')",
-  "difficultyLevel": "Beginner to Expert",
+  "difficultyLevel": "${difficulty?.level || "Beginner"}",
   "theme": {
     "primary": "#hexcode (Main brand color, e.g. #F7DF1E for JS)",
     "secondary": "#hexcode (Complementary color)",
@@ -82,6 +93,7 @@ REQUIREMENTS:
 6. Keep text SHORT and clear.
 7. NO quotes or apostrophes in text.
 8. GENERATE A THEME: Pick valid hex codes that match the topic's brand identity.
+9. ADAPT TO PERSONA: If the persona is "Hacker", use practical terms. If "Professor", use academic terms.
 
 Return ONLY the JSON skeleton.
     `;
@@ -120,18 +132,7 @@ Return ONLY the JSON skeleton.
       throw new Error(`Invalid JSON from AI: ${parseError instanceof Error ? parseError.message : "Unknown error"}`);
     }
 
-    // Add hierarchical data to each module
-    // const roadmapWithPositions = data.roadmap.map((node: any, index: number) => ({
-    //   ...node,
-    //   position: { x: 50, y: index * 150 },
-    //   // Add hierarchical data to each module
-    //   prerequisites: data.prerequisites,
-    //   learningAreas: data.learningAreas,
-    //   learningPath: data.learningPath
-    // }));
-
     return NextResponse.json({
-      // roadmap: roadmapWithPositions,
       goal: data.goal,
       theme: data.theme,
       prerequisites: data.prerequisites,

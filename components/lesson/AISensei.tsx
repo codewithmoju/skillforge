@@ -95,6 +95,8 @@ export function AISensei({ lessonContext, codeContext, primaryColor }: AISenseiP
                 alert("Microphone access denied. Please allow microphone access.");
             } else if (event.error === 'no-speech') {
                 alert("No speech detected. Please try again and speak closer to the microphone.");
+            } else if (event.error === 'audio-capture') {
+                alert("No microphone found. Please ensure your microphone is connected and working.");
             }
         };
 

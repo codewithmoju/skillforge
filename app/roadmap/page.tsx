@@ -55,6 +55,7 @@ export default function RoadmapPage() {
     } | null>(null);
 
     const userLevel = calculateUserLevel(xp);
+    const router = useRouter();
 
     // Update streak on mount
     useEffect(() => {
@@ -96,7 +97,7 @@ export default function RoadmapPage() {
         }
     };
 
-    const handleGenerate = async (topic: string) => {
+    const handleGenerate = async (topic: string, answers?: any[], difficulty?: any, persona?: any) => {
         if (!topic.trim()) return;
         setIsGenerating(true);
         try {
@@ -104,7 +105,7 @@ export default function RoadmapPage() {
             const res = await fetch("/api/generate-roadmap", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ topic }),
+                body: JSON.stringify({ topic, answers, difficulty, persona }),
             });
             const data = await res.json();
 
@@ -217,6 +218,32 @@ export default function RoadmapPage() {
                         if (confirm("Are you sure you want to start a new roadmap? This will reset all your current progress.")) {
                             setRoadmap("", [], "", [], [], "");
                             window.location.reload();
+                        }
+                    }}
+                    onGenerateCourse={async () => {
+                        if (isGenerating) return;
+                        setIsGenerating(true); // Reuse loading state or create new one
+                        try {
+                            const res = await fetch("/api/courses/generate-from-roadmap", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    topic: currentTopic,
+                                    learningAreas,
+                                    // Pass other context if available in store
+                                }),
+                            });
+                            const data = await res.json();
+                            if (data.courseId) {
+                                router.push(`/courses/${data.courseId}`);
+                            } else {
+                                alert("Failed to generate course");
+                                setIsGenerating(false);
+                            }
+                        } catch (error) {
+                            console.error("Failed to generate course", error);
+                            alert("Failed to generate course");
+                            setIsGenerating(false);
                         }
                     }}
                 />

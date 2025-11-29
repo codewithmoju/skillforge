@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
     try {
-        const { topic, level } = await req.json();
+        const { topic, level, answers, difficulty, persona } = await req.json();
 
         if (!topic) {
             return NextResponse.json({ error: "Topic is required" }, { status: 400 });
@@ -15,14 +15,25 @@ export async function POST(req: Request) {
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
+        const personalizationContext = `
+        USER CONTEXT:
+        - Difficulty Level: ${difficulty?.level || level || "Beginner"} (${difficulty?.description || "Standard"})
+        - Persona/Tone: ${persona?.name || "Standard Instructor"} (${persona?.description || "Professional"})
+        - Specific Goals/Answers: ${JSON.stringify(answers || [])}
+        `;
+
         const prompt = `
         You are a world-class technical curriculum designer.
         Create a comprehensive, granular course syllabus for:
         Topic: "${topic}"
-        Level: "${level}"
+        
+        ${personalizationContext}
 
         The course should be structured for "Atomic Learning" - breaking complex topics into small, digestible lessons.
         Avoid broad lessons like "Basics". Instead, use specific titles like "Your First Variable", "Understanding Loops", etc.
+        
+        If the persona is "Hacker", use practical, project-based titles.
+        If the persona is "Professor", use academic, theoretical titles.
 
         Return ONLY valid JSON with this structure. DO NOT wrap the JSON in markdown code blocks (e.g. \`\`\`json ... \`\`\`). Return raw JSON only.
         {
