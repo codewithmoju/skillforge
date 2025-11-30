@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
     try {
-        const { topic, lessonTitle, moduleTitle, userProfile, courseId, lessonId } = await req.json();
+        const { topic, lessonTitle, moduleTitle, userProfile, courseId, lessonId, objectives } = await req.json();
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -37,6 +37,9 @@ export async function POST(req: Request) {
         TOPIC: "${topic}"
         MODULE: "${moduleTitle}"
         LESSON: "${lessonTitle}"
+
+        OBJECTIVES (MUST COVER):
+        ${objectives && objectives.length > 0 ? objectives.map((o: any) => `- ${o.name}`).join("\n") : "- Comprehensive coverage of the lesson title."}
         
         ${userContext}
 
@@ -44,7 +47,8 @@ export async function POST(req: Request) {
         
         CRITICAL INSTRUCTIONS:
         1. RELEVANCE: All examples, debug challenges, and simulations MUST be directly related to "${lessonTitle}". Do not test unrelated concepts.
-        2. SIMPLICITY: Keep analogies simple. If explaining variables, use boxes. If explaining loops, use a chore list.
+        2. OBJECTIVES: You MUST cover all the listed OBJECTIVES in the lesson sections.
+        3. SIMPLICITY: Keep analogies simple. If explaining variables, use boxes. If explaining loops, use a chore list.
         3. PROGRESSION: Start simple, then go deep.
         4. HINTS: For interactive sections, provide "hints" that are small nudges, not the full answer.
         5. NO OVER-ENGINEERING: For Beginners, do NOT use "Reactopolis" or complex world-building. Keep it grounded.

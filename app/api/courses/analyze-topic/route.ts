@@ -68,7 +68,12 @@ export async function POST(req: Request) {
                     "description": "Rigorous, theoretical, focuses on 'why' it works.",
                     "icon": "BookOpen"
                 }
-            ]
+            ],
+            "theme": {
+                "primary": "#hex_code (Dominant brand/psychology color, e.g. Green for Node, Blue for React)",
+                "secondary": "#hex_code (Complementary color)",
+                "accent": "#hex_code (High contrast accent)"
+            }
         }
 
         CRITICAL: Return ONLY valid JSON.

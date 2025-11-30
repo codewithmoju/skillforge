@@ -14,6 +14,7 @@ import { useScrambleText } from "@/lib/hooks/useScrambleText";
 interface Lesson {
     title: string;
     description: string;
+    objectives?: { name: string }[];
 }
 
 interface Module {
@@ -55,8 +56,8 @@ function LessonCard({ lesson, index, isLeft, onClick, theme, isCompleted }: { le
         <motion.div
             initial={{ opacity: 0, x: isLeft ? -50 : 50, rotateY: isLeft ? -15 : 15 }}
             whileInView={{ opacity: 1, x: 0, rotateY: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, type: "spring", bounce: 0.4, delay: index * 0.1 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, type: "spring", bounce: 0.3, delay: Math.min(index * 0.05, 0.3) }}
             className={cn(
                 "relative flex items-center md:absolute md:w-1/2 perspective-1000",
                 isLeft ? "md:left-0 md:justify-end md:pr-16" : "md:right-0 md:justify-start md:pl-16",
@@ -100,7 +101,7 @@ function LessonCard({ lesson, index, isLeft, onClick, theme, isCompleted }: { le
 
                 {/* Glass Content */}
                 <div className={cn(
-                    "relative flex items-center gap-6 p-6 md:p-8 rounded-[2.4rem] w-full h-full backdrop-blur-2xl transition-all duration-500",
+                    "relative flex flex-col md:flex-row items-center gap-6 p-6 md:p-8 rounded-[2.4rem] w-full h-full backdrop-blur-2xl transition-all duration-500",
                     isLeft ? "md:flex-row-reverse" : ""
                 )}
                     style={{
@@ -144,7 +145,7 @@ function LessonCard({ lesson, index, isLeft, onClick, theme, isCompleted }: { le
                         {isCompleted ? <CheckCircle className="w-8 h-8" /> : index + 1}
                     </div>
 
-                    <div className="flex-1 min-w-0 z-10">
+                    <div className="flex-1 min-w-0 z-10 w-full">
                         <h3 className="text-xl md:text-2xl font-bold text-white mb-2 group-hover:text-transparent transition-all duration-300"
                             style={{
                                 backgroundImage: `linear-gradient(to right, ${isCompleted ? '#22c55e' : 'white'}, ${isCompleted ? '#86efac' : secondaryColor})`,
@@ -154,11 +155,27 @@ function LessonCard({ lesson, index, isLeft, onClick, theme, isCompleted }: { le
                         >
                             {lesson.title}
                         </h3>
-                        <p className="text-sm text-slate-300 font-light line-clamp-2 group-hover:text-white transition-colors">{lesson.description}</p>
+                        <p className="text-sm text-slate-300 font-light line-clamp-2 group-hover:text-white transition-colors mb-3">{lesson.description}</p>
+
+                        {/* Objectives / Sub-lessons */}
+                        {lesson.objectives && lesson.objectives.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {lesson.objectives.slice(0, 3).map((obj, i) => (
+                                    <span key={i} className="text-[10px] px-2 py-1 rounded-md bg-white/5 border border-white/5 text-slate-400 font-mono uppercase tracking-wide">
+                                        {obj.name}
+                                    </span>
+                                ))}
+                                {lesson.objectives.length > 3 && (
+                                    <span className="text-[10px] px-2 py-1 rounded-md bg-white/5 border border-white/5 text-slate-500 font-mono">
+                                        +{lesson.objectives.length - 3}
+                                    </span>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className={cn(
-                        "opacity-0 group-hover:opacity-100 transition-all duration-500 transform scale-50 group-hover:scale-100",
+                        "opacity-0 group-hover:opacity-100 transition-all duration-500 transform scale-50 group-hover:scale-100 absolute md:static top-4 right-4",
                         isLeft ? "md:mr-auto" : "md:ml-auto"
                     )}
                         style={{ color: isCompleted ? '#22c55e' : accentColor }}
@@ -171,6 +188,55 @@ function LessonCard({ lesson, index, isLeft, onClick, theme, isCompleted }: { le
                 </div>
             </motion.button >
         </motion.div >
+    );
+}
+
+function SubLessonNode({ title, index, parentIndex, isLeft, isCompleted, isLast }: { title: string, index: number, parentIndex: number, isLeft: boolean, isCompleted: boolean, isLast: boolean }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: isLeft ? -20 : 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 + (index * 0.1) }}
+            className={cn(
+                "relative flex items-center gap-4 py-2",
+                isLeft ? "flex-row-reverse text-right pr-8" : "flex-row pl-8"
+            )}
+        >
+            {/* Vertical Connector Line */}
+            <div className={cn(
+                "absolute top-0 w-0.5 bg-slate-800",
+                isLeft ? "right-[1.9rem]" : "left-[1.9rem]",
+                isLast ? "h-1/2" : "h-full"
+            )} />
+
+            {/* Horizontal Connector */}
+            <div className={cn(
+                "absolute top-1/2 w-4 h-0.5 bg-slate-800",
+                isLeft ? "right-[1.9rem]" : "left-[1.9rem]"
+            )} />
+
+            {/* Node Dot */}
+            <div className={cn(
+                "w-3 h-3 rounded-full border-2 z-10 shrink-0",
+                isCompleted ? "bg-emerald-500 border-emerald-500" : "bg-slate-950 border-slate-700"
+            )} />
+
+            <div className={cn(
+                "flex-1 p-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 transition-colors cursor-default backdrop-blur-sm",
+                isCompleted && "border-emerald-500/30 bg-emerald-500/5"
+            )}>
+                <div className="flex items-center gap-2 mb-1">
+                    <span className={cn(
+                        "text-[10px] font-mono opacity-50",
+                        isLeft ? "ml-auto" : ""
+                    )}>
+                        {parentIndex + 1}.{index + 1}
+                    </span>
+                </div>
+                <div className="text-sm font-medium text-slate-300">{title}</div>
+            </div>
+        </motion.div>
     );
 }
 
@@ -453,50 +519,65 @@ export default function CourseSyllabusPage() {
                                             </filter>
                                         </defs>
 
-                                        {/* Background Path (Dim) */}
-                                        <path
-                                            d={`M ${50}% 0 
-                                                ${module.lessons.map((_, i) => {
-                                                const y = (i + 1) * 250;
-                                                const x = i % 2 === 0 ? 20 : 80;
-                                                const prevY = i * 250;
-                                                const prevX = i === 0 ? 50 : (i - 1) % 2 === 0 ? 20 : 80;
-                                                return `C ${prevX}% ${prevY + 125}, ${x}% ${y - 125}, ${x}% ${y}`;
-                                            }).join(' ')}
-                                            `}
-                                            fill="none"
-                                            stroke="#1e1b4b"
-                                            strokeWidth="6"
-                                            strokeLinecap="round"
-                                        />
+                                        {/* Dynamic Path Calculation */}
+                                        {(() => {
+                                            let currentY = 0;
+                                            const positions = module.lessons.map(l => {
+                                                const pos = currentY;
+                                                // Base height 250 + extra for subtopics
+                                                const subHeight = (l.objectives?.length || 0) * 80;
+                                                currentY += 280 + subHeight;
+                                                return pos;
+                                            });
 
-                                        {/* Animated Foreground Path - Energy Flow */}
-                                        <motion.path
-                                            d={`M ${50}% 0 
+                                            // Generate Path Command
+                                            const pathD = `M ${50}% 0 
                                                 ${module.lessons.map((_, i) => {
-                                                const y = (i + 1) * 250;
+                                                const y = positions[i] + 125; // Center of the card roughly
+                                                const nextY = (positions[i + 1] || currentY) + 125;
+
                                                 const x = i % 2 === 0 ? 20 : 80;
-                                                const prevY = i * 250;
                                                 const prevX = i === 0 ? 50 : (i - 1) % 2 === 0 ? 20 : 80;
-                                                return `C ${prevX}% ${prevY + 125}, ${x}% ${y - 125}, ${x}% ${y}`;
+                                                const prevY = i === 0 ? 0 : positions[i - 1] + 125;
+
+                                                // Curve logic needs to adapt to variable distances
+                                                // Simple cubic bezier from prev to current
+                                                if (i === 0) return `C 50% ${y / 2}, ${x}% ${y / 2}, ${x}% ${y}`;
+
+                                                return `C ${prevX}% ${prevY + (y - prevY) / 2}, ${x}% ${prevY + (y - prevY) / 2}, ${x}% ${y}`;
                                             }).join(' ')}
-                                            `}
-                                            fill="none"
-                                            stroke={`url(#pathGradient-${moduleIdx})`}
-                                            strokeWidth="6"
-                                            strokeLinecap="round"
-                                            filter="url(#glow)"
-                                            initial={{ pathLength: 0, strokeDasharray: "10 10", strokeDashoffset: 0 }}
-                                            whileInView={{
-                                                pathLength: 1,
-                                                strokeDashoffset: -100
-                                            }}
-                                            viewport={{ once: true, margin: "-20%" }}
-                                            transition={{
-                                                pathLength: { duration: 1.5, ease: "easeInOut" },
-                                                strokeDashoffset: { duration: 2, repeat: Infinity, ease: "linear" }
-                                            }}
-                                        />
+                                            `;
+
+                                            return (
+                                                <>
+                                                    <path
+                                                        d={pathD}
+                                                        fill="none"
+                                                        stroke="#1e1b4b"
+                                                        strokeWidth="6"
+                                                        strokeLinecap="round"
+                                                    />
+                                                    <motion.path
+                                                        d={pathD}
+                                                        fill="none"
+                                                        stroke={`url(#pathGradient-${moduleIdx})`}
+                                                        strokeWidth="6"
+                                                        strokeLinecap="round"
+                                                        filter="url(#glow)"
+                                                        initial={{ pathLength: 0, strokeDasharray: "10 10", strokeDashoffset: 0 }}
+                                                        whileInView={{
+                                                            pathLength: 1,
+                                                            strokeDashoffset: -100
+                                                        }}
+                                                        viewport={{ once: true, margin: "-20%" }}
+                                                        transition={{
+                                                            pathLength: { duration: 1.5, ease: "easeInOut" },
+                                                            strokeDashoffset: { duration: 2, repeat: Infinity, ease: "linear" }
+                                                        }}
+                                                    />
+                                                </>
+                                            );
+                                        })()}
                                     </svg>
                                 </div>
 

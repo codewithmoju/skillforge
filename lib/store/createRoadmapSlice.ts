@@ -14,18 +14,36 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
     completedTopics: [],
     completedSubtopics: [],
     completedKeyPoints: [],
+    completedQuizzes: [],
+    historicallyCompletedSubtopics: [],
+    historicallyCompletedKeyPoints: [],
     learningAreas: [],
     prerequisites: [],
     roadmapGoal: "",
     totalLessonsCompleted: 0,
     lessonCache: {},
 
-    completeLesson: (nodeId: string) => {
+    completeLesson: (nodeId: string, lessonId?: string) => {
         const state = get();
         const node = state.roadmapProgress[nodeId];
         const definition = state.roadmapDefinitions.find(d => d.id === nodeId);
 
         if (!node || !definition) return;
+
+        // If lessonId is provided, check if it's already completed
+        if (lessonId && node.completedLessonIds?.includes(lessonId)) {
+            return; // Already completed this lesson, no XP or progress update
+        }
+
+        // If lessonId is NOT provided, we might want to allow it for backward compatibility 
+        // BUT this leaves the exploit open if the UI calls it repeatedly.
+        // Ideally, we should require lessonId. 
+        // For now, if no lessonId, we proceed but this is risky. 
+        // However, we will update ForestLessonView to pass it.
+
+        const newCompletedLessonIds = lessonId
+            ? [...(node.completedLessonIds || []), lessonId]
+            : node.completedLessonIds || [];
 
         const newCompletedLessons = node.completedLessons + 1;
         const isNodeComplete = newCompletedLessons >= definition.lessons;
@@ -35,6 +53,7 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
             [nodeId]: {
                 ...node,
                 completedLessons: newCompletedLessons,
+                completedLessonIds: newCompletedLessonIds,
                 status: isNodeComplete ? "completed" as const : node.status,
             },
         };
@@ -119,6 +138,7 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
                 id: def.id,
                 status: index === 0 ? "active" : "locked",
                 completedLessons: 0,
+                completedLessonIds: [],
             };
         });
 
@@ -150,6 +170,9 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
             completedTopics: [],
             completedSubtopics: [],
             completedKeyPoints: [],
+            completedQuizzes: [],
+            historicallyCompletedSubtopics: [],
+            historicallyCompletedKeyPoints: [],
         });
 
         state.addXp(50, 'roadmap_generation');
@@ -234,17 +257,40 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
         state.updateAchievementProgress('scholar', totalLessonsAcrossRoadmaps);
     },
 
+    completeQuiz: (nodeId: string) => {
+        set((state) => {
+            const completed = new Set(state.completedQuizzes || []);
+            if (completed.has(nodeId)) {
+                return {}; // Already completed
+            }
+
+            completed.add(nodeId);
+            state.addXp(100, 'quiz_completion');
+
+            return { completedQuizzes: Array.from(completed) };
+        });
+    },
+
     toggleSubtopicCompletion: (topicId, subtopicId) => {
         set((state) => {
             const key = `${topicId}-${subtopicId}`;
             const completed = new Set(state.completedSubtopics || []);
+            const historical = new Set(state.historicallyCompletedSubtopics || []);
+
             if (completed.has(key)) {
                 completed.delete(key);
             } else {
                 completed.add(key);
-                state.addXp(50, 'lesson_completion');
+                // Only award XP if never awarded before
+                if (!historical.has(key)) {
+                    state.addXp(50, 'lesson_completion');
+                    historical.add(key);
+                }
             }
-            return { completedSubtopics: Array.from(completed) };
+            return {
+                completedSubtopics: Array.from(completed),
+                historicallyCompletedSubtopics: Array.from(historical)
+            };
         });
     },
 
@@ -252,15 +298,23 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
         set((state) => {
             const key = `${topicId}-${subtopicId}-${pointIndex}`;
             const completed = new Set(state.completedKeyPoints || []);
+            const historical = new Set(state.historicallyCompletedKeyPoints || []);
 
             if (completed.has(key)) {
                 completed.delete(key);
             } else {
                 completed.add(key);
-                state.addXp(10, 'lesson_completion');
+                // Only award XP if never awarded before
+                if (!historical.has(key)) {
+                    state.addXp(10, 'lesson_completion');
+                    historical.add(key);
+                }
             }
 
-            return { completedKeyPoints: Array.from(completed) };
+            return {
+                completedKeyPoints: Array.from(completed),
+                historicallyCompletedKeyPoints: Array.from(historical)
+            };
         });
     },
 });

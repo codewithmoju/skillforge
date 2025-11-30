@@ -1,38 +1,48 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, Sparkles, Zap, Globe, Shield, Cpu, Play, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Sparkles, Zap, Globe, Shield, Cpu, Play, CheckCircle2, Rocket, Brain, Layers, Code } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { SplashScreen } from "@/components/ui/SplashScreen";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { cn } from "@/lib/utils";
+import { Spotlight } from "@/components/ui/Spotlight";
+import { Meteors } from "@/components/ui/Meteors";
+import { TiltCard } from "@/components/ui/TiltCard";
+import { LandingNavbar } from "@/components/landing/LandingNavbar";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
 // --- Components ---
 
-function FeatureCard({ title, description, icon: Icon, className }: any) {
+function BentoCard({ title, description, icon: Icon, className, gradient }: any) {
   return (
     <div className={cn(
-      "p-8 rounded-2xl bg-slate-900/50 backdrop-blur-sm border border-slate-800 hover:border-slate-700 transition-all duration-300 group",
+      "relative overflow-hidden rounded-3xl p-8 border border-white/10 group hover:border-white/20 transition-all duration-500",
+      "bg-slate-950/50 backdrop-blur-xl",
       className
     )}>
-      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-indigo/20 to-accent-cyan/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-        <Icon className="w-6 h-6 text-accent-cyan" />
+      <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-500", gradient)} />
+
+      <div className="relative z-10">
+        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
+          <Icon className="w-6 h-6 text-white" />
+        </div>
+        <h3 className="text-2xl font-bold text-white mb-3">{title}</h3>
+        <p className="text-slate-400 leading-relaxed">{description}</p>
       </div>
-      <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
-      <p className="text-slate-400 leading-relaxed">{description}</p>
     </div>
   );
 }
 
 function StatItem({ value, label }: { value: string; label: string }) {
   return (
-    <div className="text-center">
-      <div className="text-4xl font-bold text-white mb-2 tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">{value}</div>
-      <div className="text-sm text-slate-500 font-medium uppercase tracking-wider">{label}</div>
+    <div className="text-center group">
+      <div className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-500 mb-2 tracking-tight group-hover:scale-110 transition-transform duration-500">{value}</div>
+      <div className="text-sm text-slate-500 font-bold uppercase tracking-widest">{label}</div>
     </div>
   );
 }
@@ -40,60 +50,38 @@ function StatItem({ value, label }: { value: string; label: string }) {
 // --- Main Content ---
 
 function LandingContent() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white selection:bg-accent-indigo/30 font-sans overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-white selection:bg-blue-500/30 font-sans overflow-hidden">
 
-      {/* Global Background Effects (Matches Roadmap Page) */}
-      <div className="fixed inset-0 -z-10 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-      </div>
-
-      {/* Navbar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <BrandMark tagline="Intelligent Skill Engine" size={32} variant="glow" />
-          <div className="flex items-center gap-6">
-            <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
-              Log in
-            </Link>
-            <Link href="/signup">
-              <Button className="bg-white text-slate-950 hover:bg-slate-200 font-semibold rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                Get Started
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <LandingNavbar />
 
       {/* Hero Section */}
-      <section ref={containerRef} className="relative pt-32 pb-20 md:pt-48 md:pb-32">
-        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+        <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="white" />
+
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+
+        <div className="container mx-auto px-4 relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-800 mb-8 backdrop-blur-md"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/50 border border-slate-800 mb-8 backdrop-blur-md hover:border-blue-500/50 transition-colors cursor-default"
           >
-            <Sparkles className="w-4 h-4 text-accent-cyan" />
-            <span className="text-sm font-medium text-slate-300">AI-Powered Learning Revolution</span>
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-slate-300">The Future of Learning is Here</span>
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8"
+            className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter mb-8"
           >
-            Master any skill <br />
-            <span className="bg-gradient-to-r from-accent-indigo via-accent-cyan to-accent-indigo bg-clip-text text-transparent animate-gradient">
-              Faster Than Ever
+            Master <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 animate-gradient-x">
+              Any Skill
             </span>
           </motion.h1>
 
@@ -101,150 +89,116 @@ function LandingContent() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed"
+            className="text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed"
           >
-            Stop wasting time on generic courses. Get a personalized, AI-generated curriculum that adapts to your goals, pace, and learning style in real-time.
+            EduMate AI generates personalized, interactive roadmaps for any topic in seconds.
+            Powered by advanced AI to adapt to your unique learning style.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4"
+            className="flex flex-col sm:flex-row items-center justify-center gap-6"
           >
             <Link href="/signup" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto h-14 px-8 rounded-xl bg-gradient-to-r from-accent-indigo to-accent-cyan hover:shadow-lg hover:shadow-accent-indigo/25 text-white font-bold text-lg border-0">
-                Start Learning Free
-                <ArrowRight className="w-5 h-5 ml-2" />
+              <Button size="lg" className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xl shadow-[0_0_40px_-10px_rgba(37,99,235,0.5)] hover:shadow-[0_0_60px_-15px_rgba(37,99,235,0.6)] transition-all duration-300 border-0">
+                Start For Free
+                <ArrowRight className="w-6 h-6 ml-2" />
               </Button>
             </Link>
             <Link href="/roadmap" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 rounded-xl border-slate-700 hover:bg-slate-800 text-lg">
-                <Play className="w-4 h-4 mr-2" />
-                View Demo
+              <Button size="lg" variant="outline" className="w-full sm:w-auto h-16 px-10 rounded-2xl border-slate-700 hover:bg-slate-800 text-xl font-medium">
+                <Play className="w-5 h-5 mr-2" />
+                Live Demo
               </Button>
             </Link>
           </motion.div>
+        </div>
 
-          {/* Abstract Dashboard Visual */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="mt-24 relative mx-auto max-w-5xl"
-          >
-            <div className="relative rounded-2xl border border-slate-800 bg-slate-950/50 backdrop-blur-xl shadow-2xl overflow-hidden aspect-[16/9] group">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-indigo/5 via-transparent to-accent-cyan/5 group-hover:opacity-75 transition-opacity" />
-
-              {/* Mock UI Elements */}
-              <div className="absolute top-0 left-0 right-0 h-12 border-b border-slate-800 bg-slate-900/50 flex items-center px-4 gap-2">
-                <div className="w-3 h-3 rounded-full bg-red-500/20" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500/20" />
-                <div className="w-3 h-3 rounded-full bg-green-500/20" />
-              </div>
-
-              <div className="absolute inset-0 flex items-center justify-center pt-12">
-                <div className="text-center">
-                  <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-accent-indigo to-accent-cyan flex items-center justify-center mb-6 shadow-lg shadow-accent-indigo/20">
-                    <Cpu className="w-10 h-10 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-2">Interactive Learning Engine</h3>
-                  <p className="text-slate-400">Your personal AI tutor, available 24/7</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Glow behind */}
-            <div className="absolute -inset-4 bg-gradient-to-r from-accent-indigo to-accent-cyan opacity-20 blur-3xl -z-10" />
-          </motion.div>
+        {/* Floating Elements */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <Meteors number={20} />
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Features Bento Grid */}
       <section className="py-32 relative">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Everything you need to <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-indigo to-accent-cyan">
-                Accelerate Your Growth
-              </span>
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-6xl font-black mb-6">
+              Engineered for <span className="text-blue-400">Excellence</span>
             </h2>
-            <p className="text-xl text-slate-400">
-              We've combined the best learning techniques with cutting-edge AI to create the ultimate learning experience.
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
+              A complete ecosystem designed to accelerate your mastery.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <FeatureCard
-              title="AI-Powered Curriculums"
-              description="Instantly generate structured learning paths for any topic, tailored to your current skill level."
-              icon={Cpu}
-              className="md:col-span-2"
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[300px]">
+            <BentoCard
+              title="AI Curriculum"
+              description="Dynamic learning paths generated instantly based on your goals."
+              icon={Brain}
+              className="md:col-span-2 md:row-span-2"
+              gradient="bg-gradient-to-br from-blue-500 to-purple-500"
             />
-            <FeatureCard
-              title="Global Community"
-              description="Connect with learners worldwide."
+            <BentoCard
+              title="Interactive Labs"
+              description="Hands-on coding environments."
+              icon={Code}
+              className="md:col-span-1 md:row-span-1"
+              gradient="bg-gradient-to-br from-green-500 to-emerald-500"
+            />
+            <BentoCard
+              title="Global Scale"
+              description="Connect with millions."
               icon={Globe}
+              className="md:col-span-1 md:row-span-1"
+              gradient="bg-gradient-to-br from-orange-500 to-red-500"
             />
-            <FeatureCard
-              title="Progress Tracking"
-              description="Visualize your journey with detailed analytics."
+            <BentoCard
+              title="Real-time Analytics"
+              description="Track every milestone."
               icon={Zap}
-            />
-            <FeatureCard
-              title="Secure & Private"
-              description="Your data is encrypted and never shared."
-              icon={Shield}
-              className="md:col-span-2"
+              className="md:col-span-3 md:row-span-1"
+              gradient="bg-gradient-to-r from-cyan-500 to-blue-500"
             />
           </div>
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-20 border-y border-white/5 bg-slate-900/20">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* Stats Section */}
+      <section className="py-32 border-y border-white/5 bg-slate-900/30 backdrop-blur-sm relative overflow-hidden">
+        <div className="absolute inset-0 bg-blue-500/5" />
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
-            <StatItem value="50k+" label="Active Learners" />
-            <StatItem value="1.2k+" label="Skill Paths" />
-            <StatItem value="98%" label="Completion Rate" />
-            <StatItem value="24/7" label="AI Support" />
+            <StatItem value="100k+" label="Active Users" />
+            <StatItem value="5M+" label="Lessons Taken" />
+            <StatItem value="99%" label="Satisfaction" />
+            <StatItem value="24/7" label="AI Availability" />
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-32 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto px-6 text-center relative z-10">
-          <div className="p-12 rounded-3xl bg-gradient-to-br from-accent-indigo/10 to-accent-cyan/10 border border-accent-indigo/20 backdrop-blur-xl">
-            <h2 className="text-4xl md:text-5xl font-bold mb-8">Ready to start your journey?</h2>
-            <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-              Join thousands of developers and designers who are accelerating their careers with SkillForge.
-            </p>
-            <Link href="/signup">
-              <Button size="lg" className="h-14 px-10 rounded-xl bg-white text-slate-950 hover:bg-slate-200 font-bold text-lg shadow-lg">
-                Get Started for Free
-              </Button>
-            </Link>
-          </div>
+      {/* CTA Section */}
+      <section className="py-40 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 to-blue-950/20" />
+        <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+          <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tight">
+            Ready to <span className="text-blue-400">Ascend?</span>
+          </h2>
+          <p className="text-2xl text-slate-400 mb-12 max-w-3xl mx-auto">
+            Join the revolution. Experience the most advanced learning platform ever built.
+          </p>
+          <Link href="/signup">
+            <Button size="lg" className="h-20 px-16 rounded-2xl bg-white text-slate-950 hover:bg-slate-200 font-black text-2xl shadow-[0_0_60px_-15px_rgba(255,255,255,0.3)] hover:scale-105 transition-all duration-300">
+              Get Started Now
+            </Button>
+          </Link>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-12 border-t border-white/5 bg-slate-950">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <BrandMark size={24} tagline="" variant="default" />
-          <div className="flex gap-8 text-sm text-slate-500">
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Twitter</a>
-          </div>
-          <div className="text-sm text-slate-500">
-            © 2025 SkillForge AI. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }

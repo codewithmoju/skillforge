@@ -42,6 +42,13 @@ export function ActiveCourseCard({ course, onDelete, index }: ActiveCourseCardPr
         ? Math.round((course.progress.completedLessons / course.progress.totalLessons) * 100)
         : 0;
 
+    const theme = course.syllabus?.theme || {
+        primary: "#06b6d4", // Cyan-500
+        secondary: "#3b82f6", // Blue-500
+        accent: "#8b5cf6", // Violet-500
+        background: "#020617" // Slate-950
+    };
+
     return (
         <motion.div
             ref={cardRef}
@@ -56,27 +63,46 @@ export function ActiveCourseCard({ course, onDelete, index }: ActiveCourseCardPr
         >
             <Link href={`/courses/${course.id}`} className="block h-full">
                 {/* Holographic Border */}
-                <div className="absolute -inset-[1px] bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-[24px] opacity-50 group-hover:opacity-100 blur-sm transition-opacity duration-500 animate-gradient-xy" />
+                <div
+                    className="absolute -inset-[1px] rounded-[24px] opacity-50 group-hover:opacity-100 blur-sm transition-opacity duration-500 animate-gradient-xy"
+                    style={{ background: `linear-gradient(to right, ${theme.primary}, ${theme.secondary}, ${theme.accent})` }}
+                />
 
                 {/* Card Content */}
-                <div className="relative h-full bg-slate-950/90 backdrop-blur-xl rounded-[23px] p-6 flex flex-col border border-white/10 overflow-hidden">
+                <div
+                    className="relative h-full backdrop-blur-xl rounded-[23px] p-6 flex flex-col border border-white/10 overflow-hidden transition-colors duration-500"
+                    style={{ backgroundColor: `${theme.background}E6` }} // 90% opacity
+                >
 
                     {/* Dynamic Background Grid */}
                     <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10 mix-blend-overlay transition-transform duration-700 group-hover:scale-110" />
 
                     {/* Glowing Orb Effect */}
-                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-400/30 transition-colors duration-500" />
+                    <div
+                        className="absolute -top-20 -right-20 w-40 h-40 rounded-full blur-3xl transition-colors duration-500 opacity-20 group-hover:opacity-30"
+                        style={{ backgroundColor: theme.primary }}
+                    />
 
                     <div className="relative z-10 flex flex-col h-full">
                         {/* Header */}
                         <div className="flex justify-between items-start mb-6">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                            <div
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border shadow-[0_0_10px_rgba(0,0,0,0.2)]"
+                                style={{
+                                    backgroundColor: `${theme.primary}1A`, // 10% opacity
+                                    borderColor: `${theme.primary}33`, // 20% opacity
+                                    color: theme.primary
+                                }}
+                            >
                                 <Zap className="w-3 h-3 fill-current" />
                                 Active Mission
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 font-mono">
+                                <span
+                                    className="text-2xl font-black text-transparent bg-clip-text font-mono"
+                                    style={{ backgroundImage: `linear-gradient(to right, white, ${theme.primary})` }}
+                                >
                                     {progressPercent}%
                                 </span>
                                 <button
@@ -89,7 +115,12 @@ export function ActiveCourseCard({ course, onDelete, index }: ActiveCourseCardPr
                         </div>
 
                         {/* Title */}
-                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors line-clamp-2 leading-tight">
+                        <h3
+                            className="text-xl font-bold text-white mb-2 transition-colors line-clamp-2 leading-tight group-hover:text-transparent group-hover:bg-clip-text"
+                            style={{
+                                backgroundImage: isHovering ? `linear-gradient(to right, ${theme.primary}, ${theme.accent})` : 'none'
+                            }}
+                        >
                             {course.title || course.topic}
                         </h3>
 
@@ -106,7 +137,8 @@ export function ActiveCourseCard({ course, onDelete, index }: ActiveCourseCardPr
                             </div>
                             <div className="h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800 relative">
                                 <motion.div
-                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_15px_rgba(6,182,212,0.6)]"
+                                    className="absolute inset-y-0 left-0 shadow-[0_0_15px_rgba(0,0,0,0.5)]"
+                                    style={{ background: `linear-gradient(to right, ${theme.primary}, ${theme.secondary})` }}
                                     initial={{ width: 0 }}
                                     animate={{ width: `${progressPercent}%` }}
                                     transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
@@ -124,7 +156,12 @@ export function ActiveCourseCard({ course, onDelete, index }: ActiveCourseCardPr
                                 <span className="text-sm font-bold text-slate-300 group-hover:text-white transition-colors">
                                     Resume Protocol
                                 </span>
-                                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-cyan-500 group-hover:text-black transition-all duration-300">
+                                <div
+                                    className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:text-black"
+                                    style={{
+                                        backgroundColor: isHovering ? theme.primary : 'rgba(255,255,255,0.05)'
+                                    }}
+                                >
                                     <Play className="w-3 h-3 fill-current" />
                                 </div>
                             </div>

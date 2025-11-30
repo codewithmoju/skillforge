@@ -39,6 +39,7 @@ Return ONLY valid JSON. NO markdown, NO code blocks, NO quotes in text.
   "topics": [
     {
       "id": "topic_1",
+      "name": "Topic Name",
       "description": "Specific terms and concepts this topic covers",
       "why": "Strategic value - why this specific topic is critical to mastery",
       "keyConcepts": [
@@ -59,6 +60,7 @@ Return ONLY valid JSON. NO markdown, NO code blocks, NO quotes in text.
       "subtopics": [
         {
           "id": "sub_1",
+          "name": "Subtopic Name",
           "description": "Specific terms within this subtopic",
           "estimatedTime": "Time to master",
           "keyPoints": [

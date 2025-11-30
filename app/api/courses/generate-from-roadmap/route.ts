@@ -16,21 +16,22 @@ export async function POST(req: Request) {
         const modules = (learningAreas || []).map((area: any, areaIndex: number) => ({
             title: area.name || area.title || `Module ${areaIndex + 1}: Untitled`,
             description: area.why || area.description || `Mastering ${area.name || "this module"}`,
-            lessons: (area.topics || []).map((topic: any, topicIndex: number) => {
-                // Construct a rich description from 'why' and 'subtopics'
-                let richDescription = topic.why || topic.description || `Learn about ${topic.name}`;
-
-                if (topic.subtopics && topic.subtopics.length > 0) {
-                    const objectives = topic.subtopics.map((s: any) => s.name).join(", ");
-                    richDescription += `. Key objectives: ${objectives}.`;
-                }
-
-                return {
-                    title: `Lesson ${topicIndex + 1}: ${topic.name || topic.title || "Untitled Lesson"}`,
-                    description: richDescription,
-                    // Store original subtopics to potentially use them in the lesson content generation later
-                    objectives: topic.subtopics || []
+            lessons: (area.topics || []).flatMap((topic: any, topicIndex: number) => {
+                // 1. Main Topic Lesson (Overview)
+                const mainLesson = {
+                    title: topic.name || topic.title || `Topic ${topicIndex + 1}`,
+                    description: topic.why || topic.description || `Overview of ${topic.name}`,
+                    objectives: [] // No subtopics here, as they are now separate lessons
                 };
+
+                // 2. Subtopic Lessons
+                const subLessons = (topic.subtopics || []).map((sub: any, subIndex: number) => ({
+                    title: sub.name || `Part ${subIndex + 1}: ${topic.name}`,
+                    description: `Deep dive into ${sub.name} - a key component of ${topic.name}.`,
+                    objectives: []
+                }));
+
+                return [mainLesson, ...subLessons];
             })
         }));
 

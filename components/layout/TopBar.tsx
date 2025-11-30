@@ -18,9 +18,9 @@ export function TopBar() {
 
     return (
         <header
-            className="hidden md:flex h-20 px-8 items-center justify-between sticky top-0 z-40 backdrop-blur-sm transition-all duration-500"
+            className="hidden md:flex h-20 px-8 items-center justify-between fixed top-0 right-0 left-20 z-40 backdrop-blur-md transition-all duration-500"
             style={{
-                backgroundColor: safeColors ? `${safeColors.background}EE` : "transparent",
+                backgroundColor: safeColors ? `${safeColors.background}CC` : "rgba(15, 23, 42, 0.6)",
             }}
         >
             <div className="flex items-center gap-4 flex-1">
@@ -118,33 +118,6 @@ export function TopBar() {
                         </Link>
                     )}
                 </div>
-
-                {/* Notifications */}
-                <button
-                    className="relative p-2 rounded-full transition-all duration-300"
-                    style={{
-                        color: safeColors ? safeColors.textSecondary : undefined,
-                    }}
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = safeColors
-                            ? `${safeColors.primary}20`
-                            : "";
-                        e.currentTarget.style.color = safeColors ? safeColors.textPrimary : "";
-                    }}
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = safeColors ? safeColors.textSecondary : "";
-                    }}
-                >
-                    <Bell className="w-5 h-5" />
-                    <span
-                        className="absolute top-2 right-2 w-2 h-2 rounded-full border-2 transition-colors duration-500"
-                        style={{
-                            backgroundColor: safeColors ? safeColors.error : undefined,
-                            borderColor: safeColors ? safeColors.background : undefined,
-                        }}
-                    />
-                </button>
             </div>
         </header>
     );

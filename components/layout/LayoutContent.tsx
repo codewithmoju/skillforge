@@ -60,7 +60,7 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
 
                                 <div className={`flex-1 flex flex-col ${isMessagesPage
                                     ? 'fixed inset-0 md:left-20 z-0 bg-slate-950'
-                                    : 'md:ml-20 min-h-screen'
+                                    : 'md:pl-20 min-h-screen'
                                     }`}>
                                     {/* Desktop TopBar */}
                                     {!isMessagesPage && <TopBar />}
@@ -68,7 +68,9 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
                                     {/* Main Content */}
                                     <main className={`flex-1 w-full ${isMessagesPage
                                         ? 'h-full overflow-hidden p-0'
-                                        : 'p-4 md:p-8 pt-16 md:pt-0 pb-20 md:pb-8 overflow-y-auto'
+                                        : (pathname === '/roadmap' || pathname === '/courses')
+                                            ? 'p-0 pt-16 md:pt-0 overflow-y-auto'
+                                            : 'p-4 md:px-8 md:pb-8 md:pt-24 pt-16 pb-20 overflow-y-auto'
                                         }`}>
                                         {children}
                                     </main>

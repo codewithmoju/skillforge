@@ -30,7 +30,7 @@ export function QuizModal({ isOpen, onClose, topic, level, nodeId }: QuizModalPr
     const [score, setScore] = useState(0);
     const [loading, setLoading] = useState(false);
     const [showResults, setShowResults] = useState(false);
-    const { addXp, completeLesson } = useUserStore();
+    const { completeQuiz, completedQuizzes } = useUserStore();
 
     useEffect(() => {
         if (isOpen && questions.length === 0) {
@@ -81,8 +81,10 @@ export function QuizModal({ isOpen, onClose, topic, level, nodeId }: QuizModalPr
     const handleCompletion = (finalScore: number) => {
         const percentage = (finalScore / questions.length) * 100;
         if (percentage >= 60) {
-            addXp(100, 'quiz_completion'); // Bonus XP for passing quiz
-            // We could also mark the module as "mastered" here if we had that state
+            // Only award XP if not already completed
+            if (!completedQuizzes?.includes(nodeId)) {
+                completeQuiz(nodeId);
+            }
         }
     };
 

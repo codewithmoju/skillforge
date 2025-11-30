@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Bookmark, MessageCircle, MoreVertical } from "lucide-react";
-import { Post, likePost, savePost } from "@/lib/services/posts";
+import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2 } from "lucide-react";
+import { Post, likePost, savePost, deletePost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
 import Link from "next/link";
@@ -16,9 +16,10 @@ interface PostCardProps {
     post: Post;
     isLiked?: boolean;
     isSaved?: boolean;
+    onDelete?: (postId: string) => void;
 }
 
-export function PostCard({ post, isLiked: initialLiked = false, isSaved: initialSaved = false }: PostCardProps) {
+export function PostCard({ post, isLiked: initialLiked = false, isSaved: initialSaved = false, onDelete }: PostCardProps) {
     const { user } = useAuth();
     const incrementLikesGiven = useUserStore((state) => state.incrementLikesGiven);
     const incrementSaves = useUserStore((state) => state.incrementSaves);
@@ -28,6 +29,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
     const [likes, setLikes] = useState(post.likes);
     const [saves, setSaves] = useState(post.saves);
     const [showComments, setShowComments] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
 
     const handleLike = async () => {
         if (!user) return;
@@ -67,6 +69,21 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
             }
         } catch (error) {
             console.error('Error saving post:', error);
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!user || user.uid !== post.userId) return;
+
+        if (confirm("Are you sure you want to delete this post?")) {
+            try {
+                await deletePost(post.id);
+                if (onDelete) {
+                    onDelete(post.id);
+                }
+            } catch (error) {
+                console.error("Error deleting post:", error);
+            }
         }
     };
 
@@ -117,9 +134,29 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                         <p className="text-sm text-slate-500">@{post.username}</p>
                     </div>
                 </Link>
-                <button className="text-slate-500 hover:text-white transition-colors">
-                    <MoreVertical className="w-5 h-5" />
-                </button>
+
+                {user?.uid === post.userId && (
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="text-slate-500 hover:text-white transition-colors"
+                        >
+                            <MoreVertical className="w-5 h-5" />
+                        </button>
+
+                        {showMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 z-10 overflow-hidden">
+                                <button
+                                    onClick={handleDelete}
+                                    className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete Post
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Content */}

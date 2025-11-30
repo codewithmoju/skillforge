@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { RoadmapGenerationHero } from "@/components/roadmap/RoadmapGenerationHero";
+import { CourseGenerationHero } from "@/components/courses/CourseGenerationHero";
 import { CourseGenerationLoader } from "@/components/courses/CourseGenerationLoader";
 import { Sparkles, ArrowRight, Target, Play, Clock, Zap, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import { ActiveCourseCard } from "@/components/courses/ActiveCourseCard";
 import { RecommendationCard } from "@/components/courses/RecommendationCard";
 import { RecommendationSkeleton } from "@/components/courses/RecommendationSkeleton";
-import { InteractiveBackground } from "@/components/ui/InteractiveBackground";
+import { AuroraBackground } from "@/components/ui/AuroraBackground";
 
 export default function CoursesPage() {
     const { user } = useAuth();
@@ -119,98 +119,97 @@ export default function CoursesPage() {
     };
 
     return (
-        <div className="min-h-screen bg-[#030014] text-white selection:bg-violet-500/30 relative overflow-hidden">
-            {/* Interactive Background */}
-            <InteractiveBackground />
-
+        <AuroraBackground className="min-h-screen bg-slate-950 text-white selection:bg-violet-500/30 relative overflow-hidden !items-start !justify-start">
             <AnimatePresence>
                 {isGenerating && <CourseGenerationLoader />}
             </AnimatePresence>
 
-            <RoadmapGenerationHero
-                onGenerate={handleGenerate}
-                isGenerating={isGenerating}
-            />
+            <div className="w-full">
+                <CourseGenerationHero
+                    onGenerate={handleGenerate}
+                    isGenerating={isGenerating}
+                />
 
-            <div className="max-w-7xl mx-auto px-6 pb-32 relative z-10 space-y-32">
+                <div className="max-w-7xl mx-auto px-6 pb-32 relative z-10 space-y-32 -mt-20">
 
-                {/* Resume Learning Section */}
-                {user && activeCourses.length > 0 && (
+                    {/* Resume Learning Section */}
+                    {user && activeCourses.length > 0 && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                        >
+                            <div className="flex items-center justify-between mb-12">
+                                <div className="flex items-center gap-6">
+                                    <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.15)] backdrop-blur-xl">
+                                        <Play className="w-8 h-8 text-cyan-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-2 drop-shadow-lg">Active Missions</h2>
+                                        <p className="text-slate-400 text-xl font-light">Resume your training protocols</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                {activeCourses.map((course, idx) => (
+                                    <ActiveCourseCard
+                                        key={course.id}
+                                        course={course}
+                                        onDelete={handleDelete}
+                                        index={idx}
+                                    />
+                                ))}
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Recommended Paths Section */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
+                        transition={{ delay: 0.5 }}
                     >
                         <div className="flex items-center justify-between mb-12">
-                            <div className="flex items-center gap-4">
-                                <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-blue-600/10 border border-cyan-500/20 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-                                    <Play className="w-8 h-8 text-cyan-400" />
+                            <div className="flex items-center gap-6">
+                                <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-600/10 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.15)] backdrop-blur-xl">
+                                    <Sparkles className="w-8 h-8 text-purple-400" />
                                 </div>
                                 <div>
-                                    <h2 className="text-4xl font-black text-white tracking-tight mb-2">Active Missions</h2>
-                                    <p className="text-slate-400 text-lg">Resume your training protocols</p>
+                                    <h2 className="text-5xl md:text-6xl font-black text-white tracking-tighter mb-2 drop-shadow-lg">Neural Upgrades</h2>
+                                    <p className="text-slate-400 text-xl font-light">Recommended paths for system enhancement</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {activeCourses.map((course, idx) => (
-                                <ActiveCourseCard
-                                    key={course.id}
-                                    course={course}
-                                    onDelete={handleDelete}
-                                    index={idx}
-                                />
-                            ))}
+                            {loadingRecs ? (
+                                // Skeleton Loading State
+                                Array.from({ length: 3 }).map((_, i) => (
+                                    <motion.div
+                                        key={i}
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        transition={{ delay: i * 0.1 }}
+                                        className="h-[280px]"
+                                    >
+                                        <RecommendationSkeleton />
+                                    </motion.div>
+                                ))
+                            ) : (
+                                recommendations.map((rec, idx) => (
+                                    <RecommendationCard
+                                        key={idx}
+                                        rec={rec}
+                                        onClick={() => handleGenerate(rec.topic)}
+                                        index={idx}
+                                    />
+                                ))
+                            )}
                         </div>
                     </motion.div>
-                )}
-
-                {/* Recommended Paths Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                >
-                    <div className="flex items-center justify-between mb-12">
-                        <div className="flex items-center gap-4">
-                            <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-500/10 to-pink-600/10 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
-                                <Sparkles className="w-8 h-8 text-purple-400" />
-                            </div>
-                            <div>
-                                <h2 className="text-4xl font-black text-white tracking-tight mb-2">Neural Upgrades</h2>
-                                <p className="text-slate-400 text-lg">Recommended paths for system enhancement</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {loadingRecs ? (
-                            // Skeleton Loading State
-                            Array.from({ length: 3 }).map((_, i) => (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    transition={{ delay: i * 0.1 }}
-                                    className="h-[280px]"
-                                >
-                                    <RecommendationSkeleton />
-                                </motion.div>
-                            ))
-                        ) : (
-                            recommendations.map((rec, idx) => (
-                                <RecommendationCard
-                                    key={idx}
-                                    rec={rec}
-                                    onClick={() => handleGenerate(rec.topic)}
-                                    index={idx}
-                                />
-                            ))
-                        )}
-                    </div>
-                </motion.div>
+                </div>
             </div>
-        </div>
+        </AuroraBackground>
     );
 }

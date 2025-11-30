@@ -40,10 +40,10 @@ export async function POST(req: Request) {
             "title": "Course Title",
             "description": "A compelling description of what the user will learn.",
             "theme": {
-                "primary": "#hexcode", // EXACT Official Brand Color (e.g. #61DAFB for React, #F7DF1E for JS)
-                "secondary": "#hexcode", // A complementary color that contrasts well with the primary
-                "accent": "#hexcode", // A bright neon variant for glowing effects
-                "background": "#hexcode" // A very dark, rich, premium background color (e.g. #0a0a16, #050505). MUST be dark enough for white text.
+                "primary": "#hexcode", // DOMINANT BRAND COLOR (e.g. #00ED64 for MongoDB, #61DAFB for React). Must be vibrant and recognizable.
+                "secondary": "#hexcode", // COMPLEMENTARY PREMIUM COLOR. (e.g. #001E2B for MongoDB, #282C34 for React). Darker, richer tones.
+                "accent": "#hexcode", // NEON ACCENT. High saturation for glows/borders. (e.g. #00FF9E or #FF00E6).
+                "background": "#hexcode" // ULTRA-PREMIUM DARK BACKGROUND. (e.g. #02040a, #0b0c15). Deep, rich, almost black but tinted.
             },
             "modules": [
                 {

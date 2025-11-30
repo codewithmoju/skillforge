@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { MissionControl } from "@/components/roadmap/MissionControl";
 import { QuestPath } from "@/components/roadmap/QuestPath";
 import { SkillTree } from "@/components/roadmap/SkillTree";
+import { DeepSpaceBackground } from "@/components/ui/DeepSpaceBackground";
 
 export default function RoadmapPage() {
     const { colors } = useSkin();
@@ -196,12 +197,9 @@ export default function RoadmapPage() {
             className="min-h-screen pb-20 transition-all duration-500 relative overflow-hidden bg-slate-950"
         >
             {/* Global Background Effects */}
-            <div className="fixed inset-0 -z-10">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
-                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-            </div>
+            <DeepSpaceBackground />
 
-            <div className="container mx-auto px-4 pt-6 max-w-7xl">
+            <div className="container mx-auto px-4 pt-28 max-w-7xl">
                 {/* Mission Control Dashboard */}
                 <MissionControl
                     topic={currentTopic}

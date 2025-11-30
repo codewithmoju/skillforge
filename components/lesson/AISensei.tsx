@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bot, X, Send, Sparkles, MessageSquare, Mic } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { cleanTextForTTS } from "@/lib/utils/tts-cleaner";
 
 interface Message {
     role: 'user' | 'ai';
@@ -18,9 +19,12 @@ interface AISenseiProps {
     };
     codeContext: string;
     primaryColor: string;
+    onInteractionStart?: () => void;
+    onInteractionEnd?: () => void;
+    checkTopic?: (question: string) => boolean;
 }
 
-export function AISensei({ lessonContext, codeContext, primaryColor }: AISenseiProps) {
+export function AISensei({ lessonContext, codeContext, primaryColor, onInteractionStart, onInteractionEnd, checkTopic }: AISenseiProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         { role: 'ai', content: "Greetings! I am your AI Sensei. 🥋 Stuck? Confused? Ask me anything about this lesson!" }
@@ -123,34 +127,115 @@ export function AISensei({ lessonContext, codeContext, primaryColor }: AISenseiP
         setInput("");
         setIsTyping(true);
 
+        // Notify parent to pause podcast (if applicable)
+        if (onInteractionStart) onInteractionStart();
+
         try {
-            // Fetch recent user history for "Deep Memory"
-            // In a real app, this might be done server-side or passed as a prop, 
-            // but fetching here ensures we get the latest actions.
-            // We'll mock the userId for now since we don't have the auth context directly here, 
-            // but in production it would come from useAuth().
-            // Ideally, pass user ID as prop.
-            const history: any[] = []; // await userBehavior.getRecentLogs('current-user-id'); 
+            // 1. Generate Audio Assets (Podcast Mode Only)
+            let callerAudioUrl: string | null = null;
+            let hostIntroUrl: string | null = null;
 
-            const res = await fetch('/api/ai/sensei', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [...messages, userMsg],
-                    codeContext,
-                    lessonContext,
-                    userHistory: history // Send history to backend
-                })
-            });
-            const data = await res.json();
+            if (onInteractionStart) {
+                try {
+                    // A. Generate Caller Audio
+                    const cleanedQuestion = cleanTextForTTS(userMsg.content);
+                    const callerRes = await fetch('/api/ai/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: cleanedQuestion, speaker: 'Caller' })
+                    });
+                    if (callerRes.ok) {
+                        const blob = await callerRes.blob();
+                        callerAudioUrl = URL.createObjectURL(blob);
+                    }
 
-            if (data.reply) {
-                setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
-                speakResponse(data.reply);
+                    // B. Generate Host Intro
+                    const intros = [
+                        "Whoa, hold on! We've got a caller patching in! Go ahead!",
+                        "Wait a second, incoming call! You're on the air!",
+                        "System alert! We have a listener on the line! What's up?",
+                        "Hold that thought! Let's hear from our listener!"
+                    ];
+                    const randomIntro = intros[Math.floor(Math.random() * intros.length)];
+                    const introRes = await fetch('/api/ai/tts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: randomIntro, speaker: 'Alex' })
+                    });
+                    if (introRes.ok) {
+                        const blob = await introRes.blob();
+                        hostIntroUrl = URL.createObjectURL(blob);
+                    }
+                } catch (e) {
+                    console.error("Failed to generate interaction audio", e);
+                }
+            }
+
+            // 2. Determine Reply (Smart Logic vs AI)
+            let reply = "";
+            if (checkTopic && checkTopic(userMsg.content)) {
+                reply = "That's a fantastic question! We're actually going to dive deep into that in just a moment, so stay tuned!";
+            } else {
+                const history: any[] = [];
+                const res = await fetch('/api/ai/sensei', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: [...messages, userMsg],
+                        codeContext,
+                        lessonContext,
+                        userHistory: history
+                    })
+                });
+                const data = await res.json();
+                reply = data.reply;
+            }
+
+            if (reply) {
+                setMessages(prev => [...prev, { role: 'ai', content: reply }]);
+
+                // 3. Play Audio Sequence (Podcast Mode)
+                if (onInteractionStart && callerAudioUrl && hostIntroUrl) {
+                    try {
+                        const cleanedAnswer = cleanTextForTTS(reply);
+                        const hostRes = await fetch('/api/ai/tts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: cleanedAnswer, speaker: 'Alex' })
+                        });
+
+                        if (hostRes.ok) {
+                            const blob = await hostRes.blob();
+                            const hostAnswerUrl = URL.createObjectURL(blob);
+
+                            // Sequence: Host Intro -> Caller -> Host Answer -> Resume
+                            const introAudio = new Audio(hostIntroUrl);
+                            const callerAudio = new Audio(callerAudioUrl);
+                            const answerAudio = new Audio(hostAnswerUrl);
+
+                            introAudio.onended = () => callerAudio.play();
+                            callerAudio.onended = () => answerAudio.play();
+                            answerAudio.onended = () => {
+                                if (onInteractionEnd) onInteractionEnd();
+                            };
+
+                            introAudio.play();
+                        } else {
+                            if (onInteractionEnd) onInteractionEnd();
+                        }
+                    } catch (e) {
+                        console.error("Failed to play interaction sequence", e);
+                        if (onInteractionEnd) onInteractionEnd();
+                    }
+                } else {
+                    // Standard Mode
+                    speakResponse(reply);
+                }
             }
         } catch (error) {
             console.error("Sensei error:", error);
             setMessages(prev => [...prev, { role: 'ai', content: "My meditation was interrupted. Please try again. 🧘" }]);
+            if (onInteractionEnd) onInteractionEnd();
         } finally {
             setIsTyping(false);
         }
@@ -166,7 +251,7 @@ export function AISensei({ lessonContext, codeContext, primaryColor }: AISenseiP
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setIsOpen(true)}
                 className={cn(
-                    "fixed bottom-8 right-8 z-40 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-all duration-300",
+                    "fixed bottom-8 right-8 z-[100] w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-white transition-all duration-300",
                     isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
                 )}
                 style={{
