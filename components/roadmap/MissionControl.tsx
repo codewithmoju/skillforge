@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Trophy, Target, Zap, Activity, Rocket, Star, RotateCcw } from "lucide-react";
+import { Trophy, Target, Zap, Activity, Rocket, Star, RotateCcw, BookOpen } from "lucide-react";
 import { useSkin } from "@/lib/hooks/useSkin";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
@@ -14,9 +14,10 @@ interface MissionControlProps {
     streak: number;
     onLaunch?: () => void;
     onRegenerate?: () => void;
+    onGenerateCourse?: () => void;
 }
 
-export function MissionControl({ topic, progress, userLevel, xp, streak, onLaunch, onRegenerate }: MissionControlProps) {
+export function MissionControl({ topic, progress, userLevel, xp, streak, onLaunch, onRegenerate, onGenerateCourse }: MissionControlProps) {
     const { colors } = useSkin();
 
     return (
@@ -141,22 +142,39 @@ export function MissionControl({ topic, progress, userLevel, xp, streak, onLaunc
             </div>
 
             {/* Launch Button (if provided) */}
-            {onLaunch && (
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="mt-8 flex justify-center md:justify-start"
-                >
-                    <Button
-                        onClick={onLaunch}
-                        className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-8 py-6 rounded-xl font-bold text-lg shadow-lg shadow-blue-500/25 flex items-center gap-3 group"
+            <div className="mt-8 flex flex-col md:flex-row gap-4 justify-center md:justify-start">
+                {onLaunch && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.6 }}
                     >
-                        <Rocket className="w-5 h-5 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
-                        Continue Mission
-                    </Button>
-                </motion.div>
-            )}
+                        <Button
+                            onClick={onLaunch}
+                            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-8 py-6 rounded-xl font-bold text-lg shadow-lg shadow-blue-500/25 flex items-center gap-3 group w-full md:w-auto"
+                        >
+                            <Rocket className="w-5 h-5 group-hover:-translate-y-1 group-hover:translate-x-1 transition-transform" />
+                            Continue Mission
+                        </Button>
+                    </motion.div>
+                )}
+
+                {onGenerateCourse && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.7 }}
+                    >
+                        <Button
+                            onClick={onGenerateCourse}
+                            className="bg-slate-800 hover:bg-slate-700 text-white px-8 py-6 rounded-xl font-bold text-lg border border-slate-700 hover:border-emerald-500/50 flex items-center gap-3 group w-full md:w-auto transition-all"
+                        >
+                            <BookOpen className="w-5 h-5 group-hover:text-emerald-400 transition-colors" />
+                            Generate Course
+                        </Button>
+                    </motion.div>
+                )}
+            </div>
         </div>
     );
 }

@@ -1,24 +1,33 @@
-title: string;
-missionBriefing: string;
-realWorldAnalogy: {
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Scroll, X, Feather, BookOpen, Sparkles, Star, Code, Sword, Shield, CheckCircle, XCircle, Crown } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useUserStore } from "@/lib/store";
+
+interface GamifiedLessonContent {
     title: string;
-    analogy: string;
-    connection: string;
-};
-powerUps: string[];
-interactiveDemo: {
-    title: string;
-    description: string;
-    code: string;
-    explanation: string;
-};
-bossChallenge: {
-    question: string;
-    options: string[];
-    correctAnswer: number;
-    explanation: string;
-};
-victoryRewards: string[];
+    missionBriefing: string;
+    realWorldAnalogy: {
+        title: string;
+        analogy: string;
+        connection: string;
+    };
+    powerUps: string[];
+    interactiveDemo: {
+        title: string;
+        description: string;
+        code: string;
+        explanation: string;
+    };
+    bossChallenge: {
+        question: string;
+        options: string[];
+        correctAnswer: number;
+        explanation: string;
+    };
+    victoryRewards: string[];
 }
 
 interface ForestLessonModalProps {

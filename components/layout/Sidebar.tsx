@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, Globe, Trophy, MessageCircle, PlusCircle, BookOpen } from "@/lib/icons";
+import { LayoutDashboard, Map, FolderKanban, Users, UserCircle, Settings, Globe, Trophy, MessageCircle, PlusCircle, BookOpen, Bell } from "@/lib/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
@@ -18,6 +18,7 @@ const navItems = [
     { name: "Social", href: "/social", icon: Users },
     { name: "Create Post", href: "/create", icon: PlusCircle },
     { name: "Messages", href: "/messages", icon: MessageCircle },
+    { name: "Notifications", href: "/notifications", icon: Bell },
     { name: "Achievements", href: "/achievements", icon: Trophy },
     { name: "Explore", href: "/explore", icon: Globe },
 ];

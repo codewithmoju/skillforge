@@ -136,7 +136,7 @@ export const ACHIEVEMENT_DEFINITIONS: Omit<Achievement, 'currentProgress' | 'tot
     {
         id: 'pioneer',
         name: 'Pioneer',
-        description: 'Among the first 100 users',
+        description: 'Joined during the Beta phase',
         category: 'special',
         rarity: 'legendary',
         icon: '🏅',
@@ -660,14 +660,14 @@ export function getAchievementGuidance(achievement: Achievement): string {
         'pathfinder': `Generate roadmaps to unlock stars. ${nextStar ? `You need ${remaining} more roadmap${remaining !== 1 ? 's' : ''} for the next star.` : 'Keep generating roadmaps to earn more stars!'}`,
         'specialist': `Explore different categories when generating roadmaps. ${nextStar ? `You need ${remaining} more unique domain${remaining !== 1 ? 's' : ''} for the next star.` : 'Try generating roadmaps in various fields!'}`,
         'builder': `Create projects to track your learning journey. ${nextStar ? `You need ${remaining} more project${remaining !== 1 ? 's' : ''} for the next star.` : 'Keep building amazing projects!'}`,
-        
+
         // Completion achievements
         'finisher': `Complete entire roadmaps from start to finish. ${nextStar ? `You need ${remaining} more completion${remaining !== 1 ? 's' : ''} for the next star.` : 'Focus on finishing what you start!'}`,
         'speedrunner': `Complete roadmaps quickly (under 7 days) to unlock stars. ${nextStar ? `You need ${remaining} more fast completion${remaining !== 1 ? 's' : ''} for the next star.` : 'Speed up your learning pace!'}`,
         'student': `Complete individual lessons to progress. ${nextStar ? `You need ${remaining} more lesson${remaining !== 1 ? 's' : ''} for the next star.` : 'Every lesson counts!'}`,
         'scholar': `Complete lessons across multiple roadmaps. ${nextStar ? `You need ${remaining} more lesson${remaining !== 1 ? 's' : ''} for the next star.` : 'Diversify your learning!'}`,
         'architect': `Finish your projects completely. ${nextStar ? `You need ${remaining} more completed project${remaining !== 1 ? 's' : ''} for the next star.` : 'Complete your projects to unlock this!'}`,
-        
+
         // Engagement achievements
         'consistency': `Maintain your learning streak by being active daily. ${nextStar ? `You need ${remaining} more day${remaining !== 1 ? 's' : ''} for the next star.` : 'Keep the streak alive!'}`,
         'explorer': `View and explore different roadmaps. ${nextStar ? `You need ${remaining} more roadmap view${remaining !== 1 ? 's' : ''} for the next star.` : 'Explore more learning paths!'}`,
@@ -675,7 +675,7 @@ export function getAchievementGuidance(achievement: Achievement): string {
         'weekend_warrior': `Complete roadmaps on weekends (Saturday or Sunday). ${nextStar ? `You need ${remaining} more weekend completion${remaining !== 1 ? 's' : ''} for the next star.` : 'Learn even on weekends!'}`,
         'leveler': `Earn XP to level up. ${nextStar ? `You need to reach level ${nextStar.requirement} for the next star.` : 'Keep leveling up!'}`,
         'xp_collector': `Accumulate total XP through all activities. ${nextStar ? `You need ${remaining.toLocaleString()} more XP for the next star.` : 'Keep earning XP!'}`,
-        
+
         // Social achievements
         'influencer': `Share your roadmaps with the community by creating posts. ${nextStar ? `You need ${remaining} more share${remaining !== 1 ? 's' : ''} for the next star.` : 'Share your learning journey!'}`,
         'storyteller': `Create posts to share your experiences. ${nextStar ? `You need ${remaining} more post${remaining !== 1 ? 's' : ''} for the next star.` : 'Tell your story!'}`,
@@ -686,11 +686,11 @@ export function getAchievementGuidance(achievement: Achievement): string {
         'networker': `Follow other learners in the community. ${nextStar ? `You need ${remaining} more follow${remaining !== 1 ? 's' : ''} for the next star.` : 'Build your network!'}`,
         'learning_influencer': `Gain followers by sharing valuable content. ${nextStar ? `You need ${remaining} more follower${remaining !== 1 ? 's' : ''} for the next star.` : 'Become an influencer!'}`,
         'collaborator': `Participate in group learning activities. ${nextStar ? `You need ${remaining} more group${remaining !== 1 ? 's' : ''} for the next star.` : 'Join group activities!'}`,
-        
+
         // Challenge achievements
         'challenger': `Join learning challenges. ${nextStar ? `You need ${remaining} more challenge${remaining !== 1 ? 's' : ''} for the next star.` : 'Take on challenges!'}`,
         'champion': `Complete challenges successfully. ${nextStar ? `You need ${remaining} more completion${remaining !== 1 ? 's' : ''} for the next star.` : 'Win challenges!'}`,
-        
+
         // Special achievements
         'pioneer': 'Be among the first 100 users to join the platform. This is a one-time achievement!',
         'perfectionist': `Complete roadmaps with 100% completion (all nodes finished). ${nextStar ? `You need ${remaining} more perfect completion${remaining !== 1 ? 's' : ''} for the next star.` : 'Aim for perfection!'}`,

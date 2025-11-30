@@ -391,7 +391,7 @@ export default function ProfilePage() {
 
                     {/* Tab Content */}
                     {activeTab === 'achievements' ? (
-                        <AchievementsSection achievements={userData.achievements || []} />
+                        <AchievementsSection achievements={userData.achievements?.map(a => a.id) || []} />
                     ) : loading ? (
                         <div className="flex justify-center py-20">
                             <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />

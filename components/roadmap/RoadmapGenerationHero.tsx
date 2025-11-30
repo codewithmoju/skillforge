@@ -1,9 +1,14 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Sparkles, Code, Palette, TrendingUp, Database, Cloud, Smartphone, Coins } from "lucide-react";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, Code, Palette, TrendingUp, Database, ArrowRight, Brain, Terminal, BookOpen, ChevronRight, Check, Zap, Rocket, Search, Map, Compass, Navigation, ChevronLeft, Star, Shield, Target } from "lucide-react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/Button";
+import { AuroraBackground } from "@/components/ui/AuroraBackground";
+import { TextGenerateEffect } from "@/components/ui/TextGenerateEffect";
+import { TiltCard } from "@/components/ui/TiltCard";
+import { SuggestionMarquee } from "@/components/ui/SuggestionMarquee";
 
 interface TopicSuggestion {
     id: string;
@@ -11,273 +16,451 @@ interface TopicSuggestion {
     description: string;
     icon: any;
     color: string;
+    border: string;
     gradient: string;
 }
 
 const TOPIC_SUGGESTIONS: TopicSuggestion[] = [
     {
         id: "programming",
-        title: "JavaScript Mastery",
-        description: "From basics to advanced patterns",
+        title: "Full Stack Dev",
+        description: "Master the web ecosystem",
         icon: Code,
-        color: "text-yellow-400",
-        gradient: "from-yellow-500/20 to-orange-500/20"
+        color: "text-blue-400",
+        border: "border-blue-500/30",
+        gradient: "from-blue-500/20 to-cyan-500/20"
     },
     {
         id: "design",
-        title: "UI/UX Design",
-        description: "Create stunning user experiences",
+        title: "Product Design",
+        description: "Build products users love",
         icon: Palette,
         color: "text-pink-400",
-        gradient: "from-pink-500/20 to-purple-500/20"
+        border: "border-pink-500/30",
+        gradient: "from-pink-500/20 to-rose-500/20"
     },
     {
         id: "business",
-        title: "Digital Marketing",
-        description: "Master modern marketing strategies",
+        title: "Startup Growth",
+        description: "Scale from 0 to 1",
         icon: TrendingUp,
         color: "text-green-400",
+        border: "border-green-500/30",
         gradient: "from-green-500/20 to-emerald-500/20"
     },
     {
         id: "data",
-        title: "Machine Learning",
-        description: "AI and data science fundamentals",
+        title: "Data Science",
+        description: "Extract insights from data",
         icon: Database,
-        color: "text-blue-400",
-        gradient: "from-blue-500/20 to-cyan-500/20"
-    },
-    {
-        id: "devops",
-        title: "DevOps & Cloud",
-        description: "Docker, Kubernetes, AWS mastery",
-        icon: Cloud,
-        color: "text-indigo-400",
-        gradient: "from-indigo-500/20 to-blue-500/20"
-    },
-    {
-        id: "mobile",
-        title: "React Native",
-        description: "Build cross-platform mobile apps",
-        icon: Smartphone,
-        color: "text-cyan-400",
-        gradient: "from-cyan-500/20 to-teal-500/20"
-    },
-    {
-        id: "web3",
-        title: "Blockchain & Web3",
-        description: "Smart contracts and DeFi",
-        icon: Coins,
         color: "text-purple-400",
-        gradient: "from-purple-500/20 to-pink-500/20"
+        border: "border-purple-500/30",
+        gradient: "from-purple-500/20 to-violet-500/20"
     },
-    {
-        id: "python",
-        title: "Python Programming",
-        description: "Versatile language for all domains",
-        icon: Code,
-        color: "text-blue-300",
-        gradient: "from-blue-400/20 to-indigo-400/20"
-    }
 ];
 
 interface RoadmapGenerationHeroProps {
-    onGenerate: (topic: string) => void;
+    onGenerate: (topic: string, answers?: any[], difficulty?: any, persona?: any) => void;
     isGenerating: boolean;
 }
 
 export function RoadmapGenerationHero({ onGenerate, isGenerating }: RoadmapGenerationHeroProps) {
+    const [step, setStep] = useState<"input" | "analyzing" | "wizard">("input");
+    const [wizardStep, setWizardStep] = useState(0);
     const [input, setInput] = useState("");
+    const [analysisData, setAnalysisData] = useState<any>(null);
+    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [selectedDifficulty, setSelectedDifficulty] = useState<any>(null);
+    const [selectedPersona, setSelectedPersona] = useState<any>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (input.trim() && !isGenerating) {
-            onGenerate(input.trim());
+    // Wizard steps configuration
+    const [wizardConfig, setWizardConfig] = useState<any[]>([]);
+
+    useEffect(() => {
+        if (analysisData) {
+            const steps = [];
+
+            // 1. Questions Steps
+            if (analysisData.questions) {
+                analysisData.questions.forEach((q: any) => {
+                    steps.push({ type: 'question', data: q });
+                });
+            }
+
+            // 2. Difficulty Step
+            steps.push({ type: 'difficulty', data: analysisData.difficulties });
+
+            // 3. Persona Step
+            steps.push({ type: 'persona', data: analysisData.personas });
+
+            setWizardConfig(steps);
         }
+    }, [analysisData]);
+
+    const handleAnalyze = async (e?: React.FormEvent) => {
+        e?.preventDefault();
+        if (!input.trim()) return;
+
+        setStep("analyzing");
+        try {
+            const res = await fetch("/api/courses/analyze-topic", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ topic: input }),
+            });
+
+            if (!res.ok) {
+                throw new Error(`API Error: ${res.status} ${res.statusText}`);
+            }
+
+            const data = await res.json();
+            setAnalysisData(data);
+
+            // Set defaults
+            if (data.difficulties?.length) setSelectedDifficulty(data.difficulties[0]);
+            if (data.personas?.length) setSelectedPersona(data.personas[0]);
+
+            // Artificial delay for effect
+            setTimeout(() => {
+                setStep("wizard");
+                setWizardStep(0);
+            }, 1500);
+
+        } catch (error) {
+            console.error("Analysis failed", error);
+            alert("Interactive analysis failed, falling back to standard generation.");
+            onGenerate(input);
+        }
+    };
+
+    const handleNext = () => {
+        if (wizardStep < wizardConfig.length - 1) {
+            setWizardStep(prev => prev + 1);
+        } else {
+            handleFinalGenerate();
+        }
+    };
+
+    const handleBack = () => {
+        if (wizardStep > 0) {
+            setWizardStep(prev => prev - 1);
+        } else {
+            setStep("input");
+        }
+    };
+
+    const handleFinalGenerate = () => {
+        onGenerate(input, Object.values(answers), selectedDifficulty, selectedPersona);
     };
 
     const handleSuggestionClick = (title: string) => {
         setInput(title);
     };
 
+    const currentWizardStep = wizardConfig[wizardStep];
+
     return (
-        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center relative overflow-hidden">
-            {/* Animated Background */}
-            <div className="absolute inset-0 -z-10">
-                {/* Gradient Mesh */}
-                <div className="absolute inset-0 bg-gradient-to-br from-accent-indigo/10 via-background to-accent-cyan/10" />
+        <AuroraBackground className="min-h-[90vh] w-full">
+            <div className="w-full py-20 px-4 md:px-8 relative z-20">
+                <AnimatePresence mode="wait">
+                    {step === "input" && (
+                        <motion.div
+                            key="input"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.05, filter: "blur(10px)" }}
+                            className="flex flex-col items-center text-center w-full"
+                        >
+                            <div className="w-full max-w-4xl mx-auto px-4">
+                                {/* Tech Badge */}
+                                <motion.div
+                                    initial={{ y: -20, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ delay: 0.2 }}
+                                    className="mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900/80 border border-slate-700 text-sm font-mono text-blue-400 tracking-wider shadow-[0_0_20px_rgba(59,130,246,0.2)] backdrop-blur-md"
+                                >
+                                    <Compass className="w-4 h-4 animate-spin-slow" />
+                                    <span>NAVIGATION SYSTEMS ONLINE</span>
+                                </motion.div>
 
-                {/* Animated Orbs */}
-                <motion.div
-                    className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent-indigo/20 rounded-full blur-3xl"
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.3, 0.5, 0.3],
-                    }}
-                    transition={{
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                    }}
-                />
-                <motion.div
-                    className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-cyan/20 rounded-full blur-3xl"
-                    animate={{
-                        scale: [1.2, 1, 1.2],
-                        opacity: [0.5, 0.3, 0.5],
-                    }}
-                    transition={{
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: "easeInOut",
-                        delay: 1
-                    }}
-                />
-            </div>
+                                <h1 className="text-6xl md:text-8xl font-black mb-8 tracking-tighter text-white drop-shadow-2xl">
+                                    Chart Your <br />
+                                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 animate-gradient-x">
+                                        Destiny
+                                    </span>
+                                </h1>
 
-            <div className="w-full max-w-4xl mx-auto px-4 py-12">
-                {/* Hero Text */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="text-center mb-12"
-                >
-                    <motion.div
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-accent-indigo/20 to-accent-cyan/20 border border-accent-indigo/30 mb-6"
-                        animate={{
-                            boxShadow: [
-                                "0 0 20px rgba(99, 102, 241, 0.3)",
-                                "0 0 40px rgba(6, 182, 212, 0.3)",
-                                "0 0 20px rgba(99, 102, 241, 0.3)",
-                            ]
-                        }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                    >
-                        <Sparkles className="w-4 h-4 text-accent-cyan" />
-                        <span className="text-sm font-medium bg-gradient-to-r from-accent-indigo to-accent-cyan bg-clip-text text-transparent">
-                            AI-Powered Learning Roadmaps
-                        </span>
-                    </motion.div>
-
-                    <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-                        <span className="bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                            What do you want to
-                        </span>
-                        <br />
-                        <span className="bg-gradient-to-r from-accent-indigo via-accent-cyan to-accent-indigo bg-clip-text text-transparent animate-gradient">
-                            master today?
-                        </span>
-                    </h1>
-
-                    <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-                        Enter any skill or topic, and I'll create a personalized, gamified learning roadmap just for you.
-                    </p>
-                </motion.div>
-
-                {/* Input Field */}
-                <motion.form
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    onSubmit={handleSubmit}
-                    className="mb-12"
-                >
-                    <div className="relative group">
-                        <div className="absolute -inset-1 bg-gradient-to-r from-accent-indigo to-accent-cyan rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500" />
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                placeholder="e.g., React Development, Machine Learning, UI/UX Design..."
-                                disabled={isGenerating}
-                                className={cn(
-                                    "w-full px-8 py-6 text-lg rounded-2xl",
-                                    "bg-slate-900/80 backdrop-blur-xl",
-                                    "border-2 border-slate-700/50",
-                                    "text-white placeholder:text-slate-500",
-                                    "focus:outline-none focus:border-accent-indigo/50",
-                                    "transition-all duration-300",
-                                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                                )}
-                                autoFocus
-                            />
-                            <button
-                                type="submit"
-                                disabled={!input.trim() || isGenerating}
-                                className={cn(
-                                    "absolute right-3 top-1/2 -translate-y-1/2",
-                                    "px-6 py-3 rounded-xl",
-                                    "bg-gradient-to-r from-accent-indigo to-accent-cyan",
-                                    "text-white font-semibold",
-                                    "hover:shadow-lg hover:shadow-accent-indigo/50",
-                                    "transition-all duration-300",
-                                    "disabled:opacity-50 disabled:cursor-not-allowed",
-                                    "disabled:hover:shadow-none"
-                                )}
-                            >
-                                {isGenerating ? (
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                        <span>Generating...</span>
-                                    </div>
-                                ) : (
-                                    "Generate Roadmap"
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </motion.form>
-
-                {/* Topic Suggestions */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.4 }}
-                >
-                    <p className="text-center text-sm text-slate-500 mb-6">
-                        Or choose from popular topics:
-                    </p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {TOPIC_SUGGESTIONS.map((suggestion, index) => (
-                            <motion.button
-                                key={suggestion.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3, delay: 0.5 + index * 0.05 }}
-                                whileHover={{ scale: 1.05, y: -5 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleSuggestionClick(suggestion.title)}
-                                disabled={isGenerating}
-                                className={cn(
-                                    "relative p-4 rounded-xl",
-                                    "bg-slate-900/50 backdrop-blur-sm",
-                                    "border border-slate-800",
-                                    "hover:border-slate-700",
-                                    "transition-all duration-300",
-                                    "text-left group",
-                                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                                )}
-                            >
-                                <div className={cn(
-                                    "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300",
-                                    `bg-gradient-to-br ${suggestion.gradient}`
-                                )} />
-                                <div className="relative">
-                                    <suggestion.icon className={cn("w-6 h-6 mb-2", suggestion.color)} />
-                                    <h3 className="font-semibold text-white text-sm mb-1">
-                                        {suggestion.title}
-                                    </h3>
-                                    <p className="text-xs text-slate-500">
-                                        {suggestion.description}
-                                    </p>
+                                <div className="max-w-2xl mx-auto mb-12">
+                                    <TextGenerateEffect
+                                        words="Define your destination. Our AI navigator will construct the optimal route through the knowledge graph."
+                                        className="text-lg text-slate-300 font-normal"
+                                    />
                                 </div>
-                            </motion.button>
-                        ))}
-                    </div>
-                </motion.div>
+
+                                <form onSubmit={handleAnalyze} className="w-full max-w-2xl mx-auto relative group mb-24 z-20">
+                                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-cyan-600 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt" />
+                                    <div className="relative flex items-center bg-slate-950/80 backdrop-blur-xl rounded-2xl border border-slate-800 p-2 shadow-2xl transition-all focus-within:border-slate-600">
+                                        <div className="pl-6 text-slate-500">
+                                            <Search className="w-6 h-6" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            placeholder="What do you want to learn today?"
+                                            className="w-full px-6 py-5 text-xl bg-transparent text-white placeholder:text-slate-600 focus:outline-none font-medium"
+                                            autoFocus
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={!input.trim()}
+                                            className="px-8 py-4 rounded-xl bg-white text-slate-950 font-bold text-lg hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg"
+                                        >
+                                            <span>Begin</span>
+                                            <ArrowRight className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Infinite Suggestion Marquee */}
+                            <div className="w-full relative z-10 -mt-8">
+                                <SuggestionMarquee onSelect={handleSuggestionClick} />
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === "analyzing" && (
+                        <motion.div
+                            key="analyzing"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center justify-center h-[60vh]"
+                        >
+                            <div className="relative w-48 h-48 mb-12">
+                                <div className="absolute inset-0 border-t-4 border-blue-500 rounded-full animate-spin" />
+                                <div className="absolute inset-4 border-b-4 border-purple-500 rounded-full animate-spin-reverse" />
+                                <div className="absolute inset-0 m-auto w-24 h-24 bg-blue-500/20 rounded-full blur-2xl animate-pulse" />
+                                <Brain className="absolute inset-0 m-auto w-16 h-16 text-white animate-pulse" />
+                            </div>
+                            <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">Analyzing Request</h2>
+                            <div className="flex flex-col items-center gap-2">
+                                <p className="text-blue-400 font-mono text-sm animate-pulse">Constructing neural pathways...</p>
+                                <p className="text-purple-400 font-mono text-sm animate-pulse delay-75">Identifying key concepts...</p>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {step === "wizard" && currentWizardStep && (
+                        <motion.div
+                            key="wizard"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="w-full max-w-5xl mx-auto"
+                        >
+                            {/* Progress Bar */}
+                            <div className="mb-16 relative">
+                                <div className="flex justify-between text-xs font-mono text-slate-500 mb-4 uppercase tracking-wider">
+                                    <span>Configuration Sequence</span>
+                                    <span>Step {wizardStep + 1} / {wizardConfig.length}</span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-800/50 rounded-full overflow-hidden backdrop-blur-sm">
+                                    <motion.div
+                                        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-500"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${((wizardStep + 1) / wizardConfig.length) * 100}%` }}
+                                        transition={{ duration: 0.5 }}
+                                    />
+                                </div>
+                                {/* Glowing dot at the end of progress */}
+                                <motion.div
+                                    className="absolute top-7 h-4 w-4 bg-white rounded-full blur-sm shadow-[0_0_20px_white]"
+                                    style={{ left: `calc(${((wizardStep + 1) / wizardConfig.length) * 100}% - 8px)` }}
+                                    animate={{ left: `calc(${((wizardStep + 1) / wizardConfig.length) * 100}% - 8px)` }}
+                                />
+                            </div>
+
+                            <div className="min-h-[500px] flex flex-col justify-between">
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key={wizardStep}
+                                        initial={{ opacity: 0, x: 20, filter: "blur(10px)" }}
+                                        animate={{ opacity: 1, x: 0, filter: "blur(0px)" }}
+                                        exit={{ opacity: 0, x: -20, filter: "blur(10px)" }}
+                                        transition={{ duration: 0.4 }}
+                                        className="flex-1"
+                                    >
+                                        {/* QUESTION STEP */}
+                                        {currentWizardStep.type === 'question' && (
+                                            <div className="space-y-12">
+                                                <div className="text-center space-y-6">
+                                                    <div className="inline-flex p-4 rounded-3xl bg-blue-500/10 text-blue-400 mb-4 ring-1 ring-blue-500/20 shadow-[0_0_30px_-10px_rgba(59,130,246,0.3)]">
+                                                        <Target className="w-10 h-10" />
+                                                    </div>
+                                                    <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">{currentWizardStep.data.text}</h2>
+                                                    <p className="text-slate-400 text-xl">Select the option that best fits your goals.</p>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 gap-4 max-w-3xl mx-auto">
+                                                    {currentWizardStep.data.options.map((opt: string) => (
+                                                        <button
+                                                            key={opt}
+                                                            onClick={() => {
+                                                                setAnswers(prev => ({ ...prev, [currentWizardStep.data.id]: opt }));
+                                                                setTimeout(handleNext, 300);
+                                                            }}
+                                                            className={cn(
+                                                                "group relative w-full p-8 rounded-3xl border text-left transition-all duration-300 hover:scale-[1.02] overflow-hidden",
+                                                                answers[currentWizardStep.data.id] === opt
+                                                                    ? "bg-blue-600 border-blue-500 shadow-[0_0_50px_rgba(37,99,235,0.3)]"
+                                                                    : "bg-slate-900/40 border-slate-800 hover:bg-slate-800 hover:border-slate-600 backdrop-blur-sm"
+                                                            )}
+                                                        >
+                                                            <div className="flex items-center justify-between relative z-10">
+                                                                <span className={cn(
+                                                                    "text-xl font-bold transition-colors",
+                                                                    answers[currentWizardStep.data.id] === opt ? "text-white" : "text-slate-300 group-hover:text-white"
+                                                                )}>
+                                                                    {opt}
+                                                                </span>
+                                                                {answers[currentWizardStep.data.id] === opt && (
+                                                                    <motion.div
+                                                                        initial={{ scale: 0 }}
+                                                                        animate={{ scale: 1 }}
+                                                                        className="bg-white text-blue-600 rounded-full p-2 shadow-lg"
+                                                                    >
+                                                                        <Check className="w-5 h-5" />
+                                                                    </motion.div>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* DIFFICULTY STEP */}
+                                        {currentWizardStep.type === 'difficulty' && (
+                                            <div className="space-y-12">
+                                                <div className="text-center space-y-6">
+                                                    <div className="inline-flex p-4 rounded-3xl bg-purple-500/10 text-purple-400 mb-4 ring-1 ring-purple-500/20 shadow-[0_0_30px_-10px_rgba(168,85,247,0.3)]">
+                                                        <Shield className="w-10 h-10" />
+                                                    </div>
+                                                    <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">Select Intensity</h2>
+                                                    <p className="text-slate-400 text-xl">Choose your challenge level.</p>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                                    {currentWizardStep.data.map((diff: any) => (
+                                                        <TiltCard key={diff.level} className="h-full">
+                                                            <button
+                                                                onClick={() => setSelectedDifficulty(diff)}
+                                                                className={cn(
+                                                                    "relative p-8 rounded-3xl border text-left transition-all duration-300 flex flex-col h-full w-full overflow-hidden",
+                                                                    selectedDifficulty?.level === diff.level
+                                                                        ? "bg-purple-500/20 border-purple-500 shadow-[0_0_40px_rgba(168,85,247,0.2)]"
+                                                                        : "bg-slate-900/40 border-slate-800 hover:bg-slate-800 hover:border-slate-600 backdrop-blur-sm"
+                                                                )}
+                                                            >
+                                                                <div className="flex justify-between items-start mb-6">
+                                                                    <span className={cn("text-2xl font-black", selectedDifficulty?.level === diff.level ? "text-purple-400" : "text-white")}>
+                                                                        {diff.level}
+                                                                    </span>
+                                                                    <span className="text-xs font-mono bg-black/40 px-3 py-1.5 rounded-lg text-slate-300 border border-white/10">
+                                                                        {diff.xpMultiplier}x XP
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-base text-slate-400 leading-relaxed">{diff.description}</p>
+                                                            </button>
+                                                        </TiltCard>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* PERSONA STEP */}
+                                        {currentWizardStep.type === 'persona' && (
+                                            <div className="space-y-12">
+                                                <div className="text-center space-y-6">
+                                                    <div className="inline-flex p-4 rounded-3xl bg-emerald-500/10 text-emerald-400 mb-4 ring-1 ring-emerald-500/20 shadow-[0_0_30px_-10px_rgba(16,185,129,0.3)]">
+                                                        <Brain className="w-10 h-10" />
+                                                    </div>
+                                                    <h2 className="text-4xl md:text-6xl font-black text-white tracking-tight">Choose Your Guide</h2>
+                                                    <p className="text-slate-400 text-xl">Select an AI persona to lead your journey.</p>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                                    {currentWizardStep.data.map((persona: any) => (
+                                                        <TiltCard key={persona.id} className="h-full">
+                                                            <button
+                                                                onClick={() => setSelectedPersona(persona)}
+                                                                className={cn(
+                                                                    "relative p-8 rounded-3xl border text-left transition-all duration-300 flex flex-col h-full w-full overflow-hidden",
+                                                                    selectedPersona?.id === persona.id
+                                                                        ? "bg-emerald-500/20 border-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.2)]"
+                                                                        : "bg-slate-900/40 border-slate-800 hover:bg-slate-800 hover:border-slate-600 backdrop-blur-sm"
+                                                                )}
+                                                            >
+                                                                <div className="mb-6 p-4 rounded-2xl bg-white/5 w-fit border border-white/10">
+                                                                    {persona.icon === "Terminal" ? <Terminal className="w-8 h-8 text-emerald-400" /> :
+                                                                        persona.icon === "BookOpen" ? <BookOpen className="w-8 h-8 text-emerald-400" /> :
+                                                                            <Brain className="w-8 h-8 text-emerald-400" />}
+                                                                </div>
+                                                                <h3 className={cn("text-xl font-bold mb-3", selectedPersona?.id === persona.id ? "text-emerald-400" : "text-white")}>
+                                                                    {persona.name}
+                                                                </h3>
+                                                                <p className="text-sm text-slate-400 leading-relaxed">{persona.description}</p>
+                                                            </button>
+                                                        </TiltCard>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                </AnimatePresence>
+
+                                {/* Navigation Buttons */}
+                                <div className="flex justify-between items-center mt-20 pt-8 border-t border-slate-800/50">
+                                    <button
+                                        onClick={handleBack}
+                                        className="flex items-center gap-2 px-8 py-4 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-all font-medium text-lg"
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                        <span>Back</span>
+                                    </button>
+
+                                    <Button
+                                        onClick={handleNext}
+                                        disabled={isGenerating || (currentWizardStep.type === 'question' && !answers[currentWizardStep.data.id])}
+                                        size="lg"
+                                        className="h-16 px-10 text-xl rounded-2xl bg-white text-slate-950 hover:bg-slate-200 transition-all shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] font-bold"
+                                    >
+                                        {wizardStep === wizardConfig.length - 1 ? (
+                                            isGenerating ? (
+                                                <span className="flex items-center gap-3">
+                                                    <div className="w-6 h-6 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
+                                                    Initializing...
+                                                </span>
+                                            ) : (
+                                                <span className="flex items-center gap-3">
+                                                    <Rocket className="w-6 h-6" />
+                                                    Launch Protocol
+                                                </span>
+                                            )
+                                        ) : (
+                                            <span className="flex items-center gap-3">
+                                                Next Step
+                                                <ChevronRight className="w-6 h-6" />
+                                            </span>
+                                        )}
+                                    </Button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
-        </div>
+        </AuroraBackground>
     );
 }

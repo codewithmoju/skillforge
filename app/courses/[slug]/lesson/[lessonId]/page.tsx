@@ -3,19 +3,21 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle, Play, Code, MessageSquare, Zap, Layout, Terminal, Brain, Trophy, Star, Sparkles, Shield, Sword, Scroll, Gamepad2, Headphones } from "lucide-react";
+import { ArrowLeft, CheckCircle, Play, Code, MessageSquare, Zap, Layout, Terminal, Brain, Trophy, Star, Sparkles, Shield, Sword, Scroll, Gamepad2, Headphones, Bug, User, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { MermaidRenderer } from "@/components/lesson/MermaidRenderer";
 import ReactMarkdown from "react-markdown";
 import { userBehavior } from "@/lib/services/behavior";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { AISensei } from "@/components/lesson/AISensei";
 import { PodcastPlayer } from "@/components/lesson/PodcastPlayer";
 import { LessonSkeleton } from "@/components/lesson/LessonSkeleton";
 import { MagneticButton } from "@/components/ui/MagneticButton";
-import { ParallaxLayer } from "@/components/ui/ParallaxLayer";
 import { useSwipe } from "@/lib/hooks/useSwipe";
+import { useScrambleText } from "@/lib/hooks/useScrambleText";
 
 interface LessonContent {
     title: string;
@@ -23,6 +25,8 @@ interface LessonContent {
     diagram: string;
     sections: any[];
     bossChallenge: any;
+    cheatSheet?: string[];
+    metadata?: { personalized: boolean };
 }
 
 interface Theme {
@@ -40,16 +44,21 @@ export default function LessonPage() {
     const [loading, setLoading] = useState(true);
     const [activeSection, setActiveSection] = useState(0);
     const [userCode, setUserCode] = useState("");
-    const [feedback, setFeedback] = useState<string | null>(null);
+    const [feedbacks, setFeedbacks] = useState<Record<string, string>>({});
 
     // Parse lesson ID (format: moduleIdx-lessonIdx)
     const lessonId = params.lessonId as string;
     const slug = params.slug as string;
     const [moduleIdx, lessonIdx] = lessonId.split('-').map(Number);
 
+    // Always call hooks at the top level
+    const scrambledTitle = useScrambleText(content?.title || "", !loading && !!content);
+
     const [showVictory, setShowVictory] = useState(false);
     const [earnedBadges, setEarnedBadges] = useState<string[]>([]);
     const [theme, setTheme] = useState<Theme | null>(null);
+    const [hintIndex, setHintIndex] = useState(-1);
+    const [bossAttempts, setBossAttempts] = useState(0);
 
     // Track page view
     useEffect(() => {
@@ -73,16 +82,37 @@ export default function LessonPage() {
 
     useEffect(() => {
         const loadLesson = async () => {
-            // Get syllabus from local storage to get titles
+            // Get syllabus from local storage or Firestore
+            let syllabus = null;
             const stored = localStorage.getItem(`course-${slug}`);
-            if (!stored) return;
 
-            const syllabus = JSON.parse(stored);
+            if (stored) {
+                syllabus = JSON.parse(stored);
+            } else {
+                try {
+                    const courseDoc = await getDoc(doc(db, "courses", slug));
+                    if (courseDoc.exists()) {
+                        const data = courseDoc.data();
+                        syllabus = data.syllabus;
+                        localStorage.setItem(`course-${slug}`, JSON.stringify(syllabus));
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch course:", err);
+                }
+            }
+
+            if (!syllabus) {
+                console.error("Syllabus not found");
+                return;
+            }
+
             if (syllabus.theme) {
                 setTheme(syllabus.theme);
             }
-            const lessonTitle = syllabus.modules[moduleIdx].lessons[lessonIdx].title;
+            const lesson = syllabus.modules[moduleIdx].lessons[lessonIdx];
+            const lessonTitle = lesson.title;
             const moduleTitle = syllabus.modules[moduleIdx].title;
+            const objectives = lesson.objectives || [];
 
             // Check cache first
             const cacheKey = `lesson-${slug}-${moduleIdx}-${lessonIdx}`;
@@ -90,12 +120,25 @@ export default function LessonPage() {
 
             if (cachedContent) {
                 const parsed = JSON.parse(cachedContent);
-                // Only use cache if it has the new bossChallenge field
                 if (parsed.bossChallenge) {
                     setContent(parsed);
                     setLoading(false);
                     return;
                 }
+            }
+
+            // Check Firestore for lesson
+            try {
+                const lessonDoc = await getDoc(doc(db, "courses", slug, "lessons", `${moduleIdx}-${lessonIdx}`));
+                if (lessonDoc.exists()) {
+                    const data = lessonDoc.data();
+                    setContent(data as LessonContent);
+                    localStorage.setItem(cacheKey, JSON.stringify(data));
+                    setLoading(false);
+                    return;
+                }
+            } catch (err) {
+                console.error("Failed to fetch lesson from DB:", err);
             }
 
             try {
@@ -105,7 +148,10 @@ export default function LessonPage() {
                     body: JSON.stringify({
                         topic: syllabus.title,
                         lessonTitle,
-                        moduleTitle
+                        moduleTitle,
+                        objectives,
+                        courseId: slug,
+                        lessonId: `${moduleIdx}-${lessonIdx}`
                     })
                 });
                 const data = await res.json();
@@ -149,8 +195,10 @@ export default function LessonPage() {
             console.log(`🚀 Prefetching next lesson: ${nextModuleIdx}-${nextLessonIdx}`);
 
             try {
-                const nextLessonTitle = syllabus.modules[nextModuleIdx].lessons[nextLessonIdx].title;
+                const nextLesson = syllabus.modules[nextModuleIdx].lessons[nextLessonIdx];
+                const nextLessonTitle = nextLesson.title;
                 const nextModuleTitle = syllabus.modules[nextModuleIdx].title;
+                const nextObjectives = nextLesson.objectives || [];
 
                 const res = await fetch('/api/courses/generate-lesson', {
                     method: 'POST',
@@ -158,7 +206,10 @@ export default function LessonPage() {
                     body: JSON.stringify({
                         topic: syllabus.title,
                         lessonTitle: nextLessonTitle,
-                        moduleTitle: nextModuleTitle
+                        moduleTitle: nextModuleTitle,
+                        objectives: nextObjectives,
+                        courseId: slug,
+                        lessonId: `${nextModuleIdx}-${nextLessonIdx}`
                     })
                 });
                 const data = await res.json();
@@ -181,24 +232,25 @@ export default function LessonPage() {
     const [adaptiveContent, setAdaptiveContent] = useState<any>(null);
     const [showAdaptiveModal, setShowAdaptiveModal] = useState(false);
     const [isEvolving, setIsEvolving] = useState(false);
-    const [showPodcast, setShowPodcast] = useState(false);
-    const [podcastScript, setPodcastScript] = useState(null);
-    const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false);
+
+
+
 
     useSwipe({
         onSwipeRight: () => router.back(),
         threshold: 100 // Higher threshold to prevent accidental swipes
     });
 
-    const handleInteraction = (input: string, answer: string) => {
+    const handleInteraction = (input: string, answer: string, sectionKey: string | number) => {
         const isCorrect = input.toLowerCase().trim() === answer.toLowerCase().trim() || input.toLowerCase().includes(answer.toLowerCase());
+        const key = String(sectionKey);
 
         if (isCorrect) {
-            setFeedback("Correct! Access Granted.");
+            setFeedbacks(prev => ({ ...prev, [key]: "Correct! Access Granted." }));
             setConsecutivePerfects(prev => prev + 1);
             setConsecutiveFailures(0);
         } else {
-            setFeedback("Access Denied. Protocol Mismatch.");
+            setFeedbacks(prev => ({ ...prev, [key]: "Access Denied. Protocol Mismatch." }));
             setConsecutiveFailures(prev => prev + 1);
             setConsecutivePerfects(0);
 
@@ -227,6 +279,9 @@ export default function LessonPage() {
                     const data = await res.json();
                     localStorage.setItem(`course-${slug}`, JSON.stringify(data.syllabus));
                     window.location.reload();
+                } else {
+                    console.error("Failed to evolve syllabus: API Error");
+                    setIsEvolving(false);
                 }
             } catch (err) {
                 console.error("Failed to evolve syllabus:", err);
@@ -234,37 +289,6 @@ export default function LessonPage() {
             }
         }
     };
-
-    const handlePodcast = async () => {
-        if (podcastScript) {
-            setShowPodcast(true);
-            return;
-        }
-
-        setIsGeneratingPodcast(true);
-        try {
-            const fullContent = content?.sections.map((s: any) => s.content).join("\n\n");
-            const res = await fetch('/api/ai/podcast-script', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: content?.title,
-                    content: fullContent
-                })
-            });
-            const data = await res.json();
-            if (data.script) {
-                setPodcastScript(data.script);
-                setShowPodcast(true);
-            }
-        } catch (err) {
-            console.error("Podcast error:", err);
-        } finally {
-            setIsGeneratingPodcast(false);
-        }
-    };
-
-
 
     const handleComplete = () => {
         // Track lesson completion
@@ -329,43 +353,45 @@ export default function LessonPage() {
                 .animation-delay-4000 {
                     animation-delay: 4s;
                 }
+                /* Aurora Animation */
+                @keyframes aurora {
+                    0% { background-position: 50% 50%, 50% 50%; }
+                    100% { background-position: 350% 50%, 350% 50%; }
+                }
+                .animate-aurora {
+                    animation: aurora 60s linear infinite;
+                }
             `}</style>
 
-            {/* Immersive Dynamic Background - Aurora & Nebula Effect */}
+            {/* Immersive Aurora Background */}
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-                {/* Deep Space Base */}
-                <div className="absolute inset-0 transition-colors duration-1000"
-                    style={{ background: `radial-gradient(circle at 50% 50%, ${backgroundColor}, #000000)` }}
+                <div className="absolute inset-0 bg-[#030014]" />
+                <div
+                    className="absolute inset-[-50%] opacity-40 animate-aurora mix-blend-screen"
+                    style={{
+                        backgroundImage: `
+                            repeating-linear-gradient(100deg, ${primaryColor}00 10%, ${primaryColor}1A 20%, ${secondaryColor}1A 30%, ${accentColor}00 40%),
+                            repeating-linear-gradient(180deg, ${secondaryColor}00 10%, ${accentColor}1A 20%, ${primaryColor}1A 30%, ${secondaryColor}00 40%)
+                        `,
+                        backgroundSize: '200% 200%'
+                    }}
                 />
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
+                <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay" />
 
-                {/* Animated Aurora Gradients */}
-                <ParallaxLayer speed={-0.1} className="absolute inset-0 opacity-40 mix-blend-screen">
-                    <div className="absolute top-[-50%] left-[-20%] w-[150vw] h-[150vw] rounded-full blur-[150px] animate-blob"
-                        style={{ background: `conic-gradient(from 0deg, ${primaryColor}, ${secondaryColor}, ${primaryColor})` }}
-                    />
-                </ParallaxLayer>
-
-                <ParallaxLayer speed={-0.2} className="absolute inset-0 opacity-30 mix-blend-screen">
-                    <div className="absolute bottom-[-50%] right-[-20%] w-[150vw] h-[150vw] rounded-full blur-[180px] animate-blob animation-delay-4000"
-                        style={{ background: `conic-gradient(from 180deg, ${secondaryColor}, ${accentColor}, ${secondaryColor})` }}
-                    />
-                </ParallaxLayer>
-
-                {/* Floating Orbs */}
-                <ParallaxLayer speed={-0.15} className="absolute inset-0">
-                    <div className="absolute top-[20%] right-[10%] w-96 h-96 rounded-full blur-[120px] animate-pulse-slow"
-                        style={{ backgroundColor: `${accentColor}40` }}
-                    />
-                    <div className="absolute bottom-[20%] left-[10%] w-80 h-80 rounded-full blur-[100px] animate-pulse-slow animation-delay-2000"
-                        style={{ backgroundColor: `${primaryColor}40` }}
-                    />
-                </ParallaxLayer>
-
-                {/* Texture Overlays */}
-                <ParallaxLayer speed={-0.05} className="absolute inset-0">
-                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.08]" />
-                    <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03] mix-blend-overlay" />
-                </ParallaxLayer>
+                {/* Floating Geometric Shapes */}
+                <motion.div
+                    className="absolute top-20 right-[10%] w-96 h-96 opacity-20 blur-3xl rounded-full"
+                    style={{ background: `radial-gradient(circle, ${primaryColor}, transparent)` }}
+                    animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
+                    transition={{ duration: 20, repeat: Infinity }}
+                />
+                <motion.div
+                    className="absolute bottom-20 left-[10%] w-[30rem] h-[30rem] opacity-10 blur-3xl rounded-full"
+                    style={{ background: `radial-gradient(circle, ${secondaryColor}, transparent)` }}
+                    animate={{ scale: [1.2, 1, 1.2], rotate: [0, -90, 0] }}
+                    transition={{ duration: 25, repeat: Infinity }}
+                />
             </div>
 
             {/* Gamified Header */}
@@ -375,15 +401,10 @@ export default function LessonPage() {
                 <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <MagneticButton
-                            onClick={handlePodcast}
-                            disabled={isGeneratingPodcast}
+                            onClick={() => router.push(`/courses/${slug}/lesson/${lessonId}/podcast`)}
                             className="flex items-center gap-2 px-4 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-300"
                         >
-                            {isGeneratingPodcast ? (
-                                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <Headphones className="w-5 h-5" />
-                            )}
+                            <Headphones className="w-5 h-5" />
                             <span className="hidden sm:inline">Podcast Mode</span>
                         </MagneticButton>
                         <MagneticButton
@@ -429,20 +450,34 @@ export default function LessonPage() {
                         initial={{ y: -10, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
                         transition={{ delay: 0.1 }}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.2em] mb-8 border backdrop-blur-sm"
-                        style={{
-                            backgroundColor: `${primaryColor}1A`,
-                            color: primaryColor,
-                            borderColor: `${primaryColor}33`,
-                            boxShadow: `0 0 30px ${primaryColor}33`
-                        }}
+                        className="flex flex-col items-center gap-4 mb-8"
                     >
-                        <Gamepad2 className="w-4 h-4" /> Mission Start
+                        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-[0.2em] border backdrop-blur-sm"
+                            style={{
+                                backgroundColor: `${primaryColor}1A`,
+                                color: primaryColor,
+                                borderColor: `${primaryColor}33`,
+                                boxShadow: `0 0 30px ${primaryColor}33`
+                            }}
+                        >
+                            <Gamepad2 className="w-4 h-4" /> Mission Start
+                        </div>
+                        {content.metadata?.personalized && (
+                            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border backdrop-blur-sm"
+                                style={{
+                                    backgroundColor: `${accentColor}1A`,
+                                    color: accentColor,
+                                    borderColor: `${accentColor}33`
+                                }}
+                            >
+                                <User className="w-3 h-3" /> Personalized For You
+                            </div>
+                        )}
                     </motion.div>
                     <h1 className="text-6xl md:text-8xl font-black text-transparent bg-clip-text mb-8 tracking-tight drop-shadow-[0_0_30px_rgba(255,255,255,0.1)] leading-[1.1]"
                         style={{ backgroundImage: `linear-gradient(to bottom, white, ${primaryColor}33, ${primaryColor}80)` }}
                     >
-                        {content.title}
+                        {scrambledTitle}
                     </h1>
                     <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto leading-relaxed font-light">
                         Prepare to download new knowledge into your neural network.
@@ -457,18 +492,29 @@ export default function LessonPage() {
                     transition={{ duration: 0.5, ease: "easeOut" }}
                     className="mb-24 relative group"
                 >
-                    <div className="absolute -inset-0.5 rounded-[2.5rem] opacity-30 group-hover:opacity-50 blur-xl transition duration-1000"
-                        style={{ background: `linear-gradient(to right, ${primaryColor}, ${secondaryColor}, ${accentColor})` }}
+                    {/* Holographic Border */}
+                    <div className="absolute -inset-[2px] rounded-[2.5rem] opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                        style={{
+                            background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor}, ${accentColor}, ${primaryColor})`,
+                            backgroundSize: '200% 100%',
+                            animation: 'aurora 2s linear infinite'
+                        }}
                     />
-                    <div className="relative p-10 md:p-12 rounded-[2.2rem] border border-white/10 backdrop-blur-2xl overflow-hidden shadow-2xl"
-                        style={{ backgroundColor: `${backgroundColor}E6` }}
+
+                    <div className="relative p-10 md:p-12 rounded-[2.4rem] border border-white/10 backdrop-blur-2xl overflow-hidden shadow-2xl transition-all duration-500"
+                        style={{
+                            backgroundColor: `${backgroundColor}CC`,
+                            boxShadow: `0 0 40px -10px ${primaryColor}4D`
+                        }}
                     >
+                        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-[0.03]" />
+
                         <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
                             <Brain className="w-64 h-64 text-white" />
                         </div>
 
-                        <div className="flex items-center gap-4 mb-8">
-                            <div className="p-3.5 rounded-2xl border shadow-[0_0_20px_rgba(0,0,0,0.1)]"
+                        <div className="flex items-center gap-4 mb-8 relative z-10">
+                            <div className="p-3.5 rounded-2xl border shadow-[0_0_20px_rgba(0,0,0,0.1)] backdrop-blur-md"
                                 style={{ backgroundColor: `${primaryColor}1A`, color: primaryColor, borderColor: `${primaryColor}33` }}
                             >
                                 <Scroll className="w-6 h-6" />
@@ -479,11 +525,11 @@ export default function LessonPage() {
                             </div>
                         </div>
 
-                        <div className="prose prose-invert prose-lg max-w-none">
-                            <p className="text-3xl text-slate-200 italic font-light leading-relaxed mb-8 relative z-10">
+                        <div className="prose prose-invert prose-lg max-w-none relative z-10">
+                            <p className="text-3xl text-slate-200 italic font-light leading-relaxed mb-8">
                                 "{content.analogy.story}"
                             </p>
-                            <div className="flex items-start gap-5 p-6 rounded-2xl border relative overflow-hidden"
+                            <div className="flex items-start gap-5 p-6 rounded-2xl border relative overflow-hidden backdrop-blur-md"
                                 style={{ backgroundColor: `${primaryColor}0D`, borderColor: `${primaryColor}1A` }}
                             >
                                 <div className="absolute inset-0 animate-pulse" style={{ backgroundColor: `${primaryColor}0D` }} />
@@ -527,7 +573,6 @@ export default function LessonPage() {
                     </motion.div>
                 )}
 
-                {/* Quest Steps (Sections) */}
                 <div className="space-y-32">
                     {content.sections.map((section: any, idx: number) => (
                         <motion.div
@@ -539,10 +584,10 @@ export default function LessonPage() {
                             className="relative"
                             onViewportEnter={() => setActiveSection(idx)}
                         >
-                            {/* Connector Line */}
+                            {/* Connector Line - Fixed Alignment */}
                             {idx !== content.sections.length - 1 && (
-                                <div className="absolute left-[2.25rem] top-24 bottom-[-8rem] w-0.5 -z-10 md:left-[3.25rem]"
-                                    style={{ background: `linear-gradient(to bottom, ${primaryColor}4D, ${primaryColor}1A, transparent)` }}
+                                <div className="absolute left-[2.5rem] top-24 bottom-[-8rem] w-0.5 -z-10 md:left-[2.5rem]"
+                                    style={{ background: `linear-gradient(to bottom, ${primaryColor}80, ${primaryColor}33, transparent)` }}
                                 />
                             )}
 
@@ -580,11 +625,25 @@ export default function LessonPage() {
                                             backgroundColor: `${backgroundColor}CC`,
                                             borderColor: `${primaryColor}4D`,
                                             boxShadow: `0 0 50px ${primaryColor}1A`
-                                        } : {}}
+                                        } : {
+                                            backgroundColor: `${backgroundColor}66`,
+                                            borderColor: 'rgba(255,255,255,0.05)'
+                                        }}
                                     >
-                                        {/* Hover Glow */}
-                                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
-                                            style={{ background: `linear-gradient(to bottom right, ${primaryColor}0D, ${secondaryColor}0D, ${accentColor}0D)` }}
+                                        {/* Noise Texture */}
+                                        <div className="absolute inset-0 opacity-[0.03] bg-[url('/noise.svg')]" />
+
+                                        {/* Holographic Border on Hover */}
+                                        <div className="absolute -inset-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                                            style={{
+                                                background: `linear-gradient(90deg, ${primaryColor}, ${secondaryColor}, ${accentColor}, ${primaryColor})`,
+                                                backgroundSize: '200% 100%',
+                                                animation: 'aurora 2s linear infinite',
+                                                mask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                                                maskComposite: 'exclude',
+                                                WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+                                                WebkitMaskComposite: 'xor'
+                                            }}
                                         />
 
                                         {section.type === 'text' && (
@@ -654,6 +713,129 @@ export default function LessonPage() {
                                             </div>
                                         )}
 
+                                        {section.type === 'simulation' && (
+                                            <div className="relative z-10">
+                                                <div className="rounded-[2rem] border overflow-hidden backdrop-blur-md"
+                                                    style={{ backgroundColor: `${backgroundColor}CC`, borderColor: `${primaryColor}33` }}
+                                                >
+                                                    <div className="px-8 py-6 border-b flex items-center justify-between"
+                                                        style={{ backgroundColor: `${primaryColor}0D`, borderColor: `${primaryColor}1A` }}
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}1A` }}>
+                                                                <Gamepad2 className="w-5 h-5" style={{ color: primaryColor }} />
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-bold uppercase tracking-widest opacity-70">Simulation Protocol</div>
+                                                                <div className="font-bold text-white">{section.title}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border"
+                                                            style={{ borderColor: `${primaryColor}33`, color: primaryColor }}
+                                                        >
+                                                            Active
+                                                        </div>
+                                                    </div>
+                                                    <div className="p-8 space-y-6">
+                                                        <div className="flex gap-4">
+                                                            <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border"
+                                                                style={{ backgroundColor: `${secondaryColor}1A`, borderColor: `${secondaryColor}33` }}
+                                                            >
+                                                                <User className="w-6 h-6" style={{ color: secondaryColor }} />
+                                                            </div>
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="text-xs font-bold uppercase tracking-widest opacity-50">Role: {section.role}</div>
+                                                                <div className="text-lg text-slate-200 leading-relaxed font-light">"{section.scenario}"</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="p-6 rounded-xl border border-dashed flex items-start gap-4"
+                                                            style={{ borderColor: `${accentColor}33`, backgroundColor: `${accentColor}05` }}
+                                                        >
+                                                            <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: accentColor }} />
+                                                            <div>
+                                                                <div className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: accentColor }}>Objective</div>
+                                                                <div className="text-slate-300">{section.objective}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {section.type === 'debug' && (
+                                            <div className="relative z-10">
+                                                <div className="rounded-[2rem] border overflow-hidden backdrop-blur-md"
+                                                    style={{ backgroundColor: `${backgroundColor}CC`, borderColor: 'rgba(239, 68, 68, 0.2)' }}
+                                                >
+                                                    <div className="px-8 py-6 border-b flex items-center gap-3 bg-red-500/5 border-red-500/10">
+                                                        <Bug className="w-5 h-5 text-red-400" />
+                                                        <span className="font-bold text-red-100">Bug Hunt Challenge</span>
+                                                    </div>
+                                                    <div className="p-8">
+                                                        <p className="text-slate-300 mb-6">{section.description}</p>
+                                                        <div className="relative rounded-xl overflow-hidden border border-red-500/20 mb-6">
+                                                            <div className="absolute top-0 right-0 px-3 py-1 bg-red-500/20 text-red-300 text-[10px] font-bold uppercase tracking-widest rounded-bl-xl">
+                                                                Buggy Code
+                                                            </div>
+                                                            <pre className="bg-[#05050a] p-6 text-sm font-mono text-red-100/80 overflow-x-auto">
+                                                                <code>{section.buggyCode}</code>
+                                                            </pre>
+                                                        </div>
+
+                                                        <details className="group/details">
+                                                            <summary className="flex items-center gap-2 cursor-pointer text-sm font-bold uppercase tracking-widest select-none transition-colors hover:text-white"
+                                                                style={{ color: primaryColor }}
+                                                            >
+                                                                <ChevronDown className="w-4 h-4 transition-transform group-open/details:rotate-180" />
+                                                                Reveal Solution
+                                                            </summary>
+                                                            <div className="mt-6 pt-6 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                <div className="rounded-xl overflow-hidden border border-green-500/20 mb-4">
+                                                                    <div className="absolute top-0 right-0 px-3 py-1 bg-green-500/20 text-green-300 text-[10px] font-bold uppercase tracking-widest rounded-bl-xl z-10">
+                                                                        Fixed Code
+                                                                    </div>
+                                                                    <pre className="bg-[#05050a] p-6 text-sm font-mono text-green-100/80 overflow-x-auto relative">
+                                                                        <code>{section.solution}</code>
+                                                                    </pre>
+                                                                </div>
+                                                                <p className="text-slate-400 text-sm leading-relaxed border-l-2 pl-4" style={{ borderColor: primaryColor }}>
+                                                                    <strong className="text-white block mb-1">Analysis:</strong>
+                                                                    {section.explanation}
+                                                                </p>
+                                                            </div>
+                                                        </details>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {section.type === 'deep_dive' && (
+                                            <div className="relative z-10">
+                                                <details className="group/deep-dive">
+                                                    <summary className="list-none">
+                                                        <div className="p-6 rounded-2xl border cursor-pointer transition-all duration-300 hover:bg-white/5 flex items-center justify-between group-open/deep-dive:rounded-b-none group-open/deep-dive:bg-white/5"
+                                                            style={{ borderColor: `${primaryColor}33`, backgroundColor: `${primaryColor}05` }}
+                                                        >
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="p-2 rounded-lg" style={{ backgroundColor: `${primaryColor}1A` }}>
+                                                                    <Brain className="w-5 h-5" style={{ color: primaryColor }} />
+                                                                </div>
+                                                                <span className="font-bold text-lg text-white">Deep Dive: {section.title}</span>
+                                                            </div>
+                                                            <ChevronDown className="w-5 h-5 text-slate-400 transition-transform group-open/deep-dive:rotate-180" />
+                                                        </div>
+                                                    </summary>
+                                                    <div className="p-8 border-x border-b rounded-b-2xl backdrop-blur-sm"
+                                                        style={{ borderColor: `${primaryColor}33`, backgroundColor: `${backgroundColor}CC` }}
+                                                    >
+                                                        <div className="prose prose-invert prose-sm max-w-none">
+                                                            <ReactMarkdown>{section.content}</ReactMarkdown>
+                                                        </div>
+                                                    </div>
+                                                </details>
+                                            </div>
+                                        )}
+
                                         {section.type === 'interactive' && (
                                             <div className="relative z-10">
                                                 <div className="rounded-[2.5rem] p-[2px] shadow-[0_0_40px_rgba(0,0,0,0.2)]"
@@ -667,64 +849,77 @@ export default function LessonPage() {
                                                             style={{ backgroundColor: `${primaryColor}33` }}
                                                         />
 
-                                                        <div className="flex items-center gap-5 mb-10 relative">
-                                                            <div className="p-4 rounded-2xl text-white shadow-lg"
-                                                                style={{ backgroundColor: primaryColor, boxShadow: `0 0 20px ${primaryColor}4D` }}
+                                                        <div className="flex items-center gap-8 mb-12 relative">
+                                                            <div className="p-5 rounded-2xl text-white shadow-[0_0_30px_rgba(0,0,0,0.3)] border border-white/10 backdrop-blur-md relative overflow-hidden group/icon"
+                                                                style={{ backgroundColor: `${primaryColor}CC`, boxShadow: `0 0 30px ${primaryColor}66` }}
                                                             >
-                                                                <Sword className="w-8 h-8" />
+                                                                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover/icon:opacity-100 transition-opacity" />
+                                                                <Sword className="w-10 h-10 relative z-10" />
                                                             </div>
                                                             <div>
-                                                                <h4 className="text-2xl font-black text-white uppercase italic tracking-wider">Challenge Encounter</h4>
+                                                                <h4 className="text-3xl font-black text-white uppercase italic tracking-widest drop-shadow-lg"
+                                                                    style={{ textShadow: `0 0 20px ${primaryColor}80` }}
+                                                                >
+                                                                    Boss Challenge
+                                                                </h4>
+                                                                <p className="text-xs font-mono uppercase tracking-[0.3em] mt-2 opacity-80" style={{ color: accentColor }}>
+                                                                    // Protocol: Elimination
+                                                                </p>
                                                             </div>
                                                         </div>
 
-                                                        <p className="text-2xl text-slate-200 mb-10 font-medium leading-relaxed">{section.question}</p>
+                                                        <p className="text-3xl text-slate-100 mb-14 font-light leading-relaxed tracking-wide border-l-4 pl-8 py-2"
+                                                            style={{ borderColor: primaryColor }}
+                                                        >
+                                                            {section.question}
+                                                        </p>
 
                                                         {section.interactionType === 'fill-in-blank' && (
                                                             <div className="space-y-10">
-                                                                <div className="p-10 bg-[#05050a] rounded-3xl font-mono text-xl border border-slate-800/50 shadow-inner flex flex-wrap items-center gap-4 leading-loose relative overflow-hidden">
-                                                                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.03]" />
-                                                                    {section.codeContext.split('______').map((part: string, i: number) => (
+                                                                <div className="p-12 bg-[#05050a]/80 rounded-[2rem] font-mono text-2xl border border-slate-800/50 shadow-inner flex flex-wrap items-center gap-x-6 gap-y-8 leading-loose relative overflow-hidden backdrop-blur-sm">
+                                                                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
+                                                                    {section.codeContext.split(/_{3,}/).map((part: string, i: number) => (
                                                                         <span key={i} className="text-slate-300 relative z-10">
                                                                             {part}
                                                                             {i === 0 && (
                                                                                 <span className="relative inline-block mx-2 group/input">
                                                                                     <input
                                                                                         type="text"
-                                                                                        className="border-b-2 text-white px-6 py-2 focus:outline-none transition-all w-48 text-center font-bold rounded-t-lg"
+                                                                                        className="border-b-4 text-white px-8 py-3 focus:outline-none transition-all w-64 text-center font-bold rounded-t-xl bg-white/5 focus:bg-white/10"
                                                                                         style={{
-                                                                                            backgroundColor: `${primaryColor}1A`,
                                                                                             borderColor: primaryColor,
-                                                                                            '--placeholder-color': `${primaryColor}4D`
-                                                                                        } as any}
+                                                                                            boxShadow: `0 10px 30px -10px ${primaryColor}33`
+                                                                                        }}
                                                                                         placeholder="???"
                                                                                         onKeyDown={(e) => {
                                                                                             if (e.key === 'Enter') {
-                                                                                                handleInteraction((e.target as HTMLInputElement).value, section.answer);
+                                                                                                handleInteraction((e.target as HTMLInputElement).value, section.answer, idx);
                                                                                             }
                                                                                         }}
                                                                                     />
-                                                                                    <div className="absolute -bottom-8 left-0 right-0 text-[10px] text-center uppercase tracking-[0.2em] font-bold opacity-0 group-focus-within/input:opacity-100 transition-opacity"
+                                                                                    <div className="absolute -bottom-10 left-0 right-0 text-[10px] text-center uppercase tracking-[0.2em] font-bold opacity-0 group-focus-within/input:opacity-100 transition-all duration-500 transform translate-y-2 group-focus-within/input:translate-y-0"
                                                                                         style={{ color: primaryColor }}
-                                                                                    >Type & Enter</div>
+                                                                                    >
+                                                                                        Press Enter
+                                                                                    </div>
                                                                                 </span>
                                                                             )}
                                                                         </span>
                                                                     ))}
                                                                 </div>
-                                                                {feedback && (
+                                                                {feedbacks[idx] && (
                                                                     <motion.div
                                                                         initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                                                         animate={{ opacity: 1, scale: 1, y: 0 }}
                                                                         className={cn(
                                                                             "flex items-center gap-4 text-lg font-bold px-8 py-5 rounded-2xl w-full justify-center shadow-2xl border backdrop-blur-md",
-                                                                            feedback.includes("Correct")
+                                                                            feedbacks[idx].includes("Correct")
                                                                                 ? "bg-green-500/10 text-green-400 border-green-500/30 shadow-green-500/10"
                                                                                 : "bg-red-500/10 text-red-400 border-red-500/30 shadow-red-500/10"
                                                                         )}
                                                                     >
-                                                                        {feedback.includes("Correct") ? <Trophy className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
-                                                                        {feedback}
+                                                                        {feedbacks[idx].includes("Correct") ? <Trophy className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                                                                        {feedbacks[idx]}
                                                                     </motion.div>
                                                                 )}
                                                             </div>
@@ -740,6 +935,37 @@ export default function LessonPage() {
                     ))}
                 </div>
 
+                {/* Cheat Sheet Section */}
+                {content.cheatSheet && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="mb-32 max-w-3xl mx-auto"
+                    >
+                        <div className="rounded-[2rem] border overflow-hidden backdrop-blur-md"
+                            style={{ backgroundColor: `${backgroundColor}CC`, borderColor: `${primaryColor}33` }}
+                        >
+                            <div className="px-8 py-6 border-b flex items-center gap-3"
+                                style={{ backgroundColor: `${primaryColor}0D`, borderColor: `${primaryColor}1A` }}
+                            >
+                                <Scroll className="w-5 h-5" style={{ color: primaryColor }} />
+                                <span className="font-bold text-white uppercase tracking-widest text-sm">Mission Cheat Sheet</span>
+                            </div>
+                            <div className="p-8">
+                                <ul className="space-y-4">
+                                    {content.cheatSheet.map((item: string, i: number) => (
+                                        <li key={i} className="flex items-start gap-4 text-slate-300">
+                                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: accentColor, boxShadow: `0 0 10px ${accentColor}` }} />
+                                            <span className="leading-relaxed">{item}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
                 {/* Boss Challenge Section */}
                 {content.bossChallenge && (
                     <motion.div
@@ -749,8 +975,8 @@ export default function LessonPage() {
                         className="mb-32 relative z-10"
                     >
                         <div className="absolute inset-0 bg-red-500/10 blur-3xl rounded-full" />
-                        <div className="relative p-1 rounded-[2.5rem] bg-gradient-to-br from-red-500 to-orange-600 shadow-[0_0_50px_rgba(239,68,68,0.3)]">
-                            <div className="bg-[#0a0a16] rounded-[2.4rem] p-10 md:p-16 overflow-hidden relative">
+                        <div className="relative p-[1px] rounded-[2.5rem] bg-gradient-to-b from-red-500 to-orange-600 shadow-[0_0_100px_rgba(239,68,68,0.2)]">
+                            <div className="bg-[#050505]/90 backdrop-blur-3xl rounded-[2.5rem] p-10 md:p-20 overflow-hidden relative">
                                 <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
                                 <div className="relative z-10 text-center">
                                     <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 font-black uppercase tracking-widest mb-8 animate-pulse">
@@ -762,39 +988,93 @@ export default function LessonPage() {
                                     <p className="text-xl text-slate-300 mb-12 max-w-2xl mx-auto leading-relaxed">
                                         {content.bossChallenge.description}
                                     </p>
-
-                                    <div className="bg-black/50 rounded-2xl border border-white/10 p-8 text-left mb-12 relative overflow-hidden group">
-                                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                        <h4 className="text-red-400 font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                                            <Terminal className="w-5 h-5" /> Mission Objective
-                                        </h4>
-                                        <p className="text-lg text-white font-mono leading-relaxed">
-                                            {content.bossChallenge.question}
-                                        </p>
-                                    </div>
-
                                     {/* Boss Interaction */}
-                                    <div className="max-w-xl mx-auto relative">
-                                        <input
-                                            type="text"
+                                    <div className="max-w-xl mx-auto relative group/input">
+                                        <div className="absolute -inset-1 bg-gradient-to-r from-red-500 to-orange-600 rounded-2xl opacity-20 group-hover/input:opacity-40 blur transition-opacity duration-500" />
+                                        <textarea
                                             placeholder="Enter solution protocol..."
-                                            className="w-full bg-white/5 border-2 border-white/10 rounded-2xl px-8 py-5 text-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 focus:bg-white/10 transition-all text-center font-mono"
+                                            className="w-full bg-[#0a0a16]/80 border-2 border-red-500/30 rounded-2xl px-8 py-6 text-xl text-white placeholder:text-slate-600 focus:outline-none focus:border-red-500 focus:bg-[#0a0a16] transition-all text-center font-mono relative z-10 shadow-[0_0_30px_rgba(239,68,68,0.1)] focus:shadow-[0_0_50px_rgba(239,68,68,0.2)] min-h-[150px] resize-none"
                                             onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    const val = (e.target as HTMLInputElement).value;
-                                                    if (val.toLowerCase().includes(content.bossChallenge.answer.toLowerCase())) {
+                                                if (e.key === 'Enter' && e.ctrlKey) {
+                                                    const val = (e.target as HTMLTextAreaElement).value;
+                                                    // Normalize whitespace: replace newlines and multiple spaces with single space
+                                                    const normalizedInput = val.replace(/\s+/g, ' ').trim().toLowerCase();
+                                                    const normalizedAnswer = content.bossChallenge.answer.replace(/\s+/g, ' ').trim().toLowerCase();
+
+                                                    if (normalizedInput.includes(normalizedAnswer)) {
                                                         handleComplete();
                                                     } else {
-                                                        setFeedback("Access Denied. Protocol Mismatch.");
-                                                        handleQuizComplete(0);
+                                                        setFeedbacks(prev => ({ ...prev, 'boss': "Access Denied. Protocol Mismatch." }));
+                                                        setBossAttempts(prev => prev + 1);
                                                     }
                                                 }
                                             }}
                                         />
-                                        <div className="mt-4 text-sm text-slate-500 uppercase tracking-widest font-bold">
-                                            Press Enter to Execute
+                                        <div className="absolute -bottom-8 left-0 right-0 text-xs text-red-500/60 uppercase tracking-[0.3em] font-bold opacity-0 group-focus-within/input:opacity-100 transition-all duration-500 transform translate-y-2 group-focus-within/input:translate-y-0">
+                                            Press Ctrl + Enter to Execute
                                         </div>
                                     </div>
+                                    {feedbacks['boss'] && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            className={cn(
+                                                "flex items-center gap-4 text-lg font-bold px-8 py-5 rounded-2xl w-full justify-center shadow-2xl border backdrop-blur-md mt-8",
+                                                feedbacks['boss'].includes("Correct") || feedbacks['boss'].includes("Granted")
+                                                    ? "bg-green-500/10 text-green-400 border-green-500/30 shadow-green-500/10"
+                                                    : "bg-red-500/10 text-red-400 border-red-500/30 shadow-red-500/10"
+                                            )}
+                                        >
+                                            {feedbacks['boss'].includes("Correct") || feedbacks['boss'].includes("Granted") ? <Trophy className="w-6 h-6" /> : <Zap className="w-6 h-6" />}
+                                            {feedbacks['boss']}
+                                        </motion.div>
+                                    )}
+
+                                    {/* Progressive Hints */}
+                                    {content.bossChallenge.hints && content.bossChallenge.hints.length > 0 && (
+                                        <div className="mt-8">
+                                            <div className="flex flex-col items-center gap-4">
+                                                {hintIndex < content.bossChallenge.hints.length - 1 && (
+                                                    <button
+                                                        onClick={() => setHintIndex(prev => prev + 1)}
+                                                        className="text-sm font-bold uppercase tracking-widest text-slate-500 hover:text-white transition-colors flex items-center gap-2"
+                                                    >
+                                                        <Sparkles className="w-4 h-4" />
+                                                        Need a Hint? ({content.bossChallenge.hints.length - 1 - hintIndex} remaining)
+                                                    </button>
+                                                )}
+
+                                                <div className="space-y-4 w-full max-w-lg">
+                                                    {content.bossChallenge.hints.slice(0, hintIndex + 1).map((hint: string, i: number) => (
+                                                        <motion.div
+                                                            key={i}
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-sm text-center"
+                                                        >
+                                                            <span className="font-bold mr-2">Hint {i + 1}:</span> {hint}
+                                                        </motion.div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Skip Button (After 3 fails) */}
+                                    {bossAttempts >= 3 && (
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="mt-8 text-center"
+                                        >
+                                            <button
+                                                onClick={handleComplete}
+                                                className="text-sm text-slate-500 hover:text-white underline decoration-dotted underline-offset-4 transition-colors"
+                                            >
+                                                Skip Mission (Protocol Override)
+                                            </button>
+                                        </motion.div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -813,7 +1093,7 @@ export default function LessonPage() {
                             className="group relative px-16 py-10 text-white rounded-full text-2xl font-black uppercase tracking-[0.2em] transition-all duration-500 hover:-translate-y-1 overflow-hidden"
                             style={{
                                 backgroundColor: primaryColor,
-                                boxShadow: `0 0 50px ${primaryColor}66`
+                                boxShadow: `0 0 50px ${primaryColor} 66`
                             }}
                         >
                             <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
@@ -829,110 +1109,106 @@ export default function LessonPage() {
 
             {/* Victory Overlay */}
             <AnimatePresence>
-                {
-                    showVictory && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[100] bg-[#030014]/95 backdrop-blur-2xl flex items-center justify-center p-6"
-                        >
-                            <div className="text-center relative max-w-2xl w-full">
-                                {/* Confetti Particles (Simulated) */}
-                                {[...Array(30)].map((_, i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ opacity: 1, x: 0, y: 0 }}
-                                        animate={{
-                                            opacity: 0,
-                                            x: (Math.random() - 0.5) * 1200,
-                                            y: (Math.random() - 0.5) * 1200,
-                                            rotate: Math.random() * 720,
-                                            scale: Math.random() * 2
-                                        }}
-                                        transition={{ duration: 2.5, ease: "easeOut" }}
-                                        className="absolute left-1/2 top-1/2 w-3 h-3 rounded-full blur-[1px]"
-                                        style={{ backgroundColor: [primaryColor, secondaryColor, accentColor, '#fbbf24', '#34d399'][i % 5] }}
-                                    />
-                                ))}
-
+                {showVictory && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-[#030014]/95 backdrop-blur-2xl flex items-center justify-center p-6"
+                    >
+                        <div className="text-center relative max-w-2xl w-full">
+                            {/* Confetti Particles (Simulated) */}
+                            {[...Array(30)].map((_, i) => (
                                 <motion.div
-                                    initial={{ scale: 0.5, opacity: 0, y: 50 }}
-                                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                                    transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
-                                    className="border border-white/10 p-12 rounded-[3rem] shadow-2xl relative overflow-hidden"
-                                    style={{ backgroundColor: backgroundColor }}
-                                >
-                                    <div className="absolute inset-0 opacity-10"
-                                        style={{ background: `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}, ${accentColor})` }}
-                                    />
-                                    <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
+                                    key={i}
+                                    initial={{ opacity: 1, x: 0, y: 0 }}
+                                    animate={{
+                                        opacity: 0,
+                                        x: (Math.random() - 0.5) * 1200,
+                                        y: (Math.random() - 0.5) * 1200,
+                                        rotate: Math.random() * 720,
+                                        scale: Math.random() * 2
+                                    }}
+                                    transition={{ duration: 2.5, ease: "easeOut" }}
+                                    className="absolute left-1/2 top-1/2 w-3 h-3 rounded-full blur-[1px]"
+                                    style={{ backgroundColor: [primaryColor, secondaryColor, accentColor, '#fbbf24', '#34d399'][i % 5] }}
+                                />
+                            ))}
 
-                                    <div className="relative z-10">
-                                        <div className="w-40 h-40 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-[0_0_80px_rgba(251,191,36,0.4)] mb-10 animate-bounce">
-                                            <Trophy className="w-20 h-20 text-white drop-shadow-md" />
-                                        </div>
-                                        <h2 className="text-6xl md:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
-                                            Mission Complete!
-                                        </h2>
+                            <motion.div
+                                initial={{ scale: 0.5, opacity: 0, y: 50 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                transition={{ type: "spring", bounce: 0.5, duration: 0.8 }}
+                                className="border border-white/10 p-12 rounded-[3rem] shadow-2xl relative overflow-hidden"
+                                style={{ backgroundColor: backgroundColor }}
+                            >
+                                <div className="absolute inset-0 opacity-10"
+                                    style={{ background: `linear-gradient(to bottom right, ${primaryColor}, ${secondaryColor}, ${accentColor})` }}
+                                />
+                                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
 
-                                        <div className="flex flex-col sm:flex-row gap-6 justify-center mt-12">
-                                            <Button
-                                                onClick={() => router.back()}
-                                                className="px-10 py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold backdrop-blur-md transition-all border border-white/5 hover:border-white/20"
-                                            >
-                                                Return to Base
-                                            </Button>
-                                            <Button
-                                                onClick={() => {
-                                                    setShowVictory(false);
-                                                    // Calculate next lesson
-                                                    const stored = localStorage.getItem(`course-${slug}`);
-                                                    if (stored) {
-                                                        const syllabus = JSON.parse(stored);
-                                                        let nextModule = moduleIdx;
-                                                        let nextLesson = lessonIdx + 1;
-                                                        if (nextLesson >= syllabus.modules[moduleIdx].lessons.length) {
-                                                            nextModule++;
-                                                            nextLesson = 0;
-                                                        }
-                                                        if (nextModule < syllabus.modules.length) {
-                                                            router.push(`/courses/${slug}/lesson/${nextModule}-${nextLesson}`);
-                                                        } else {
-                                                            router.push(`/courses/${slug}`); // Back to syllabus if done
-                                                        }
-                                                    }
-                                                }}
-                                                className="px-10 py-5 text-white rounded-2xl font-bold transition-all hover:scale-105"
-                                                style={{
-                                                    backgroundColor: primaryColor,
-                                                    boxShadow: `0 0 30px ${primaryColor}4D`
-                                                }}
-                                            >
-                                                Next Mission
-                                            </Button>
-                                        </div>
+                                <div className="relative z-10">
+                                    <div className="w-40 h-40 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-[0_0_80px_rgba(251,191,36,0.4)] mb-10 animate-bounce">
+                                        <Trophy className="w-20 h-20 text-white drop-shadow-md" />
                                     </div>
-                                </motion.div>
-                            </div>
-                        </motion.div>
-                    )
-                }
-            </AnimatePresence >
+                                    <h2 className="text-6xl md:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400">
+                                        Mission Complete!
+                                    </h2>
+
+                                    <div className="flex flex-col sm:flex-row gap-6 justify-center mt-12">
+                                        <Button
+                                            onClick={() => router.back()}
+                                            className="px-10 py-5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold backdrop-blur-md transition-all border border-white/5 hover:border-white/20"
+                                        >
+                                            Return to Base
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                setShowVictory(false);
+                                                // Calculate next lesson
+                                                const stored = localStorage.getItem(`course-${slug}`);
+                                                if (stored) {
+                                                    const syllabus = JSON.parse(stored);
+                                                    let nextModule = moduleIdx;
+                                                    let nextLesson = lessonIdx + 1;
+                                                    if (nextLesson >= syllabus.modules[moduleIdx].lessons.length) {
+                                                        nextModule++;
+                                                        nextLesson = 0;
+                                                    }
+                                                    if (nextModule < syllabus.modules.length) {
+                                                        router.push(`/courses/${slug}/lesson/${nextModule}-${nextLesson}`);
+                                                    } else {
+                                                        router.push(`/courses/${slug}`); // Back to syllabus if done
+                                                    }
+                                                }
+                                            }}
+                                            className="px-10 py-5 text-white rounded-2xl font-bold transition-all hover:scale-105"
+                                            style={{
+                                                backgroundColor: primaryColor,
+                                                boxShadow: `0 0 30px ${primaryColor} 4D`
+                                            }}
+                                        >
+                                            Next Mission
+                                        </Button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* AI Sensei Integration */}
-            {
-                content && (
-                    <AISensei
-                        lessonContext={{
-                            title: content.title,
-                            sectionContent: content.sections[activeSection]?.content || ""
-                        }}
-                        codeContext={content.sections[activeSection]?.code || ""}
-                        primaryColor={primaryColor}
-                    />
-                )
-            }
+            {content && (
+                <AISensei
+                    lessonContext={{
+                        title: content.title,
+                        sectionContent: content.sections[activeSection]?.content || ""
+                    }}
+                    codeContext={content.sections[activeSection]?.code || ""}
+                    primaryColor={primaryColor}
+                />
+            )}
 
             {/* Adaptive Content Modal */}
             <AnimatePresence>
@@ -951,7 +1227,7 @@ export default function LessonPage() {
                         >
                             {/* Header */}
                             <div className="p-6 border-b border-white/5 flex items-center justify-between"
-                                style={{ backgroundColor: adaptiveContent.code ? `${secondaryColor}1A` : `${primaryColor}1A` }}
+                                style={{ backgroundColor: adaptiveContent.code ? `${secondaryColor} 1A` : `${primaryColor} 1A` }}
                             >
                                 <div className="flex items-center gap-3">
                                     {adaptiveContent.code ? (
@@ -1042,16 +1318,7 @@ export default function LessonPage() {
                 )}
             </AnimatePresence>
 
-            {/* Podcast Player */}
-            <AnimatePresence>
-                {showPodcast && podcastScript && (
-                    <PodcastPlayer
-                        script={podcastScript}
-                        onClose={() => setShowPodcast(false)}
-                        primaryColor={primaryColor}
-                    />
-                )}
-            </AnimatePresence>
-        </div >
+
+        </div>
     );
 }

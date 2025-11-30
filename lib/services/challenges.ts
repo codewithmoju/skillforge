@@ -139,7 +139,7 @@ export interface Challenge {
     participantsCount: number;
     xpReward: number;
     status: 'active' | 'completed' | 'upcoming';
-    type: 'community' | 'event';
+    type: 'community' | 'event' | 'coding' | 'design';
 }
 
 export async function getChallenges(status: 'active' | 'completed' | 'upcoming' = 'active'): Promise<Challenge[]> {
@@ -161,5 +161,26 @@ export async function getChallenges(status: 'active' | 'completed' | 'upcoming' 
     } catch (error) {
         console.error("Error fetching challenges:", error);
         return [];
+    }
+}
+
+export async function getChallenge(challengeId: string): Promise<Challenge | null> {
+    try {
+        const docRef = doc(db, 'challenges', challengeId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return {
+                id: docSnap.id,
+                ...data,
+                startDate: data.startDate instanceof Timestamp ? data.startDate.toDate().toISOString() : data.startDate,
+                endDate: data.endDate instanceof Timestamp ? data.endDate.toDate().toISOString() : data.endDate,
+            } as Challenge;
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching challenge:", error);
+        return null;
     }
 }

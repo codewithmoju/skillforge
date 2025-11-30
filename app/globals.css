@@ -21,6 +21,10 @@
   min-height: 100dvh;
 }
 
+body {
+  overflow-x: hidden;
+}
+
 /* Auth Screen Animations */
 @keyframes float-label {
   0% {
@@ -725,4 +729,19 @@
 
 .overflow-anchor-auto {
   overflow-anchor: auto;
+}
+
+/* Aurora Animation */
+@keyframes aurora {
+  from {
+    background-position: 50% 50%, 50% 50%;
+  }
+
+  to {
+    background-position: 350% 50%, 350% 50%;
+  }
+}
+
+.animate-aurora {
+  animation: aurora 60s linear infinite;
 }
