@@ -7,6 +7,11 @@
   --color-accent-violet: #8B5CF6;
   --color-accent-indigo: #6366F1;
 
+  --color-brand-dark: #071A3F;
+  --color-brand-accent-start: #6B46FF;
+  --color-brand-accent-end: #00D4FF;
+  --color-brand-warm: #FFB020;
+
   --color-background: #0F172A;
   --color-background-card: #1E293B;
   --color-background-overlay: rgba(15, 23, 42, 0.8);
@@ -744,4 +749,26 @@ body {
 
 .animate-aurora {
   animation: aurora 60s linear infinite;
+}
+
+/* Lenis Smooth Scroll */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-scrolling iframe {
+  pointer-events: none;
 }

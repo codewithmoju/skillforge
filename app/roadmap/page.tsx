@@ -79,10 +79,18 @@ export default function RoadmapPage() {
     // Utility: Fetch details for a specific area in the background
     const fetchAreaDetails = async (topic: string, areaId: string) => {
         try {
+            // Find existing area to get topics
+            const existingArea = learningAreas.find(a => a.id === areaId);
+            const existingTopics = existingArea?.topics.map(t => ({
+                id: t.id,
+                name: t.name,
+                description: t.description
+            }));
+
             const res = await fetch("/api/generate-roadmap/details", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ topic, areaId }),
+                body: JSON.stringify({ topic, areaId, existingTopics }),
             });
             const data = await res.json();
             if (data.details) {
@@ -127,21 +135,7 @@ export default function RoadmapPage() {
                 setIsGenerating(false);
 
                 // PHASE 2: Fetch detailed content for each area in background
-                // PHASE 2: Fetch detailed content for each area in sequence
-                if (data.learningAreas && data.learningAreas.length > 0) {
-                    // Define sequential fetcher
-                    const fetchAllDetails = async () => {
-                        for (const area of data.learningAreas) {
-                            // Check if we should continue (e.g., if user navigated away, though hard to check here without ref)
-                            await fetchAreaDetails(topic, area.id);
-                            // Small natural delay between updates
-                            await new Promise(resolve => setTimeout(resolve, 800));
-                        }
-                    };
-
-                    // Start fetching in background
-                    fetchAllDetails();
-                }
+                // REMOVED: Automatic sequential fetching. Now handled on-demand by SkillTree.
             } else if (data.error) {
                 console.error("API Error:", data.error, data.details);
                 alert(`Failed to generate roadmap: ${data.details || data.error}`);
@@ -266,6 +260,7 @@ export default function RoadmapPage() {
                         <SkillTree
                             learningAreas={learningAreas}
                             goal={roadmapGoal || currentTopic}
+                            onFetchDetails={(areaId) => fetchAreaDetails(currentTopic, areaId)}
                         />
                     </motion.div>
                 )}

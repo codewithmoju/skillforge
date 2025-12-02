@@ -10,11 +10,10 @@ import { BrandMark } from "@/components/ui/BrandMark";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-    { name: "Features", href: "/features" },
-    { name: "Pricing", href: "/pricing" },
-    { name: "Blog", href: "/blog" },
-    { name: "Docs", href: "/docs" },
-    { name: "About", href: "/about" },
+    { name: "Features", href: "#features" },
+    { name: "How it works", href: "#how-it-works" },
+    { name: "Pricing", href: "#pricing" },
+    { name: "Testimonials", href: "#testimonials" },
 ];
 
 export function LandingNavbar() {
@@ -51,7 +50,7 @@ export function LandingNavbar() {
                     <motion.div
                         animate={{
                             borderRadius: isScrolled ? "9999px" : "0px",
-                            backgroundColor: isScrolled ? "rgba(2, 6, 23, 0.8)" : "rgba(2, 6, 23, 0)",
+                            backgroundColor: isScrolled ? "rgba(7, 26, 63, 0.8)" : "rgba(7, 26, 63, 0)",
                             borderColor: isScrolled ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0)",
                             backdropFilter: isScrolled ? "blur(16px)" : "blur(0px)",
                             paddingLeft: isScrolled ? "1.5rem" : "2rem",
@@ -80,32 +79,25 @@ export function LandingNavbar() {
                                     href={link.href}
                                     className={cn(
                                         "relative px-4 py-2 text-sm font-medium transition-colors rounded-full hover:text-white group",
-                                        pathname === link.href ? "text-white" : "text-slate-400"
+                                        pathname === link.href ? "text-white" : "text-slate-300"
                                     )}
                                 >
                                     {link.name}
-                                    {pathname === link.href && (
-                                        <motion.div
-                                            layoutId="navbar-indicator"
-                                            className="absolute inset-0 bg-white/10 rounded-full"
-                                            transition={{ duration: 0.3 }}
-                                        />
-                                    )}
                                 </Link>
                             ))}
                         </div>
 
                         <div className="hidden md:flex items-center gap-4">
-                            <Link href="/login" className="text-sm font-medium text-slate-400 hover:text-white transition-colors">
+                            <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
                                 Log in
                             </Link>
                             <Link href="/signup">
                                 <Button
                                     className={cn(
-                                        "font-semibold transition-all duration-300",
+                                        "font-bold transition-all duration-300",
                                         isScrolled
-                                            ? "bg-white text-slate-950 hover:bg-slate-200 rounded-full px-6 h-10"
-                                            : "bg-white text-slate-950 hover:bg-slate-200 rounded-xl px-6 h-11 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                            ? "bg-[#6B46FF] text-white hover:bg-[#6B46FF]/90 rounded-full px-6 h-10"
+                                            : "bg-white text-[#071A3F] hover:bg-slate-200 rounded-xl px-6 h-11 shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                                     )}
                                 >
                                     Get Started

@@ -11,13 +11,15 @@ import { MissionPlayer } from "./MissionPlayer";
 interface SkillTreeProps {
     learningAreas: LearningArea[];
     goal: string;
+    onFetchDetails: (areaId: string) => Promise<void>;
 }
 
-export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
+export function SkillTree({ learningAreas, goal, onFetchDetails }: SkillTreeProps) {
     const [selectedAreaId, setSelectedAreaId] = useState<string>(learningAreas[0]?.id || "");
-    const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+    const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
     const [startedTopics, setStartedTopics] = useState<Set<string>>(new Set());
     const [activeMission, setActiveMission] = useState<{ topic: Topic, subtopicIndex: number } | null>(null);
+    const [loadingTopicId, setLoadingTopicId] = useState<string | null>(null);
 
     const toggleMissionStart = (topicId: string) => {
         const newStarted = new Set(startedTopics);
@@ -32,6 +34,73 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
     if (!learningAreas || learningAreas.length === 0) return null;
 
     const currentArea = learningAreas.find(a => a.id === selectedAreaId) || learningAreas[0];
+
+    // Derive selected topic from store data to ensure we have latest details
+    const selectedTopic = selectedTopicId
+        ? learningAreas.flatMap(a => a.topics).find(t => t.id === selectedTopicId) || null
+        : null;
+
+    const handleTopicClick = async (topic: Topic) => {
+        setSelectedTopicId(topic.id);
+
+        // Check if details are missing (no keyPoints in first subtopic)
+        const hasDetails = topic.subtopics?.[0]?.keyPoints && topic.subtopics[0].keyPoints.length > 0;
+
+        if (!hasDetails) {
+            setLoadingTopicId(topic.id);
+            try {
+                // Find area ID for this topic
+                const areaId = learningAreas.find(a => a.topics.some(t => t.id === topic.id))?.id;
+                if (areaId) {
+                    await onFetchDetails(areaId);
+                }
+            } catch (error) {
+                console.error("Failed to fetch details", error);
+            } finally {
+                setLoadingTopicId(null);
+            }
+        }
+    };
+
+    const prefetchNextTopic = async (currentTopicId: string) => {
+        // Find current topic index and area
+        let currentAreaIndex = -1;
+        let currentTopicIndex = -1;
+
+        learningAreas.forEach((area, ai) => {
+            area.topics.forEach((topic, ti) => {
+                if (topic.id === currentTopicId) {
+                    currentAreaIndex = ai;
+                    currentTopicIndex = ti;
+                }
+            });
+        });
+
+        if (currentAreaIndex === -1) return;
+
+        // Determine next topic
+        let nextTopic: Topic | null = null;
+        let nextArea: LearningArea | null = null;
+
+        const currentArea = learningAreas[currentAreaIndex];
+        if (currentTopicIndex < currentArea.topics.length - 1) {
+            nextTopic = currentArea.topics[currentTopicIndex + 1];
+            nextArea = currentArea;
+        } else if (currentAreaIndex < learningAreas.length - 1) {
+            nextArea = learningAreas[currentAreaIndex + 1];
+            nextTopic = nextArea.topics[0];
+        }
+
+        if (nextTopic && nextArea) {
+            // Check if next topic needs details
+            const hasDetails = nextTopic.subtopics?.[0]?.keyPoints && nextTopic.subtopics[0].keyPoints.length > 0;
+            if (!hasDetails) {
+                console.log(`Prefetching details for area ${nextArea.id} (next topic: ${nextTopic.name})`);
+                // Fire and forget, don't await
+                onFetchDetails(nextArea.id).catch(err => console.error("Prefetch failed", err));
+            }
+        }
+    };
 
     return (
         <div className="mb-20 relative">
@@ -159,7 +228,8 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
                     <div className="space-y-8 relative">
                         {currentArea.topics.map((topic, index) => {
                             const isStarted = startedTopics.has(topic.id);
-                            const isActive = selectedTopic?.id === topic.id;
+                            const isActive = selectedTopicId === topic.id;
+                            const isLoading = loadingTopicId === topic.id;
 
                             return (
                                 <motion.div
@@ -194,14 +264,16 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
 
                                     {/* Mission Data File Card */}
                                     <button
-                                        onClick={() => setSelectedTopic(topic)}
+                                        onClick={() => handleTopicClick(topic)}
+                                        disabled={isLoading}
                                         className={cn(
                                             "w-full text-left p-5 rounded-xl border-2 transition-all duration-300 group hover:translate-x-3 relative overflow-hidden backdrop-blur-sm",
                                             isActive
                                                 ? "bg-cyan-900/20 border-cyan-500/50 shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)]"
                                                 : isStarted
                                                     ? "bg-emerald-900/10 border-emerald-500/30 hover:border-emerald-500/50"
-                                                    : "bg-slate-900/60 border-slate-800 hover:border-cyan-500/30"
+                                                    : "bg-slate-900/60 border-slate-800 hover:border-cyan-500/30",
+                                            isLoading && "opacity-70 cursor-wait"
                                         )}
                                     >
                                         {/* Scan Line Effect */}
@@ -234,10 +306,11 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
                                             )}
                                         </div>
                                         <h3 className={cn(
-                                            "text-lg font-bold mb-1 transition-colors relative z-10",
+                                            "text-lg font-bold mb-1 transition-colors relative z-10 flex items-center gap-2",
                                             isActive ? "text-white" : "text-slate-300 group-hover:text-white"
                                         )}>
                                             {topic.name}
+                                            {isLoading && <div className="w-4 h-4 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />}
                                         </h3>
                                         <p className="text-sm text-slate-500 line-clamp-2 relative z-10">
                                             {topic.description}
@@ -344,7 +417,7 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
 
                                         {/* Close Button - Enhanced */}
                                         <button
-                                            onClick={() => setSelectedTopic(null)}
+                                            onClick={() => setSelectedTopicId(null)}
                                             className="absolute top-6 right-6 p-2.5 rounded-lg bg-black/40 hover:bg-black/60 text-white transition-all backdrop-blur-md border-2 border-white/20 hover:border-cyan-500/50 z-20 group hover:scale-110"
                                         >
                                             <X className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
@@ -499,11 +572,14 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
 
                                             <Button
                                                 onClick={() => toggleMissionStart(selectedTopic.id)}
+                                                disabled={!selectedTopic.subtopics.some(s => s.keyPoints && s.keyPoints.length > 0)}
                                                 className={cn(
                                                     "group relative px-10 py-6 rounded-xl font-black text-lg shadow-lg flex items-center gap-3 transition-all duration-300 uppercase tracking-wider overflow-hidden",
                                                     startedTopics.has(selectedTopic.id)
                                                         ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_30px_rgba(16,185,129,0.4)] border-2 border-emerald-500/50"
-                                                        : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:scale-105 border-2 border-cyan-500/50"
+                                                        : !selectedTopic.subtopics.some(s => s.keyPoints && s.keyPoints.length > 0)
+                                                            ? "bg-slate-800 text-slate-500 cursor-wait border-2 border-slate-700"
+                                                            : "bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:scale-105 border-2 border-cyan-500/50"
                                                 )}
                                             >
                                                 <span className="relative z-10 flex items-center gap-3">
@@ -512,6 +588,11 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
                                                             <CheckCircle2 className="w-6 h-6" />
                                                             Mission Active
                                                         </>
+                                                    ) : !selectedTopic.subtopics.some(s => s.keyPoints && s.keyPoints.length > 0) ? (
+                                                        <>
+                                                            <div className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                                                            Gathering Intel...
+                                                        </>
                                                     ) : (
                                                         <>
                                                             Engage Mission
@@ -519,7 +600,7 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
                                                         </>
                                                     )}
                                                 </span>
-                                                {!startedTopics.has(selectedTopic.id) && (
+                                                {!startedTopics.has(selectedTopic.id) && selectedTopic.subtopics.some(s => s.keyPoints && s.keyPoints.length > 0) && (
                                                     <motion.div
                                                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                                                         animate={{ x: ["-100%", "200%"] }}
@@ -560,44 +641,55 @@ export function SkillTree({ learningAreas, goal }: SkillTreeProps) {
                         topic={activeMission.topic}
                         initialSubtopicIndex={activeMission.subtopicIndex}
                         onClose={() => setActiveMission(null)}
+                        onPrefetchNext={() => prefetchNextTopic(activeMission.topic.id)}
                     />
                 )}
             </AnimatePresence>
         </div>
     );
+
+
 }
 
 function MissionObjective({ sub, index, topic, onPlay }: { sub: any, index: number, topic: Topic, onPlay: () => void }) {
     const { completedSubtopics } = useUserStore();
     const isCompleted = completedSubtopics.includes(`${topic.id}-${sub.id}`);
+    const hasDetails = sub.keyPoints && sub.keyPoints.length > 0;
 
     return (
         <motion.div
             layout
-            whileHover={{ scale: 1.02, x: 4 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onPlay}
+            whileHover={hasDetails ? { scale: 1.02, x: 4 } : {}}
+            whileTap={hasDetails ? { scale: 0.98 } : {}}
+            onClick={hasDetails ? onPlay : undefined}
             className={cn(
-                "group rounded-xl border-2 transition-all duration-300 overflow-hidden cursor-pointer relative backdrop-blur-sm",
+                "group rounded-xl border-2 transition-all duration-300 overflow-hidden relative backdrop-blur-sm",
+                hasDetails ? "cursor-pointer" : "cursor-wait opacity-70",
                 isCompleted
                     ? "bg-emerald-950/20 border-emerald-500/30 hover:border-emerald-500/50"
-                    : "bg-slate-900/50 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/80 hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.3)]"
+                    : hasDetails
+                        ? "bg-slate-900/50 border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/80 hover:shadow-[0_0_20px_-5px_rgba(6,182,212,0.3)]"
+                        : "bg-slate-900/30 border-slate-800/50"
             )}
         >
-            {/* Flash Effect on Hover */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                whileHover={{ opacity: [0, 0.5, 0], scale: [0, 1.5, 2] }}
-                transition={{ duration: 0.5 }}
-                className="absolute inset-0 bg-cyan-500/20 pointer-events-none"
-            />
+            {/* Flash Effect on Hover (only if ready) */}
+            {hasDetails && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0 }}
+                    whileHover={{ opacity: [0, 0.5, 0], scale: [0, 1.5, 2] }}
+                    transition={{ duration: 0.5 }}
+                    className="absolute inset-0 bg-cyan-500/20 pointer-events-none"
+                />
+            )}
 
             <div className="flex items-center gap-4 p-4 relative z-10">
                 <div className={cn(
                     "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center font-bold border-2 transition-all duration-300 shadow-lg font-mono text-lg",
                     isCompleted
                         ? "bg-emerald-500 text-white border-emerald-400 shadow-emerald-900/30"
-                        : "bg-slate-800 text-slate-400 border-slate-700 group-hover:bg-cyan-600 group-hover:text-white group-hover:border-cyan-500 group-hover:shadow-cyan-900/50"
+                        : hasDetails
+                            ? "bg-slate-800 text-slate-400 border-slate-700 group-hover:bg-cyan-600 group-hover:text-white group-hover:border-cyan-500 group-hover:shadow-cyan-900/50"
+                            : "bg-slate-800/50 text-slate-600 border-slate-800"
                 )}>
                     {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : String(index + 1).padStart(2, '0')}
                 </div>
@@ -605,12 +697,12 @@ function MissionObjective({ sub, index, topic, onPlay }: { sub: any, index: numb
                 <div className="flex-1">
                     <h5 className={cn(
                         "font-bold text-base transition-colors mb-1",
-                        isCompleted ? "text-emerald-400 line-through opacity-70" : "text-slate-200 group-hover:text-white"
+                        isCompleted ? "text-emerald-400 line-through opacity-70" : hasDetails ? "text-slate-200 group-hover:text-white" : "text-slate-500"
                     )}>
                         {sub.name}
                     </h5>
                     <p className="text-xs text-slate-500 line-clamp-1 group-hover:text-slate-400 font-mono">
-                        {sub.description}
+                        {hasDetails ? sub.description : "Decrypting mission data..."}
                     </p>
                 </div>
 
@@ -618,9 +710,11 @@ function MissionObjective({ sub, index, topic, onPlay }: { sub: any, index: numb
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
                     isCompleted
                         ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-slate-800 text-slate-500 group-hover:bg-cyan-600 group-hover:text-white"
+                        : hasDetails
+                            ? "bg-slate-800 text-slate-500 group-hover:bg-cyan-600 group-hover:text-white"
+                            : "bg-slate-800/50 text-slate-600"
                 )}>
-                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
+                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : hasDetails ? <ArrowRight className="w-5 h-5" /> : <div className="w-4 h-4 border-2 border-slate-600 border-t-transparent rounded-full animate-spin" />}
                 </div>
             </div>
         </motion.div>
