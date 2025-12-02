@@ -12,6 +12,7 @@ interface MissionPlayerProps {
     topic: Topic;
     initialSubtopicIndex: number;
     onClose: () => void;
+    onPrefetchNext?: () => void;
 }
 
 // Enhanced gradients with more vibrant colors
@@ -26,7 +27,7 @@ const GRADIENTS = [
     "from-lime-400 via-emerald-500 to-teal-700",
 ];
 
-export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionPlayerProps) {
+export function MissionPlayer({ topic, initialSubtopicIndex, onClose, onPrefetchNext }: MissionPlayerProps) {
     const [currentSubtopicIndex, setCurrentSubtopicIndex] = useState(initialSubtopicIndex);
     const [currentPointIndex, setCurrentPointIndex] = useState(-1);
     const { completedSubtopics, completedKeyPoints, toggleSubtopicCompletion, toggleKeyPointCompletion } = useUserStore();
@@ -47,6 +48,11 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
 
     useEffect(() => {
         if (currentSubtopic) {
+            // Safety check: If keyPoints are missing, don't do anything yet
+            if (!keyPoints || keyPoints.length === 0) {
+                return;
+            }
+
             const firstUncompletedIndex = keyPoints.findIndex((_, idx) =>
                 !completedKeyPoints.includes(`${topic.id}-${currentSubtopic.id}-${idx}`)
             );
@@ -63,10 +69,14 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
 
     useEffect(() => {
         document.body.style.overflow = "hidden";
+        // Trigger prefetch of next topic
+        if (onPrefetchNext) {
+            onPrefetchNext();
+        }
         return () => {
             document.body.style.overflow = "unset";
         };
-    }, []);
+    }, [onPrefetchNext]);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -135,6 +145,39 @@ export function MissionPlayer({ topic, initialSubtopicIndex, onClose }: MissionP
     };
 
     if (!currentSubtopic) return null;
+
+    // Loading State for missing details
+    if (!keyPoints || keyPoints.length === 0) {
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center font-sans"
+            >
+                <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
+                <div className="relative z-10 flex flex-col items-center gap-8">
+                    <div className="relative">
+                        <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                            className="w-24 h-24 rounded-full border-4 border-slate-800 border-t-cyan-500"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Cpu className="w-8 h-8 text-cyan-500 animate-pulse" />
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Decrypting Mission Data</h3>
+                        <p className="text-slate-400 font-mono text-sm">Synchronizing neural objectives...</p>
+                    </div>
+                    <Button variant="ghost" onClick={onClose} className="text-slate-500 hover:text-white">
+                        Abort Mission
+                    </Button>
+                </div>
+            </motion.div>
+        );
+    }
 
     const isIntro = currentPointIndex === -1;
     const isCompletion = currentPointIndex === keyPoints.length;
