@@ -85,7 +85,8 @@ export function ForestLessonView() {
 
     const handleComplete = () => {
         if (nodeId) {
-            completeLesson(nodeId);
+            // Pass lessonTitle as unique ID for this lesson within the module
+            completeLesson(nodeId, lessonTitle);
         }
         router.push('/roadmap');
     };
@@ -300,14 +301,14 @@ export function ForestLessonView() {
                                                         onClick={() => !isQuizSubmitted && setSelectedOption(idx)}
                                                         disabled={isQuizSubmitted}
                                                         className={`w-full p-6 text-left rounded-xl border-2 transition-all font-serif text-xl ${isQuizSubmitted
-                                                                ? idx === content.bossChallenge.correctAnswer
-                                                                    ? "bg-[#e8f5e9] border-[#2e7d32] text-[#1b5e20]"
-                                                                    : idx === selectedOption
-                                                                        ? "bg-[#ffebee] border-[#c62828] text-[#b71c1c]"
-                                                                        : "bg-white/20 border-[#d7ccc8] text-[#8d6e63]"
-                                                                : selectedOption === idx
-                                                                    ? "bg-[#efebe9] border-[#8b4513] text-[#3e2723] shadow-md transform scale-[1.02]"
-                                                                    : "bg-white/20 border-[#d7ccc8] text-[#5d4037] hover:bg-white/40 hover:border-[#a1887f]"
+                                                            ? idx === content.bossChallenge.correctAnswer
+                                                                ? "bg-[#e8f5e9] border-[#2e7d32] text-[#1b5e20]"
+                                                                : idx === selectedOption
+                                                                    ? "bg-[#ffebee] border-[#c62828] text-[#b71c1c]"
+                                                                    : "bg-white/20 border-[#d7ccc8] text-[#8d6e63]"
+                                                            : selectedOption === idx
+                                                                ? "bg-[#efebe9] border-[#8b4513] text-[#3e2723] shadow-md transform scale-[1.02]"
+                                                                : "bg-white/20 border-[#d7ccc8] text-[#5d4037] hover:bg-white/40 hover:border-[#a1887f]"
                                                             }`}
                                                     >
                                                         <div className="flex items-center justify-between">

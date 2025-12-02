@@ -1,62 +1,130 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { db } from "@/lib/firebase";
+import { doc, setDoc } from "firebase/firestore";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
     try {
-        const { topic, lessonTitle, moduleTitle, previousContext } = await req.json();
+        const { topic, lessonTitle, moduleTitle, userProfile, courseId, lessonId, objectives } = await req.json();
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
+        // Construct personalization context
+        const userContext = userProfile
+            ? `
+            TARGET AUDIENCE PROFILE:
+            - Skill Level: ${userProfile.level || "Beginner"}
+            - Goal: ${userProfile.goal || "Mastery"}
+            - Learning Style: ${userProfile.learningStyle || "Visual & Practical"}
+            - Interests: ${userProfile.interests?.join(", ") || "Tech, Innovation"}
+            
+            ADAPTATION INSTRUCTIONS:
+            - ANALOGIES: Use VERY SIMPLE, EVERYDAY analogies (e.g. Lego, Sandwiches, Traffic) for Beginners. Avoid "Sci-Fi/Cyberpunk" unless explicitly requested.
+            - TONE: ${userProfile.level === 'Expert' ? "Professional, concise, technical" : "Friendly, patient, helpful guide. NOT 'Commander' or 'Overlord'."}
+            - DIFFICULTY ALIGNMENT: STRICTLY match the content to the "${userProfile.level || "Beginner"}" level. 
+              - Beginner: Focus on "What" and "How". Use simple code. 
+              - FORBIDDEN FOR BEGINNERS: APIs, Class Components, useEffect, Complex State, Memory Leaks, Optimization.
+              - Expert: Focus on "Why", "Performance", and "Edge Cases".
+            `
+            : "TARGET AUDIENCE: Beginner. Tone: Friendly and helpful. Analogies: Simple (Lego, Cooking). FORBIDDEN: APIs, Complex State.";
+
         const prompt = `
-        You are an expert educational content creator for a gamified learning platform called "SkillForge".
-        Your goal is to create a "Micro-Lesson" about "${lessonTitle}" which is part of the module "${moduleTitle}" in the course "${topic}".
+        You are an elite technical mentor for "SkillForge".
+        Your mission is to create a CLEAR, ACCESSIBLE, and ENGAGING learning experience.
+        
+        TOPIC: "${topic}"
+        MODULE: "${moduleTitle}"
+        LESSON: "${lessonTitle}"
 
-        The lesson should be broken down into 3-4 "Atomic Sections".
-        Each section must be short, punchy, and focused on ONE key concept.
+        OBJECTIVES (MUST COVER):
+        ${objectives && objectives.length > 0 ? objectives.map((o: any) => `- ${o.name}`).join("\n") : "- Comprehensive coverage of the lesson title."}
+        
+        ${userContext}
 
-        Structure the response as a JSON object with the following schema:
+        GOAL: Create a "Zero to Hero" deep dive into this specific concept. 
+        
+        CRITICAL INSTRUCTIONS:
+        1. RELEVANCE: All examples, debug challenges, and simulations MUST be directly related to "${lessonTitle}". Do not test unrelated concepts.
+        2. OBJECTIVES: You MUST cover all the listed OBJECTIVES in the lesson sections.
+        3. SIMPLICITY: Keep analogies simple. If explaining variables, use boxes. If explaining loops, use a chore list.
+        3. PROGRESSION: Start simple, then go deep.
+        4. HINTS: For interactive sections, provide "hints" that are small nudges, not the full answer.
+        5. NO OVER-ENGINEERING: For Beginners, do NOT use "Reactopolis" or complex world-building. Keep it grounded.
+
+        STRUCTURE:
+        Generate a JSON object with this EXACT schema. The lesson must have 6-8 sections.
+
         {
-            "title": "Exciting Lesson Title",
+            "title": "The Epic Lesson Title",
             "analogy": {
-                "story": "A short, relatable real-world analogy (e.g., comparing variables to labeled boxes).",
-                "connection": "How this analogy maps to the technical concept."
+                "story": "A vivid, memorable story/analogy explaining the concept (approx. 100 words).",
+                "connection": "Explicitly map the analogy elements to technical concepts."
             },
-            "diagram": "Mermaid JS chart code (graph TD or sequenceDiagram) visualizing the concept. Keep it simple.",
+            "diagram": "Mermaid JS chart code. STRICT RULES: 1. Use 'graph TD' ONLY. 2. Labels must be SIMPLE TEXT ONLY (e.g. 'User Input', 'Process'). 3. ABSOLUTELY NO code syntax (like 'console.log', 'function()', '{}', '()') inside labels. 4. Do not use parentheses '()' or quotes inside labels. Example: graph TD; A[Start] --> B[Process Data]; B --> C[End];",
             "sections": [
                 {
                     "type": "text",
-                    "content": "Markdown text explaining the concept. Use bolding for key terms."
+                    "title": "Section Heading",
+                    "content": "Deep explanation using markdown. Use bolding, lists, and clear hierarchy."
                 },
                 {
                     "type": "code",
-                    "language": "python/javascript/etc",
-                    "code": "Short code snippet demonstrating the concept.",
-                    "explanation": "Brief explanation of what the code does."
+                    "title": "Practical Implementation",
+                    "language": "javascript/python/etc",
+                    "code": "Production-ready code example.",
+                    "explanation": "Line-by-line breakdown of the code."
+                },
+                {
+                    "type": "simulation",
+                    "title": "Roleplay Scenario",
+                    "scenario": "You are a [Role] at [Company]. The system is failing because [Reason]. Your task is to...",
+                    "role": "e.g. Senior DevOps Engineer",
+                    "objective": "e.g. Fix the memory leak"
+                },
+                {
+                    "type": "debug",
+                    "title": "Bug Hunt Challenge",
+                    "description": "This code has a subtle bug. Can you find it?",
+                    "buggyCode": "Code with a logical or syntax error.",
+                    "solution": "The corrected code.",
+                    "explanation": "Why the bug happened and how to fix it."
+                },
+                {
+                    "type": "deep_dive",
+                    "title": "Under the Hood",
+                    "content": "Advanced theory: How this works internally (memory, compilation, etc)."
                 },
                 {
                     "type": "interactive",
+                    "title": "Knowledge Check",
                     "interactionType": "fill-in-blank",
-                    "question": "A question based STRICTLY on the above content.",
-                    "codeContext": "Code or sentence with a ______ for the missing part.",
-                    "answer": "The exact word or value that fills the blank (must be from the lesson content)."
+                    "question": "A critical thinking question based on the lesson.",
+                    "codeContext": "Code or text with ______.",
+                    "answer": "The correct term."
                 }
             ],
             "bossChallenge": {
-                "title": "Name of the Boss (e.g., The Null Pointer Demon)",
-                "description": "A short, dramatic scenario description.",
-                "question": "A final challenge question that tests the core concept of the lesson.",
-                "answer": "The correct answer to the challenge."
-            }
+                "title": "The Final Boss",
+                "description": "A complex scenario requiring synthesis of all learned concepts.",
+                "question": "The ultimate test question.",
+                "answer": "The correct answer.",
+                "hints": ["Hint 1: A small nudge.", "Hint 2: A bigger clue.", "Hint 3: The syntax structure."]
+            },
+            "cheatSheet": [
+                "Key takeaway 1",
+                "Key takeaway 2",
+                "Best practice tip"
+            ]
         }
-        
-        IMPORTANT RULES:
-        1. Keep it "Atomic": Short paragraphs, clear examples.
-        2. Gamify it: Use an enthusiastic, encouraging tone.
-        3. Visuals: The Mermaid diagram should be valid and simple. IMPORTANT: Enclose all node labels in double quotes (e.g., A["Label (Info)"]) to avoid syntax errors with special characters.
-        4. Interactive: The "fill-in-blank" MUST be solvable by reading the previous sections. Do not ask for external knowledge.
-        5. Output ONLY valid JSON. No markdown formatting around the JSON.
+
+        CRITICAL RULES:
+        1. **Length & Depth**: This must be a SUBSTANTIAL lesson. No fluff. High signal-to-noise ratio.
+        2. **Visuals**: The Mermaid diagram must be valid.
+        3. **Variety**: Use a mix of Text, Code, Simulation, Debug, and Deep Dive sections.
+        4. **Personalization**: If the user likes Sci-Fi, make the analogy Sci-Fi themed.
+        5. **Output**: ONLY valid JSON.
         `;
 
         const result = await model.generateContent(prompt);
@@ -66,6 +134,19 @@ export async function POST(req: Request) {
         // Clean up JSON
         const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
         const content = JSON.parse(jsonStr);
+
+        // Store in Firestore if courseId is provided
+        if (courseId && lessonId) {
+            const lessonRef = doc(db, "courses", courseId, "lessons", lessonId);
+            await setDoc(lessonRef, {
+                ...content,
+                createdAt: new Date(),
+                metadata: {
+                    version: "2.0",
+                    personalized: !!userProfile
+                }
+            });
+        }
 
         return NextResponse.json({ content });
 

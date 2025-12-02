@@ -72,6 +72,7 @@ export interface RoadmapNode {
     id: string;
     status: "locked" | "active" | "completed";
     completedLessons: number;
+    completedLessonIds?: string[]; // Track specific completed lessons
 }
 
 export interface RoadmapHistory {
@@ -119,15 +120,19 @@ export interface RoadmapSlice {
     currentTopic: string;
     completedTopics: string[];
     completedSubtopics: string[];
+    historicallyCompletedSubtopics: string[]; // Track if XP was ever awarded
     completedKeyPoints: string[];
+    historicallyCompletedKeyPoints: string[]; // Track if XP was ever awarded
+    completedQuizzes: string[]; // Track completed quizzes by nodeId
     learningAreas: LearningArea[];
     prerequisites: Prerequisite[];
     roadmapGoal: string;
     totalLessonsCompleted: number;
     lessonCache: Record<string, any>;
 
-    completeLesson: (lessonId: string) => void;
+    completeLesson: (nodeId: string, lessonId?: string) => void;
     completeRoadmap: (roadmapId: string) => void;
+    completeQuiz: (nodeId: string) => void;
     prefetchLesson: (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => Promise<void>;
     setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string, learningAreas: LearningArea[], prerequisites: Prerequisite[], goal: string) => void;
     updateLearningArea: (areaId: string, details: Partial<LearningArea>) => void;

@@ -36,7 +36,12 @@ export function MermaidRenderer({ chart }: MermaidRendererProps) {
 
             const renderChart = async () => {
                 try {
-                    const { svg } = await mermaid.render(`mermaid-${Date.now()}`, chart);
+                    // Basic sanitization for common LLM errors
+                    const sanitizedChart = chart
+                        .replace(/console\.log/g, 'Log')
+                        .replace(/['"]/g, ''); // Remove quotes which often break labels
+
+                    const { svg } = await mermaid.render(`mermaid-${Date.now()}`, sanitizedChart);
                     if (ref.current) {
                         ref.current.innerHTML = svg;
                         setIsRendered(true);

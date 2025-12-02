@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { MissionControl } from "@/components/roadmap/MissionControl";
 import { QuestPath } from "@/components/roadmap/QuestPath";
 import { SkillTree } from "@/components/roadmap/SkillTree";
+import { DeepSpaceBackground } from "@/components/ui/DeepSpaceBackground";
 
 export default function RoadmapPage() {
     const { colors } = useSkin();
@@ -55,6 +56,7 @@ export default function RoadmapPage() {
     } | null>(null);
 
     const userLevel = calculateUserLevel(xp);
+    const router = useRouter();
 
     // Update streak on mount
     useEffect(() => {
@@ -77,10 +79,18 @@ export default function RoadmapPage() {
     // Utility: Fetch details for a specific area in the background
     const fetchAreaDetails = async (topic: string, areaId: string) => {
         try {
+            // Find existing area to get topics
+            const existingArea = learningAreas.find(a => a.id === areaId);
+            const existingTopics = existingArea?.topics.map(t => ({
+                id: t.id,
+                name: t.name,
+                description: t.description
+            }));
+
             const res = await fetch("/api/generate-roadmap/details", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ topic, areaId }),
+                body: JSON.stringify({ topic, areaId, existingTopics }),
             });
             const data = await res.json();
             if (data.details) {
@@ -96,7 +106,7 @@ export default function RoadmapPage() {
         }
     };
 
-    const handleGenerate = async (topic: string) => {
+    const handleGenerate = async (topic: string, answers?: any[], difficulty?: any, persona?: any) => {
         if (!topic.trim()) return;
         setIsGenerating(true);
         try {
@@ -104,7 +114,7 @@ export default function RoadmapPage() {
             const res = await fetch("/api/generate-roadmap", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ topic }),
+                body: JSON.stringify({ topic, answers, difficulty, persona }),
             });
             const data = await res.json();
 
@@ -125,21 +135,7 @@ export default function RoadmapPage() {
                 setIsGenerating(false);
 
                 // PHASE 2: Fetch detailed content for each area in background
-                // PHASE 2: Fetch detailed content for each area in sequence
-                if (data.learningAreas && data.learningAreas.length > 0) {
-                    // Define sequential fetcher
-                    const fetchAllDetails = async () => {
-                        for (const area of data.learningAreas) {
-                            // Check if we should continue (e.g., if user navigated away, though hard to check here without ref)
-                            await fetchAreaDetails(topic, area.id);
-                            // Small natural delay between updates
-                            await new Promise(resolve => setTimeout(resolve, 800));
-                        }
-                    };
-
-                    // Start fetching in background
-                    fetchAllDetails();
-                }
+                // REMOVED: Automatic sequential fetching. Now handled on-demand by SkillTree.
             } else if (data.error) {
                 console.error("API Error:", data.error, data.details);
                 alert(`Failed to generate roadmap: ${data.details || data.error}`);
@@ -195,12 +191,9 @@ export default function RoadmapPage() {
             className="min-h-screen pb-20 transition-all duration-500 relative overflow-hidden bg-slate-950"
         >
             {/* Global Background Effects */}
-            <div className="fixed inset-0 -z-10">
-                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
-                <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-            </div>
+            <DeepSpaceBackground />
 
-            <div className="container mx-auto px-4 pt-6 max-w-7xl">
+            <div className="container mx-auto px-4 pt-28 max-w-7xl">
                 {/* Mission Control Dashboard */}
                 <MissionControl
                     topic={currentTopic}
@@ -217,6 +210,32 @@ export default function RoadmapPage() {
                         if (confirm("Are you sure you want to start a new roadmap? This will reset all your current progress.")) {
                             setRoadmap("", [], "", [], [], "");
                             window.location.reload();
+                        }
+                    }}
+                    onGenerateCourse={async () => {
+                        if (isGenerating) return;
+                        setIsGenerating(true); // Reuse loading state or create new one
+                        try {
+                            const res = await fetch("/api/courses/generate-from-roadmap", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    topic: currentTopic,
+                                    learningAreas,
+                                    // Pass other context if available in store
+                                }),
+                            });
+                            const data = await res.json();
+                            if (data.courseId) {
+                                router.push(`/courses/${data.courseId}`);
+                            } else {
+                                alert("Failed to generate course");
+                                setIsGenerating(false);
+                            }
+                        } catch (error) {
+                            console.error("Failed to generate course", error);
+                            alert("Failed to generate course");
+                            setIsGenerating(false);
                         }
                     }}
                 />
@@ -241,6 +260,7 @@ export default function RoadmapPage() {
                         <SkillTree
                             learningAreas={learningAreas}
                             goal={roadmapGoal || currentTopic}
+                            onFetchDetails={(areaId) => fetchAreaDetails(currentTopic, areaId)}
                         />
                     </motion.div>
                 )}

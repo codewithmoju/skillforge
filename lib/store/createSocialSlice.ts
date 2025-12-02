@@ -133,7 +133,7 @@ export const createSocialSlice: StateCreator<StoreState, [], [], SocialSlice> = 
                 selectedSkin = DEFAULT_SKIN;
             }
 
-            state.updateAchievementProgress('challenger', newCount);
+            state.updateAchievementProgress('champion', newCount);
 
             return {
                 challengesCompleted: newCount,

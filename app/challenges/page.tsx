@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getChallenges, seedChallenges, Challenge } from '@/lib/services/challenges';
+import { getChallenges, Challenge } from '@/lib/services/challenges';
 import { ChallengeCard } from '@/components/challenges/ChallengeCard';
 import { Loader2, Trophy, Flame } from 'lucide-react';
 
@@ -14,7 +14,7 @@ export default function ChallengesPage() {
         const fetchChallenges = async () => {
             try {
                 // Seed initial data if needed
-                await seedChallenges();
+                // await seedChallenges();
 
                 const data = await getChallenges(filter === 'all' ? undefined : filter);
                 setChallenges(data);
@@ -53,8 +53,8 @@ export default function ChallengesPage() {
                             key={f}
                             onClick={() => setFilter(f)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f
-                                    ? 'bg-slate-800 text-white shadow-sm'
-                                    : 'text-slate-400 hover:text-white'
+                                ? 'bg-slate-800 text-white shadow-sm'
+                                : 'text-slate-400 hover:text-white'
                                 }`}
                         >
                             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -91,7 +91,7 @@ export default function ChallengesPage() {
                         </div>
                         <div className="w-full md:w-1/3 aspect-video bg-slate-800 rounded-xl flex items-center justify-center relative overflow-hidden">
                             <div className={`absolute inset-0 opacity-30 ${challenges[0].type === 'coding' ? 'bg-blue-500' :
-                                    challenges[0].type === 'design' ? 'bg-purple-500' : 'bg-green-500'
+                                challenges[0].type === 'design' ? 'bg-purple-500' : 'bg-green-500'
                                 }`} />
                             <Trophy className="w-20 h-20 text-white opacity-80" />
                         </div>

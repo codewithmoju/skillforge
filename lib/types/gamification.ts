@@ -42,7 +42,7 @@ export interface UserLevel {
 
 export interface XPGainEvent {
     amount: number;
-    source: 'roadmap_generation' | 'roadmap_completion' | 'module_completion' | 'lesson_completion' | 'achievement' | 'streak' | 'daily_login' | 'social';
+    source: 'roadmap_generation' | 'roadmap_completion' | 'module_completion' | 'lesson_completion' | 'achievement' | 'streak' | 'daily_login' | 'social' | 'quiz_completion';
     timestamp: Date;
     multiplier?: number;
 }

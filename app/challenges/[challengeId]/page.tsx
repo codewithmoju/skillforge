@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useUserStore } from '@/lib/store';
-import { getChallenge, joinChallenge, Challenge } from '@/lib/services/challenges';
+import { getChallenge, Challenge } from '@/lib/services/challenges';
 import { Loader2, Trophy, Calendar, Users, CheckCircle, Clock } from 'lucide-react';
 
 export default function ChallengeDetailsPage() {
@@ -40,10 +40,10 @@ export default function ChallengeDetailsPage() {
 
         setJoining(true);
         try {
-            await joinChallenge(user.uid, challenge.id);
+            // await joinChallenge(user.uid, challenge.id);
             setIsParticipant(true);
             setChallenge(prev => prev ? { ...prev, participantsCount: prev.participantsCount + 1 } : null);
-            
+
             // Update achievement progress
             incrementChallengesJoined();
         } catch (error) {
@@ -76,7 +76,7 @@ export default function ChallengeDetailsPage() {
             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden mb-8">
                 <div className="h-64 bg-slate-800 relative">
                     <div className={`absolute inset-0 opacity-30 ${challenge.type === 'coding' ? 'bg-blue-500' :
-                            challenge.type === 'design' ? 'bg-purple-500' : 'bg-green-500'
+                        challenge.type === 'design' ? 'bg-purple-500' : 'bg-green-500'
                         }`} />
                     <div className="absolute inset-0 flex items-center justify-center">
                         <Trophy className="w-24 h-24 text-white opacity-50" />
@@ -85,8 +85,8 @@ export default function ChallengeDetailsPage() {
                     <div className="absolute bottom-0 left-0 p-8 w-full">
                         <div className="flex items-center gap-2 mb-2">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${challenge.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                                    challenge.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' :
-                                        'bg-slate-500/20 text-slate-400'
+                                challenge.status === 'upcoming' ? 'bg-blue-500/20 text-blue-400' :
+                                    'bg-slate-500/20 text-slate-400'
                                 }`}>
                                 {challenge.status}
                             </span>
@@ -150,8 +150,8 @@ export default function ChallengeDetailsPage() {
                                 onClick={handleJoin}
                                 disabled={joining || isParticipant || challenge.status === 'completed'}
                                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${isParticipant
-                                        ? 'bg-green-500/20 text-green-400 cursor-default'
-                                        : 'bg-accent-indigo text-white hover:bg-accent-indigo/90 shadow-lg shadow-accent-indigo/20'
+                                    ? 'bg-green-500/20 text-green-400 cursor-default'
+                                    : 'bg-accent-indigo text-white hover:bg-accent-indigo/90 shadow-lg shadow-accent-indigo/20'
                                     }`}
                             >
                                 {joining ? (
