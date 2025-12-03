@@ -131,6 +131,21 @@ export default function RoadmapPage() {
                     data.goal || ""
                 );
 
+                // Sync to Firestore if user is logged in
+                if (user?.uid) {
+                    try {
+                        const { updateRoadmapProgress } = await import('@/lib/services/userProgress');
+                        await updateRoadmapProgress(user.uid, topic, {
+                            topic,
+                            learningAreas: data.learningAreas,
+                            prerequisites: data.prerequisites || [],
+                            goal: data.goal || "",
+                        });
+                    } catch (error) {
+                        console.error('Failed to sync roadmap to Firestore:', error);
+                    }
+                }
+
                 // Stop loading indicator - show skeleton immediately
                 setIsGenerating(false);
 

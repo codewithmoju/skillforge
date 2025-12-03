@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useUserStore } from '../store';
+import { setAuthCookie, clearAuthCookie } from '../auth/authHelpers';
 
 export function useAuth() {
     const [user, setUser] = useState<User | null>(null);
@@ -20,11 +21,27 @@ export function useAuth() {
     const { setUserName } = useUserStore();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
             if (currentUser?.displayName) {
                 setUserName(currentUser.displayName);
             }
+
+            // Set or clear session cookie based on auth state
+            if (currentUser) {
+                try {
+                    await setAuthCookie(currentUser);
+                } catch (error) {
+                    console.error('Failed to set auth cookie:', error);
+                }
+            } else {
+                try {
+                    await clearAuthCookie();
+                } catch (error) {
+                    console.error('Failed to clear auth cookie:', error);
+                }
+            }
+
             setLoading(false);
         });
 
@@ -35,7 +52,9 @@ export function useAuth() {
         setError(null);
         try {
             const provider = new GoogleAuthProvider();
-            await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider);
+            // Session cookie will be set by onAuthStateChanged
+            return result;
         } catch (err: any) {
             setError(err.message || "Failed to login with Google");
             throw err;
@@ -51,6 +70,7 @@ export function useAuth() {
                 await updateProfile(result.user, { displayName });
                 setUserName(displayName);
             }
+            // Session cookie will be set by onAuthStateChanged
             return result;
         } catch (err: any) {
             const errorMessage = err.code === 'auth/email-already-in-use'
@@ -66,7 +86,9 @@ export function useAuth() {
     const loginWithEmail = async (email: string, password: string) => {
         setError(null);
         try {
-            await signInWithEmailAndPassword(auth, email, password);
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            // Session cookie will be set by onAuthStateChanged
+            return result;
         } catch (err: any) {
             const errorMessage = err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password'
                 ? 'Invalid email or password'
@@ -93,6 +115,7 @@ export function useAuth() {
         setError(null);
         try {
             await signOut(auth);
+            await clearAuthCookie();
         } catch (err: any) {
             setError(err.message || "Failed to logout");
             throw err;
