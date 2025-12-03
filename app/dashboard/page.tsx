@@ -50,6 +50,15 @@ function DashboardContent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    // Trigger data migration from localStorage to Firestore
+    useEffect(() => {
+        if (user) {
+            import('@/lib/services/migration').then(({ migrateLocalStorageToFirestore }) => {
+                migrateLocalStorageToFirestore(user.uid);
+            });
+        }
+    }, [user]);
+
     const fetchDashboard = useCallback(async () => {
         if (!user) {
             setLoading(false);

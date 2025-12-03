@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useScrambleText } from "@/lib/hooks/useScrambleText";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 // Types matching the API response
 interface Lesson {
@@ -250,6 +251,8 @@ export default function CourseSyllabusPage() {
     // Always call hooks at the top level
     const scrambledTitle = useScrambleText(syllabus?.title || "", !loading && !!syllabus);
 
+    const { user } = useAuth(); // Add useAuth hook
+
     useEffect(() => {
         const loadCourse = async () => {
             const slug = params.slug as string;
@@ -279,14 +282,27 @@ export default function CourseSyllabusPage() {
             }
 
             // Load progress
-            const progress = localStorage.getItem(`progress-${slug}`);
-            if (progress) {
-                setCompletedLessons(JSON.parse(progress));
+            if (user) {
+                try {
+                    const { getUserProgress } = await import("@/lib/services/userProgress");
+                    const progress = await getUserProgress(user.uid);
+                    if (progress && progress.courses && progress.courses[slug]) {
+                        setCompletedLessons(progress.courses[slug].completedLessons || []);
+                    }
+                } catch (error) {
+                    console.error("Failed to load progress from Firestore", error);
+                }
+            } else {
+                // Fallback to localStorage for non-authenticated users (or if offline)
+                const progress = localStorage.getItem(`progress-${slug}`);
+                if (progress) {
+                    setCompletedLessons(JSON.parse(progress));
+                }
             }
         };
 
         loadCourse();
-    }, [params.slug]);
+    }, [params.slug, user]);
 
     if (loading) return (
         <div className="min-h-screen bg-[#030014] flex flex-col items-center justify-center text-white space-y-6">

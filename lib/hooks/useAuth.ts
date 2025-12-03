@@ -31,12 +31,47 @@ export function useAuth() {
             if (currentUser) {
                 try {
                     await setAuthCookie(currentUser);
+
+                    // Sync data from Firestore to Zustand store
+                    const { getUserData } = await import('../services/firestore');
+                    const { getUserProgress } = await import('../services/userProgress');
+
+                    const [userData, userProgress] = await Promise.all([
+                        getUserData(currentUser.uid),
+                        getUserProgress(currentUser.uid)
+                    ]);
+
+                    const storeUpdate: any = {};
+
+                    if (userData) {
+                        storeUpdate.xp = userData.xp;
+                        storeUpdate.level = userData.level;
+                        if (userData.streakData) storeUpdate.streakData = userData.streakData;
+                        if (userData.achievements) storeUpdate.achievements = userData.achievements;
+                        if (userData.projects) storeUpdate.projects = userData.projects;
+                        if (userData.roadmapDefinitions) storeUpdate.roadmapDefinitions = userData.roadmapDefinitions;
+                        if (userData.currentTopic) storeUpdate.currentTopic = userData.currentTopic;
+                    }
+
+                    if (userProgress) {
+                        if (userProgress.roadmaps) {
+                            storeUpdate.roadmapProgress = userProgress.roadmaps;
+                        }
+                        // Add other progress fields if needed
+                    }
+
+                    if (Object.keys(storeUpdate).length > 0) {
+                        useUserStore.getState().loadUserData(storeUpdate);
+                    }
+
                 } catch (error) {
-                    console.error('Failed to set auth cookie:', error);
+                    console.error('Failed to set auth cookie or sync data:', error);
                 }
             } else {
                 try {
                     await clearAuthCookie();
+                    // Optional: Clear store on logout
+                    // useUserStore.getState().resetToDefaults();
                 } catch (error) {
                     console.error('Failed to clear auth cookie:', error);
                 }

@@ -290,7 +290,7 @@ export default function LessonPage() {
         }
     };
 
-    const handleComplete = () => {
+    const handleComplete = async () => {
         // Track lesson completion
         if (user) {
             userBehavior.log(user.uid, 'view_lesson', {
@@ -298,9 +298,17 @@ export default function LessonPage() {
                 outcome: 'success',
                 metadata: { type: 'complete' }
             });
+
+            // Save progress to Firestore
+            try {
+                const { completeLesson } = await import("@/lib/services/userProgress");
+                await completeLesson(user.uid, slug, lessonId);
+            } catch (error) {
+                console.error("Failed to save progress to Firestore:", error);
+            }
         }
 
-        // Save progress locally
+        // Save progress locally (as backup/cache)
         const progressKey = `progress-${slug}`;
         const storedProgress = localStorage.getItem(progressKey);
         const progress = storedProgress ? JSON.parse(storedProgress) : [];

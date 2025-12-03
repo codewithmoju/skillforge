@@ -44,10 +44,16 @@ export default function CoursesPage() {
                 const q = query(collection(db, "courses"), orderBy("createdAt", "desc"));
                 const querySnapshot = await getDocs(q);
 
+                // Fetch user progress
+                const { getUserProgress } = await import("@/lib/services/userProgress");
+                const userProgress = user ? await getUserProgress(user.uid) : null;
+
                 const courses = querySnapshot.docs.map(doc => {
                     const data = doc.data();
-                    const storedProgress = localStorage.getItem(`progress-${doc.id}`);
-                    const completedLessons = storedProgress ? JSON.parse(storedProgress).length : 0;
+
+                    // Get progress from Firestore if available, otherwise fallback to 0
+                    const courseProgress = userProgress?.courses?.[doc.id];
+                    const completedLessons = courseProgress?.completedLessons?.length || 0;
 
                     let totalLessons = 0;
                     if (data.syllabus && data.syllabus.modules) {

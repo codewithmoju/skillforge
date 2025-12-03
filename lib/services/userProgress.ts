@@ -96,16 +96,19 @@ export async function updateCourseProgress(
 ): Promise<void> {
     try {
         const docRef = doc(db, 'userProgress', userId);
-        await updateDoc(docRef, {
-            [`courses.${courseId}`]: {
-                ...data,
-                courseId,
-                lastAccessed: serverTimestamp(),
-                updatedAt: serverTimestamp(),
+        const updates = {
+            courses: {
+                [courseId]: {
+                    ...data,
+                    courseId,
+                    lastAccessed: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                }
             },
             updatedAt: serverTimestamp(),
             lastSyncedAt: serverTimestamp(),
-        });
+        };
+        await setDoc(docRef, updates, { merge: true });
     } catch (error) {
         console.error('Error updating course progress:', error);
         throw error;
@@ -121,11 +124,11 @@ export async function updateAchievements(
 ): Promise<void> {
     try {
         const docRef = doc(db, 'userProgress', userId);
-        await updateDoc(docRef, {
+        await setDoc(docRef, {
             achievements,
             updatedAt: serverTimestamp(),
             lastSyncedAt: serverTimestamp(),
-        });
+        }, { merge: true });
     } catch (error) {
         console.error('Error updating achievements:', error);
         throw error;
@@ -147,11 +150,11 @@ export async function updateUserStats(
 ): Promise<void> {
     try {
         const docRef = doc(db, 'userProgress', userId);
-        await updateDoc(docRef, {
+        await setDoc(docRef, {
             ...stats,
             updatedAt: serverTimestamp(),
             lastSyncedAt: serverTimestamp(),
-        });
+        }, { merge: true });
     } catch (error) {
         console.error('Error updating user stats:', error);
         throw error;
