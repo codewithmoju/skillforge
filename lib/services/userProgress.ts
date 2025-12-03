@@ -1,6 +1,7 @@
+
+import { UserProgressDocument, createUserProgressDocument } from '@/lib/models/userProgress';
 import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { UserProgressDocument, createUserProgressDocument } from '@/lib/models/userProgress';
 
 /**
  * Get user progress from Firestore
@@ -59,9 +60,11 @@ export async function updateRoadmapProgress(
     try {
         const docRef = doc(db, 'userProgress', userId);
         const updates: any = {
-            [`roadmaps.${roadmapId}`]: {
-                ...data,
-                updatedAt: serverTimestamp(),
+            roadmaps: {
+                [roadmapId]: {
+                    ...data,
+                    updatedAt: serverTimestamp(),
+                }
             },
             updatedAt: serverTimestamp(),
             lastSyncedAt: serverTimestamp(),
@@ -71,7 +74,7 @@ export async function updateRoadmapProgress(
             updates.currentTopic = data.topic;
         }
 
-        await updateDoc(docRef, updates);
+        await setDoc(docRef, updates, { merge: true });
     } catch (error) {
         console.error('Error updating roadmap progress:', error);
         throw error;
@@ -190,5 +193,24 @@ export async function completeLesson(
     } catch (error) {
         console.error('Error completing lesson:', error);
         throw error;
+    }
+}
+
+/**
+ * Delete roadmap progress from Firestore
+ */
+export async function deleteRoadmapProgress(userId: string): Promise<void> {
+    try {
+        const { deleteField } = await import('firebase/firestore');
+        const docRef = doc(db, 'userProgress', userId);
+
+        await updateDoc(docRef, {
+            currentTopic: deleteField(),
+            // We don't delete the history in 'roadmaps' map to preserve record of past attempts,
+            // but removing currentTopic effectively "closes" the active roadmap in the UI.
+        });
+    } catch (error) {
+        console.error('Error deleting roadmap progress:', error);
+        // If document doesn't exist, that's fine, nothing to delete
     }
 }

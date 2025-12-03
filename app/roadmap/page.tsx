@@ -19,6 +19,7 @@ import { SkinSelector } from "@/components/roadmap/SkinSelector";
 import { useSkin } from "@/lib/hooks/useSkin";
 import { calculateUserLevel } from "@/lib/utils/levelSystem";
 import Link from "next/link";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { useRouter } from "next/navigation";
 // New Gamified Components
 import { MissionControl } from "@/components/roadmap/MissionControl";
@@ -27,6 +28,7 @@ import { SkillTree } from "@/components/roadmap/SkillTree";
 import { DeepSpaceBackground } from "@/components/ui/DeepSpaceBackground";
 
 export default function RoadmapPage() {
+    const { user } = useAuth();
     const { colors } = useSkin();
     const {
         roadmapProgress,
@@ -221,8 +223,16 @@ export default function RoadmapPage() {
                         const element = document.getElementById('quest-path');
                         element?.scrollIntoView({ behavior: 'smooth' });
                     }}
-                    onRegenerate={() => {
+                    onRegenerate={async () => {
                         if (confirm("Are you sure you want to start a new roadmap? This will reset all your current progress.")) {
+                            if (user?.uid) {
+                                try {
+                                    const { deleteRoadmapProgress } = await import('@/lib/services/userProgress');
+                                    await deleteRoadmapProgress(user.uid);
+                                } catch (error) {
+                                    console.error("Failed to clear remote roadmap:", error);
+                                }
+                            }
                             setRoadmap("", [], "", [], [], "");
                             window.location.reload();
                         }

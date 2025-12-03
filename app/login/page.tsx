@@ -41,11 +41,16 @@ export default function LoginPage() {
         setLoading(true);
         setError(null);
         try {
-            await loginWithGoogle();
-            router.push("/roadmap");
+            const result = await loginWithGoogle();
+            // Manually set cookie and await it to ensure middleware sees it
+            if (result.user) {
+                const { setAuthCookie } = await import('@/lib/auth/authHelpers');
+                await setAuthCookie(result.user);
+            }
+            // Force a hard redirect to ensure state is fresh and navigation happens
+            window.location.href = "/roadmap";
         } catch (err: any) {
             setError(err.message);
-        } finally {
             setLoading(false);
         }
     };

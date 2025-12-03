@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
 import { usePerformance } from "@/lib/hooks/usePerformance";
 
@@ -113,15 +114,34 @@ function GradientMeshBackground() {
 
 // Floating Particles
 function ParticlesBackground() {
+    const [particles, setParticles] = React.useState<Array<{
+        left: string;
+        top: string;
+        duration: number;
+        delay: number;
+    }>>([]);
+
+    React.useEffect(() => {
+        const newParticles = Array.from({ length: 40 }).map(() => ({
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            duration: Math.random() * 8 + 8,
+            delay: Math.random() * 5,
+        }));
+        setParticles(newParticles);
+    }, []);
+
+    if (particles.length === 0) return null;
+
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {Array.from({ length: 40 }).map((_, i) => (
+            {particles.map((p, i) => (
                 <motion.div
                     key={i}
                     className="absolute w-2 h-2 bg-white/30 rounded-full"
                     style={{
-                        left: `${Math.random() * 100}%`,
-                        top: `${Math.random() * 100}%`,
+                        left: p.left,
+                        top: p.top,
                     }}
                     animate={{
                         y: [0, -150, 0],
@@ -129,9 +149,9 @@ function ParticlesBackground() {
                         scale: [0, 1, 0],
                     }}
                     transition={{
-                        duration: Math.random() * 8 + 8,
+                        duration: p.duration,
                         repeat: Infinity,
-                        delay: Math.random() * 5,
+                        delay: p.delay,
                     }}
                 />
             ))}

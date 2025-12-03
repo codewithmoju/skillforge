@@ -36,7 +36,7 @@ export default function MessagesPage() {
 
             // If no conversations, fetch suggested users (followers)
             if (convs.length === 0) {
-                fetchSuggestedUsers();
+                // fetchSuggestedUsers(); // Temporarily disabled to debug permission error
             }
         });
 

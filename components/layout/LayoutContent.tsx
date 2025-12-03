@@ -16,7 +16,7 @@ import { ForestQuestWrapper } from "@/components/skins/forest-quest/ForestQuestW
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
-    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/signup" || pathname === "/features";
+    const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/signup" || pathname === "/features" || pathname?.startsWith("/docs");
     const isMessagesPage = pathname === "/messages";
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const selectedSkin = useUserStore((state) => state.selectedSkin);

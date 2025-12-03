@@ -169,13 +169,20 @@ export async function createConversation(participants: string[], participantDeta
 export function subscribeToConversations(userId: string, callback: (conversations: Conversation[]) => void) {
     const q = query(
         collection(db, 'conversations'),
-        where('participants', 'array-contains', userId),
-        orderBy('lastMessageAt', 'desc')
+        // where('participants', 'array-contains', userId), // Temporarily removed to debug permission/index issue
+        limit(50)
     );
 
     return onSnapshot(q, (snapshot) => {
-        const conversations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
+        const conversations = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Conversation))
+            .filter(c => c.participants && c.participants.includes(userId)); // Client-side filter
+
+        // Sort manually
+        conversations.sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
         callback(conversations);
+    }, (error) => {
+        console.error("Error in conversations subscription:", error);
     });
 }
 
