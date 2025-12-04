@@ -76,19 +76,18 @@ export async function POST(req: Request) {
             }
         }
 
-        CRITICAL: Return ONLY valid JSON.
+        CRITICAL: Return ONLY valid JSON. Do NOT include markdown formatting (like \`\`\`json). Do NOT include any conversational text.
         `;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
-        let jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
 
-        // Extract JSON object if wrapped in text
-        const firstBrace = jsonStr.indexOf("{");
-        const lastBrace = jsonStr.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonStr = jsonStr.substring(firstBrace, lastBrace + 1);
+        // Improved JSON extraction
+        let jsonStr = text.trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            jsonStr = jsonMatch[0];
         }
 
         const data = JSON.parse(jsonStr);

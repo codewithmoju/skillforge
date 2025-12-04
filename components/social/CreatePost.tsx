@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Loader2, Image as ImageIcon, X, Send } from "lucide-react";
@@ -26,6 +26,30 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isExpanded, setIsExpanded] = useState(false);
+
+    // Load draft on mount
+    useEffect(() => {
+        const savedDraft = localStorage.getItem("post_draft");
+        if (savedDraft) {
+            try {
+                const { text: savedText, images: savedImages } = JSON.parse(savedDraft);
+                if (savedText) setText(savedText);
+                if (savedImages) setImages(savedImages);
+                if (savedText || (savedImages && savedImages.length > 0)) setIsExpanded(true);
+            } catch (e) {
+                console.error("Failed to parse draft", e);
+            }
+        }
+    }, []);
+
+    // Save draft on change
+    useEffect(() => {
+        if (text || images.length > 0) {
+            localStorage.setItem("post_draft", JSON.stringify({ text, images }));
+        } else {
+            localStorage.removeItem("post_draft");
+        }
+    }, [text, images]);
 
     const handleAddImage = (url: string) => {
         if (images.length < 4) {
@@ -95,6 +119,7 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
 
             setText("");
             setImages([]);
+            localStorage.removeItem("post_draft");
             setIsExpanded(false);
             onPostCreated?.(newPost);
         } catch (err: any) {

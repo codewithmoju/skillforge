@@ -101,6 +101,11 @@ export function RoadmapGenerationHero({ onGenerate, isGenerating }: RoadmapGener
         e?.preventDefault();
         if (!input.trim()) return;
 
+        // Reset previous context to prevent pollution
+        setAnswers({});
+        setSelectedDifficulty(null);
+        setSelectedPersona(null);
+
         setStep("analyzing");
         try {
             const res = await fetch("/api/courses/analyze-topic", {

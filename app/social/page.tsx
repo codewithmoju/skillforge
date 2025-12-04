@@ -1,112 +1,95 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PostCard } from "@/components/social/PostCard";
-import { getFeedPostsPaginated, isPostLiked, isPostSaved, PaginatedResult } from "@/lib/services/posts";
+import { isPostLiked, isPostSaved, checkPostInteractions } from "@/lib/services/posts";
 import type { Post } from "@/lib/services/posts";
-import { getFollowing } from "@/lib/services/follow";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { CreatePost } from "@/components/social/CreatePost";
-import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
-
-const PAGE_SIZE = 10;
+import { usePosts } from "@/lib/hooks/usePosts";
+import { useInView } from "react-intersection-observer";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function SocialPage() {
     const { user } = useAuth();
-    const [posts, setPosts] = useState<Post[]>([]);
+    const queryClient = useQueryClient();
+    const {
+        posts,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        deletePost
+    } = usePosts("feed");
+
+    const { ref, inView } = useInView();
+
     const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
     const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(false);
-    const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
-    const followingIdsRef = useRef<string[]>([]);
 
-    const loadFeed = async (isRefresh = false) => {
-        if (!user) return;
-
-        if (isRefresh) {
-            setLoading(true);
-            setPosts([]);
-            lastDocRef.current = null;
+    useEffect(() => {
+        if (inView && hasNextPage) {
+            fetchNextPage();
         }
+    }, [inView, hasNextPage, fetchNextPage]);
 
-        try {
-            // Get users that current user follows
-            const followingIds = await getFollowing(user.uid);
-            followingIdsRef.current = [user.uid, ...followingIds];
+    // Check liked/saved status when posts change
+    const checkedIdsRef = useState(new Set<string>())[0];
 
-            // Get paginated posts
-            const result = await getFeedPostsPaginated(followingIdsRef.current, PAGE_SIZE);
-            setPosts(result.items);
-            lastDocRef.current = result.lastDoc;
-            setHasMore(result.hasMore);
+    useEffect(() => {
+        const checkLikedSaved = async () => {
+            if (!user || posts.length === 0) return;
 
-            // Check which posts are liked/saved
-            await checkLikedSaved(result.items);
-        } catch (error) {
-            console.error('Error loading feed:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+            const postsToCheck = posts.filter(p => !checkedIdsRef.has(p.id));
+            if (postsToCheck.length === 0) return;
 
-    const loadMore = async () => {
-        if (!user || loadingMore || !hasMore || !lastDocRef.current) return;
+            // Mark as checked immediately to prevent double checking
+            postsToCheck.forEach(p => checkedIdsRef.add(p.id));
 
-        setLoadingMore(true);
-        try {
-            const result = await getFeedPostsPaginated(
-                followingIdsRef.current,
-                PAGE_SIZE,
-                lastDocRef.current
-            );
+            const postIds = postsToCheck.map(p => p.id);
+            const { liked, saved } = await checkPostInteractions(user.uid, postIds);
 
-            setPosts(prev => [...prev, ...result.items]);
-            lastDocRef.current = result.lastDoc;
-            setHasMore(result.hasMore);
+            if (liked.size > 0 || saved.size > 0) {
+                setLikedPosts(prev => {
+                    const next = new Set(prev);
+                    liked.forEach(id => next.add(id));
+                    return next;
+                });
+                setSavedPosts(prev => {
+                    const next = new Set(prev);
+                    saved.forEach(id => next.add(id));
+                    return next;
+                });
+            }
+        };
 
-            // Check liked/saved for new posts
-            await checkLikedSaved(result.items);
-        } catch (error) {
-            console.error('Error loading more:', error);
-        } finally {
-            setLoadingMore(false);
-        }
-    };
-
-    const checkLikedSaved = async (newPosts: Post[]) => {
-        if (!user) return;
-
-        const liked = new Set(likedPosts);
-        const saved = new Set(savedPosts);
-
-        for (const post of newPosts) {
-            const [isLiked, isSaved] = await Promise.all([
-                isPostLiked(user.uid, post.id),
-                isPostSaved(user.uid, post.id),
-            ]);
-            if (isLiked) liked.add(post.id);
-            if (isSaved) saved.add(post.id);
-        }
-
-        setLikedPosts(liked);
-        setSavedPosts(saved);
-    };
+        checkLikedSaved();
+    }, [posts, user, likedPosts, savedPosts, checkedIdsRef]);
 
     const handlePostCreated = (newPost: Post) => {
-        setPosts(prev => [newPost, ...prev]);
+        // Manually update the cache since CreatePost handles the API call
+        queryClient.setQueryData(["posts", "feed", user?.uid], (old: any) => {
+            if (!old) return old;
+            return {
+                ...old,
+                pages: old.pages.map((page: any, index: number) => {
+                    if (index === 0) {
+                        return {
+                            ...page,
+                            items: [newPost, ...page.items]
+                        };
+                    }
+                    return page;
+                })
+            };
+        });
     };
 
     const handlePostDeleted = (deletedPostId: string) => {
-        setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+        deletePost(deletedPostId);
     };
-
-    useEffect(() => {
-        loadFeed(true);
-    }, [user]);
 
     return (
         <div className="min-h-screen p-8 pt-24">
@@ -117,10 +100,6 @@ export default function SocialPage() {
                         <h1 className="text-4xl font-bold text-white mb-2">Social Feed</h1>
                         <p className="text-slate-400">See what others are learning</p>
                     </div>
-                    <Button variant="outline" onClick={() => loadFeed(true)} disabled={loading}>
-                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-                        Refresh
-                    </Button>
                 </div>
 
                 {/* Create Post */}
@@ -129,7 +108,7 @@ export default function SocialPage() {
                 </div>
 
                 {/* Feed */}
-                {loading ? (
+                {isLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
                     </div>
@@ -155,26 +134,12 @@ export default function SocialPage() {
                             />
                         ))}
 
-                        {/* Load More Button */}
-                        {hasMore && (
-                            <div className="flex justify-center pt-4">
-                                <Button
-                                    variant="outline"
-                                    onClick={loadMore}
-                                    disabled={loadingMore}
-                                    className="w-full max-w-xs"
-                                >
-                                    {loadingMore ? (
-                                        <>
-                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        "Load More Posts"
-                                    )}
-                                </Button>
-                            </div>
-                        )}
+                        {/* Loading Indicator / Infinite Scroll Trigger */}
+                        <div ref={ref} className="flex justify-center py-4">
+                            {isFetchingNextPage && (
+                                <Loader2 className="w-6 h-6 text-accent-cyan animate-spin" />
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

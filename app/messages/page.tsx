@@ -34,10 +34,8 @@ export default function MessagesPage() {
             setConversations(convs);
             setLoading(false);
 
-            // If no conversations, fetch suggested users
-            if (convs.length === 0) {
-                fetchSuggestedUsers();
-            }
+            // Always fetch suggested users so they are available
+            fetchSuggestedUsers();
         });
 
         return () => unsubscribe();

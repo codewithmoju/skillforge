@@ -26,6 +26,7 @@ export const createUserSlice: StateCreator<StoreState, [], [], UserSlice> = (set
     lastActivityDate: "",
     selectedSkin: DEFAULT_SKIN,
     ownedSkins: ["cyber-neon", "forest-quest", "space-odyssey", "dragons-lair", "ocean-depths"] as import('../types/skins').SkinId[],
+    blockedUsers: [],
 
     setUserId: (id) => set({ userId: id }),
 

@@ -184,3 +184,33 @@ export async function getChallenge(challengeId: string): Promise<Challenge | nul
         return null;
     }
 }
+
+export function getChallengeProgress(challenge: Challenge): number {
+    const start = new Date(challenge.startDate).getTime();
+    const end = new Date(challenge.endDate).getTime();
+    const now = new Date().getTime();
+
+    if (now < start) return 0;
+    if (now > end) return 100;
+
+    const totalDuration = end - start;
+    const elapsed = now - start;
+
+    if (totalDuration <= 0) return 100;
+
+    return Math.round((elapsed / totalDuration) * 100);
+}
+
+export function getTimeRemaining(endDate: string | Date): string {
+    const end = new Date(endDate).getTime();
+    const now = new Date().getTime();
+    const diff = end - now;
+
+    if (diff <= 0) return "Ended";
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    if (days > 0) return `${days}d ${hours}h left`;
+    return `${hours}h left`;
+}

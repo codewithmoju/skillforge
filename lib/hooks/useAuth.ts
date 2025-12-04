@@ -50,7 +50,9 @@ export function useAuth() {
                         if (userData.achievements) storeUpdate.achievements = userData.achievements;
                         if (userData.projects) storeUpdate.projects = userData.projects;
                         if (userData.roadmapDefinitions) storeUpdate.roadmapDefinitions = userData.roadmapDefinitions;
+                        if (userData.roadmapDefinitions) storeUpdate.roadmapDefinitions = userData.roadmapDefinitions;
                         if (userData.currentTopic) storeUpdate.currentTopic = userData.currentTopic;
+                        if (userData.blockedUsers) storeUpdate.blockedUsers = userData.blockedUsers;
                     }
 
                     if (userProgress) {

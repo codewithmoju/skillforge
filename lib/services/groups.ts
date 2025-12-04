@@ -9,6 +9,7 @@ export interface Group {
     createdBy: string;
     membersCount: number;
     members: string[]; // Array of user IDs
+    bannedMembers?: string[];
     tags: string[];
     createdAt: string;
 }
@@ -76,6 +77,14 @@ export async function getGroup(groupId: string): Promise<Group | null> {
 export async function joinGroup(userId: string, groupId: string): Promise<void> {
     try {
         const groupRef = doc(db, 'groups', groupId);
+        const groupDoc = await getDoc(groupRef);
+
+        if (groupDoc.exists()) {
+            const data = groupDoc.data() as Group;
+            if (data.bannedMembers?.includes(userId)) {
+                throw new Error("You are banned from this group.");
+            }
+        }
 
         await updateDoc(groupRef, {
             members: arrayUnion(userId),
@@ -101,6 +110,21 @@ export async function leaveGroup(userId: string, groupId: string): Promise<void>
     }
 }
 
+export async function banMember(groupId: string, userId: string): Promise<void> {
+    try {
+        const groupRef = doc(db, 'groups', groupId);
+
+        await updateDoc(groupRef, {
+            members: arrayRemove(userId),
+            membersCount: increment(-1),
+            bannedMembers: arrayUnion(userId)
+        });
+    } catch (error) {
+        console.error('Error banning member:', error);
+        throw error;
+    }
+}
+
 export async function getUserGroups(userId: string): Promise<Group[]> {
     try {
         const q = query(
@@ -112,5 +136,14 @@ export async function getUserGroups(userId: string): Promise<Group[]> {
     } catch (error) {
         console.error('Error getting user groups:', error);
         return [];
+    }
+}
+export async function updateGroup(groupId: string, data: Partial<Group>): Promise<void> {
+    try {
+        const groupRef = doc(db, 'groups', groupId);
+        await updateDoc(groupRef, data);
+    } catch (error) {
+        console.error('Error updating group:', error);
+        throw error;
     }
 }

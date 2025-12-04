@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, orderBy, limit, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { UserState } from '../store';
 import { Achievement, shouldIncrementStreak, shouldResetStreak } from '../utils/achievements';
 import { updateLeaderboard } from './leaderboard';
@@ -35,13 +35,8 @@ export interface FirestoreUserData {
     totalRoadmapsCompleted?: number;
     createdAt: string;
     updatedAt: string;
-    profileComplete: boolean;
-    // Notification settings
-    notifyPush?: boolean;
-    notifyLikes?: boolean;
-    notifyComments?: boolean;
-    notifyFollows?: boolean;
-    notifyMessages?: boolean;
+    profileComplete?: boolean;
+    blockedUsers?: string[];
 }
 
 export async function getUserData(uid: string): Promise<FirestoreUserData | null> {
@@ -279,5 +274,29 @@ export async function getRecentUsers(limitCount: number = 10): Promise<Firestore
     } catch (error) {
         console.error('Error fetching recent users:', error);
         return [];
+    }
+}
+
+export async function blockUser(currentUserId: string, targetUserId: string): Promise<void> {
+    try {
+        const userRef = doc(db, 'users', currentUserId);
+        await updateDoc(userRef, {
+            blockedUsers: arrayUnion(targetUserId)
+        });
+    } catch (error) {
+        console.error('Error blocking user:', error);
+        throw error;
+    }
+}
+
+export async function unblockUser(currentUserId: string, targetUserId: string): Promise<void> {
+    try {
+        const userRef = doc(db, 'users', currentUserId);
+        await updateDoc(userRef, {
+            blockedUsers: arrayRemove(targetUserId)
+        });
+    } catch (error) {
+        console.error('Error unblocking user:', error);
+        throw error;
     }
 }

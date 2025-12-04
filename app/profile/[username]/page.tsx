@@ -1,17 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-    Settings, MapPin, Link as LinkIcon, Loader2, Grid, Bookmark,
-    Trophy, Flame, Star, Award, Target, Zap, Crown, Shield,
-    TrendingUp, BookOpen, Code, Briefcase, Sparkles, Rocket,
-    Medal, Heart, Users, Eye
-} from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { FollowButton } from "@/components/social/FollowButton";
-import { PostCard } from "@/components/social/PostCard";
 import { getUserByUsername, FirestoreUserData } from "@/lib/services/firestore";
 import { getUserPosts, getSavedPosts, isPostLiked, isPostSaved } from "@/lib/services/posts";
 import { getUserProgress } from "@/lib/services/userProgress";
@@ -25,30 +14,43 @@ import { cn } from "@/lib/utils";
 type TabType = 'posts' | 'saved' | 'achievements';
 
 // Floating particle component for ambient effect
-const FloatingParticle = ({ delay, duration, size }: { delay: number; duration: number; size: number }) => (
-    <motion.div
-        className="absolute rounded-full"
-        style={{
-            width: size,
-            height: size,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            background: `radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(236,72,153,0.2) 50%, transparent 70%)`,
-        }}
-        animate={{
-            y: [-20, -60, -20],
-            x: [0, Math.random() * 30 - 15, 0],
-            opacity: [0.3, 0.8, 0.3],
-            scale: [1, 1.2, 1],
-        }}
-        transition={{
-            duration,
-            repeat: Infinity,
-            delay,
-            ease: "easeInOut",
-        }}
-    />
-);
+const FloatingParticle = ({ delay, duration, size }: { delay: number; duration: number; size: number }) => {
+    const [config, setConfig] = useState<any>(null);
+
+    useEffect(() => {
+        setConfig({
+            style: {
+                width: size,
+                height: size,
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                background: `radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(236,72,153,0.2) 50%, transparent 70%)`,
+            },
+            animate: {
+                y: [-20, -60, -20],
+                x: [0, Math.random() * 30 - 15, 0],
+                opacity: [0.3, 0.8, 0.3],
+                scale: [1, 1.2, 1],
+            }
+        });
+    }, [size]);
+
+    if (!config) return null;
+
+    return (
+        <motion.div
+            className="absolute rounded-full"
+            style={config.style}
+            animate={config.animate}
+            transition={{
+                duration,
+                repeat: Infinity,
+                delay,
+                ease: "easeInOut",
+            }}
+        />
+    );
+};
 
 // Animated stat ring component
 const StatRing = ({ value, max, color, size = 80 }: { value: number; max: number; color: string; size?: number }) => {
@@ -109,6 +111,7 @@ export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState<TabType>('posts');
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     const isOwnProfile = currentUser?.uid === userData?.uid;
 
@@ -423,12 +426,14 @@ export default function ProfilePage() {
 
                                     <div className="flex items-center justify-center gap-3">
                                         {isOwnProfile ? (
-                                            <Link href="/settings">
-                                                <Button variant="outline" className="gap-2 border-purple-500/50 hover:bg-purple-500/20 hover:border-purple-400">
-                                                    <Settings className="w-4 h-4" />
-                                                    Edit Profile
-                                                </Button>
-                                            </Link>
+                                            <Button
+                                                variant="outline"
+                                                className="gap-2 border-purple-500/50 hover:bg-purple-500/20 hover:border-purple-400"
+                                                onClick={() => setIsEditModalOpen(true)}
+                                            >
+                                                <Settings className="w-4 h-4" />
+                                                Edit Profile
+                                            </Button>
                                         ) : (
                                             <FollowButton
                                                 targetUserId={userData.uid}
@@ -665,6 +670,17 @@ export default function ProfilePage() {
                     </AnimatePresence>
                 </div>
             </div>
+
+            {currentUser && userData && isOwnProfile && (
+                <ProfileEditModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        loadProfile();
+                    }}
+                    currentUser={userData}
+                />
+            )}
         </div>
     );
 }
@@ -683,7 +699,7 @@ function GamifiedStatCard({ icon: Icon, label, value, suffix, gradient, glow, pr
         <motion.div
             whileHover={{ scale: 1.03, y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className={cn("relative group cursor-default", `shadow-lg ${glow}`)}
+            className={cn("relative group cursor-default rounded-2xl overflow-hidden", `shadow-lg ${glow}`)}
         >
             <div className={cn("absolute inset-0 bg-gradient-to-br rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl", gradient)} />
             <div className="relative bg-slate-900/80 backdrop-blur-sm rounded-2xl p-5 border border-slate-700/50 overflow-hidden">

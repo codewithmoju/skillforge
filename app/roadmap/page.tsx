@@ -26,6 +26,8 @@ import { MissionControl } from "@/components/roadmap/MissionControl";
 import { QuestPath } from "@/components/roadmap/QuestPath";
 import { SkillTree } from "@/components/roadmap/SkillTree";
 import { DeepSpaceBackground } from "@/components/ui/DeepSpaceBackground";
+import { addDoc, collection } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function RoadmapPage() {
     const { user } = useAuth();
@@ -277,8 +279,17 @@ export default function RoadmapPage() {
                                 }),
                             });
                             const data = await res.json();
-                            if (data.courseId) {
-                                router.push(`/courses/${data.courseId}`);
+
+                            if (data.courseData && user?.uid) {
+                                // Save to Firestore from client side (authenticated)
+                                const courseData = {
+                                    ...data.courseData,
+                                    userId: user.uid,
+                                    createdAt: new Date(),
+                                };
+
+                                const courseRef = await addDoc(collection(db, "courses"), courseData);
+                                router.push(`/courses/${courseRef.id}`);
                             } else {
                                 alert("Failed to generate course");
                                 setIsGenerating(false);

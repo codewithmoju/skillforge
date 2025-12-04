@@ -247,6 +247,7 @@ export default function CourseSyllabusPage() {
     const [syllabus, setSyllabus] = useState<Syllabus | null>(null);
     const [loading, setLoading] = useState(true);
     const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+    const [isCertificateUnlocked, setIsCertificateUnlocked] = useState(false);
 
     // Always call hooks at the top level
     const scrambledTitle = useScrambleText(syllabus?.title || "", !loading && !!syllabus);
@@ -257,28 +258,39 @@ export default function CourseSyllabusPage() {
         const loadCourse = async () => {
             const slug = params.slug as string;
             const stored = localStorage.getItem(`course-${slug}`);
+
+            // 1. Stale-while-revalidate: Load from cache immediately
             if (stored) {
                 setSyllabus(JSON.parse(stored));
                 setLoading(false);
-            } else {
-                // Fetch from Firestore
-                try {
-                    const docRef = doc(db, "courses", slug);
-                    const docSnap = await getDoc(docRef);
+            }
 
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        setSyllabus(data.syllabus);
-                        // Cache it
-                        localStorage.setItem(`course-${slug}`, JSON.stringify(data.syllabus));
-                    } else {
-                        console.error("No such course!");
+            // 2. Always fetch fresh data in background
+            try {
+                const docRef = doc(db, "courses", slug);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const freshSyllabus = data.syllabus;
+
+                    // Only update if data has changed to avoid unnecessary re-renders
+                    if (JSON.stringify(freshSyllabus) !== stored) {
+                        setSyllabus(freshSyllabus);
+                        localStorage.setItem(`course-${slug}`, JSON.stringify(freshSyllabus));
                     }
-                } catch (error) {
-                    console.error("Error fetching course:", error);
-                } finally {
-                    setLoading(false);
+
+                    // If we didn't have stored data, stop loading now
+                    if (!stored) {
+                        setLoading(false);
+                    }
+                } else {
+                    console.error("No such course!");
+                    if (!stored) setLoading(false);
                 }
+            } catch (error) {
+                console.error("Error fetching course:", error);
+                if (!stored) setLoading(false);
             }
 
             // Load progress
@@ -304,6 +316,15 @@ export default function CourseSyllabusPage() {
         loadCourse();
     }, [params.slug, user]);
 
+    useEffect(() => {
+        if (syllabus && completedLessons.length > 0) {
+            const totalLessons = syllabus.modules.reduce((acc, m) => acc + m.lessons.length, 0);
+            if (completedLessons.length === totalLessons) {
+                setIsCertificateUnlocked(true);
+            }
+        }
+    }, [syllabus, completedLessons]);
+
     if (loading) return (
         <div className="min-h-screen bg-[#030014] flex flex-col items-center justify-center text-white space-y-6">
             <div className="relative">
@@ -322,7 +343,7 @@ export default function CourseSyllabusPage() {
                 <Lock className="w-16 h-16 text-slate-700 mx-auto" />
                 <h2 className="text-2xl font-bold text-slate-500">Access Denied</h2>
                 <p className="text-slate-600">Course data not found in local memory.</p>
-                <Button onClick={() => router.push('/courses')} variant="outline">Return to Hub</Button>
+                <Button onClick={() => router.push('/courses')} variant="outline">Back to Courses</Button>
             </div>
         </div>
     );
@@ -426,7 +447,7 @@ export default function CourseSyllabusPage() {
                         className="group mb-12 text-slate-400 hover:text-white hover:bg-white/5 transition-all duration-300 backdrop-blur-sm border border-transparent hover:border-white/10 rounded-full px-6"
                     >
                         <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-                        <span className="font-medium tracking-wide text-xs uppercase">Abort to Hub</span>
+                        <span className="font-medium tracking-wide text-xs uppercase">Back to Courses</span>
                     </Button>
 
                     <div className="flex flex-col lg:flex-row gap-12 lg:items-end justify-between">
@@ -646,9 +667,24 @@ export default function CourseSyllabusPage() {
                                 <p className="text-slate-400 max-w-lg mx-auto mb-10 text-xl font-light">
                                     Complete all missions to unlock your verified holographic certificate and elite status.
                                 </p>
-                                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 text-sm font-mono uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-not-allowed">
-                                    <Lock className="w-4 h-4" /> Certificate Locked
-                                </div>
+                                {isCertificateUnlocked ? (
+                                    <motion.div
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        <Button
+                                            className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold tracking-widest uppercase px-8 py-4 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.4)] border border-emerald-400/30"
+                                            onClick={() => router.push(`/certificate/${params.slug}`)}
+                                        >
+                                            <Trophy className="w-5 h-5 mr-2" />
+                                            Claim Certificate
+                                        </Button>
+                                    </motion.div>
+                                ) : (
+                                    <div className="inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 text-sm font-mono uppercase tracking-widest hover:bg-slate-800 transition-colors cursor-not-allowed">
+                                        <Lock className="w-4 h-4" /> Certificate Locked
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

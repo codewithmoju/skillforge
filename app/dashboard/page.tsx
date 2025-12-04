@@ -1,6 +1,5 @@
 "use client";
 
-import type { ComponentType } from "react";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
@@ -11,12 +10,11 @@ import {
     Plus,
     Sparkles,
     Shield,
-    Star,
     Zap,
-    Crown,
     Users,
     Activity,
-    Clock
+    Clock,
+    Trophy as TrophyIcon
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -24,23 +22,23 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData, type FirestoreUserData } from "@/lib/services/firestore";
 import { getUserPosts, type Post } from "@/lib/services/posts";
-import { getChallenges, type Challenge } from "@/lib/services/challenges";
+import { getChallenges, type Challenge, getChallengeProgress, getTimeRemaining } from "@/lib/services/challenges";
 import { getTopLeaderboard, getUserRank, type LeaderboardEntry } from "@/lib/services/leaderboard";
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/utils/achievementSystem";
 import type { Achievement } from "@/lib/types/gamification";
 import { getLevelTier, getXPForLevel } from "@/lib/utils/levelSystem";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { formatRelativeTime, truncate } from "@/lib/utils";
+import { getUnlockedStars } from "@/lib/utils/achievementSystem";
+
+// New Components
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { StatsOverview, type QuickAction } from "@/components/dashboard/StatsOverview";
+import { LeaderboardWidget } from "@/components/dashboard/LeaderboardWidget";
+import { ActiveQuests } from "@/components/dashboard/ActiveQuests";
 
 const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
 
-type QuickAction = {
-    label: string;
-    href: string;
-    icon: ComponentType<{ className?: string }>;
-    meta?: string;
-};
-
-function DashboardContent() {
+export default function DashboardPage() {
     const { user } = useAuth();
     const router = useRouter();
     const [userData, setUserData] = useState<FirestoreUserData | null>(null);
@@ -60,35 +58,42 @@ function DashboardContent() {
         }
     }, [user]);
 
-    const fetchDashboard = useCallback(async () => {
+    const fetchDashboard = useCallback(() => {
         if (!user) {
             setLoading(false);
             return;
         }
 
+        // 1. Critical Data (User Profile) - Blocks initial render
         setLoading(true);
-        setError(null);
+        getUserData(user.uid)
+            .then((data) => {
+                if (data) setUserData(data);
+                setLoading(false); // Unblock UI as soon as user data is ready
+            })
+            .catch((err) => {
+                console.error("Failed to fetch user data:", err);
+                setError("Failed to load profile.");
+                setLoading(false);
+            });
 
-        try {
-            const [data, posts, liveChallenges, topLeaders, rank] = await Promise.all([
-                getUserData(user.uid),
-                getUserPosts(user.uid, 5),
-                getChallenges("active"),
-                getTopLeaderboard(5),
-                getUserRank(user.uid),
-            ]);
+        // 2. Secondary Data - Loads in parallel, updates independently
+        getUserPosts(user.uid, 5)
+            .then(setRecentPosts)
+            .catch(err => console.error("Failed to fetch posts:", err));
 
-            setUserData(data);
-            setRecentPosts(posts);
-            setChallenges(liveChallenges);
-            setLeaderboard(topLeaders);
-            setUserRank(rank > 0 ? rank : null);
-        } catch (err) {
-            console.error("Error loading dashboard:", err);
-            setError("We couldn't sync your dashboard. Please try again.");
-        } finally {
-            setLoading(false);
-        }
+        getChallenges("active")
+            .then(setChallenges)
+            .catch(err => console.error("Failed to fetch challenges:", err));
+
+        getTopLeaderboard(5)
+            .then(setLeaderboard)
+            .catch(err => console.error("Failed to fetch leaderboard:", err));
+
+        getUserRank(user.uid)
+            .then(rank => setUserRank(rank > 0 ? rank : null))
+            .catch(err => console.error("Failed to fetch rank:", err));
+
     }, [user]);
 
     useEffect(() => {
@@ -316,7 +321,7 @@ function DashboardContent() {
             title: string;
             value: string;
             description: string;
-            icon: ComponentType<{ className?: string }>;
+            icon: typeof Shield;
         }> = [];
 
         if (streak > 0) {
@@ -353,8 +358,6 @@ function DashboardContent() {
         return items;
     }, [streak, nextStreakMilestone, lessonsCompleted, roadmapCompletionPercent, followers, following, postsCount]);
 
-    const leaderboardGlows = ["from-amber-400/30 via-amber-600/10 to-slate-900/40", "from-slate-200/20 via-violet-400/10 to-slate-900/40", "from-cyan-300/20 via-blue-500/10 to-slate-900/40"];
-
     const challengeHighlights = useMemo(() => {
         if (!challenges.length) return [];
         const participantChallenges = user?.uid
@@ -368,19 +371,7 @@ function DashboardContent() {
     const xpGap = rival ? rival.xp - xp : 0;
 
     if (loading) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center space-y-6 text-center">
-                <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-                    className="h-16 w-16 rounded-full border-4 border-cyan-400/30 border-t-cyan-300"
-                />
-                <div>
-                    <p className="text-lg font-semibold text-white">Syncing your command center</p>
-                    <p className="text-slate-400 text-sm">Pulling live data from Firestore…</p>
-                </div>
-            </div>
-        );
+        return <DashboardSkeleton />;
     }
 
     if (!userData) {
@@ -418,127 +409,25 @@ function DashboardContent() {
                     transition={{ duration: 0.6 }}
                     className="grid gap-6 lg:grid-cols-[1.7fr,1fr]"
                 >
-                    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-indigo-950 to-black p-6 md:p-10">
-                        <div className="absolute inset-px rounded-[calc(1.5rem-1px)] border border-white/5 pointer-events-none" />
-                        <div className="absolute -top-20 -right-10 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" />
-                        <div className="absolute -bottom-24 -left-8 h-52 w-52 rounded-full bg-violet-500/20 blur-3xl" />
+                    <StatsOverview
+                        userData={userData}
+                        tier={tier}
+                        level={level}
+                        xp={xp}
+                        xpToNextLevel={xpToNextLevel}
+                        xpProgress={xpProgress}
+                        xpForNextLevel={xpForNextLevel}
+                        quickActions={quickActions}
+                        displayName={displayName}
+                        lastActiveLabel={lastActiveLabel}
+                    />
 
-                        <div className="relative flex flex-wrap items-center gap-3 text-sm uppercase tracking-widest text-cyan-200/80">
-                            <Sparkles className="h-4 w-4 text-cyan-300" />
-                            Mission Control
-                        </div>
-
-                        <div className="relative mt-4 flex flex-col gap-6 lg:flex-row lg:items-center">
-                            <div>
-                                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs uppercase tracking-widest text-slate-300">
-                                    {tier.title}
-                                    <Crown className="h-3.5 w-3.5 text-amber-300" />
-                                </span>
-                                <h1 className="mt-3 text-3xl md:text-5xl font-black text-white tracking-tight">
-                                    Welcome back{displayName ? `, ${displayName}` : ""}!
-                                </h1>
-                                <p className="mt-2 text-base md:text-lg text-slate-300/90">
-                                    Last synced {lastActiveLabel}. Your stats, streaks, and challenges are up to date.
-                                </p>
-                            </div>
-
-                            <div className="relative min-w-[220px] rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur">
-                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Next Tier Target</p>
-                                <p className="mt-1 text-2xl font-bold text-white">LV {level + 1}</p>
-                                <p className="text-xs text-slate-400">{xpToNextLevel.toLocaleString()} XP needed</p>
-                            </div>
-                        </div>
-
-                        <div className="relative mt-8 space-y-4">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-slate-300">XP Surge</span>
-                                <span className="font-semibold text-white">{xpProgress}%</span>
-                            </div>
-                            <div className="h-3 rounded-full bg-white/5">
-                                <motion.div
-                                    initial={{ width: 0 }}
-                                    animate={{ width: `${xpProgress}%` }}
-                                    transition={{ duration: 1, ease: "easeOut" }}
-                                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500 shadow-[0_0_30px_rgba(59,130,246,0.5)]"
-                                />
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-slate-400">
-                                <span>{xp.toLocaleString()} XP</span>
-                                <span>{xpForNextLevel.toLocaleString()} XP Target</span>
-                            </div>
-                        </div>
-
-                        <div className="relative mt-8 flex flex-wrap gap-3">
-                            {quickActions.map((action) => (
-                                <Link key={action.label} href={action.href}>
-                                    <motion.button
-                                        whileHover={{ scale: 1.03 }}
-                                        className="group inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white/90 hover:border-cyan-400/40 hover:text-white"
-                                    >
-                                        <action.icon className="h-4 w-4 text-cyan-300 group-hover:text-white" />
-                                        <div className="text-left">
-                                            <p>{action.label}</p>
-                                            {action.meta && <p className="text-xs text-slate-400">{action.meta}</p>}
-                                        </div>
-                                    </motion.button>
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/80 p-6">
-                        <div className="absolute inset-x-6 top-6 flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-slate-400">
-                            <Star className="h-4 w-4 text-amber-300" />
-                            Season Pulse
-                        </div>
-                        <div className="relative mt-12 space-y-6">
-                            <div className="relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-amber-500/15 via-white/5 to-transparent p-5 shadow-[0_10px_40px_rgba(15,118,255,0.25)]">
-                                <div className="absolute -top-10 -right-6 h-24 w-24 rounded-full bg-amber-400/20 blur-3xl" />
-                                <p className="text-xs uppercase tracking-[0.5em] text-amber-200">Your Rank</p>
-                                <p className="text-4xl font-extrabold text-white mt-1 flex items-baseline gap-2">
-                                    {userRank ? `#${userRank}` : "Unranked"}
-                                    <span className="text-xs font-semibold text-white/60">Season {new Date().getFullYear()}</span>
-                                </p>
-                                <p className="text-xs text-white/70 mt-2">
-                                    {rival && xpGap > 0
-                                        ? `${xpGap.toLocaleString()} XP to catch ${rival.name}`
-                                        : "You hold the top slot in this slice"}
-                                </p>
-                            </div>
-
-                            <div className="space-y-4">
-                                {leaderboard.slice(0, 3).map((entry, index) => (
-                                    <motion.div
-                                        key={entry.uid}
-                                        whileHover={{ scale: 1.01 }}
-                                        className="relative overflow-hidden rounded-2xl border border-white/15 p-4"
-                                    >
-                                        <div className={`absolute inset-0 bg-gradient-to-br ${leaderboardGlows[index] ?? "from-white/10 to-transparent"}`} />
-                                        <div className="relative flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-black/30 font-black text-white text-lg">
-                                                    #{index + 1}
-                                                </div>
-                                                <div>
-                                                    <p className="text-white font-semibold">{entry.name}</p>
-                                                    <p className="text-xs text-white/70">
-                                                        {entry.xp.toLocaleString()} XP • Lv {entry.level}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-xs uppercase tracking-[0.4em] text-white/50">Streak</p>
-                                                <p className="text-sm font-semibold text-emerald-200">{entry.streak}d 🔥</p>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                                {!leaderboard.length && (
-                                    <p className="text-sm text-slate-400 text-center">Leaderboard data will appear once the season updates.</p>
-                                )}
-                            </div>
-                        </div>
-                    </div>
+                    <LeaderboardWidget
+                        leaderboard={leaderboard}
+                        userRank={userRank}
+                        rival={rival}
+                        xpGap={xpGap}
+                    />
                 </motion.section>
 
                 <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -565,79 +454,10 @@ function DashboardContent() {
                     ))}
                 </section>
 
-                <section className="grid gap-6 lg:grid-cols-[1.6fr,1fr]">
-                    <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6 backdrop-blur">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                            <div>
-                                <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Quest Board</p>
-                                <h2 className="text-2xl font-bold text-white">Personal Missions</h2>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => router.push("/roadmap")}>
-                                Manage Roadmaps
-                            </Button>
-                        </div>
-
-                        {questCards.length ? (
-                            <div className="mt-6 space-y-4">
-                                {questCards.map((quest) => (
-                                    <motion.div
-                                        key={quest.title}
-                                        whileHover={{ scale: 1.01 }}
-                                        className="rounded-2xl border border-white/10 bg-white/5 p-5"
-                                    >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div>
-                                                <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">{quest.detail}</p>
-                                                <p className="text-xl font-semibold text-white">{quest.title}</p>
-                                                <p className="text-sm text-slate-400">{quest.subtitle}</p>
-                                            </div>
-                                            <Link href={quest.href} className="text-xs font-semibold text-cyan-300">
-                                                View
-                                            </Link>
-                                        </div>
-                                        <div className="mt-4 h-2 rounded-full bg-white/5">
-                                            <div
-                                                className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500"
-                                                style={{ width: `${quest.progress}%` }}
-                                            />
-                                        </div>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="mt-6 rounded-2xl border border-dashed border-white/10 p-8 text-center">
-                                <p className="text-slate-400">No active missions yet. Generate a roadmap or create a project to unlock quests.</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="space-y-4">
-                        {powerUps.length ? (
-                            powerUps.map((power) => (
-                                <motion.div
-                                    key={power.title}
-                                    whileHover={{ x: 6 }}
-                                    className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950/70 p-5"
-                                >
-                                    <div className="relative flex items-start gap-4">
-                                        <div className="rounded-2xl bg-black/30 p-3">
-                                            <power.icon className="h-6 w-6 text-cyan-200" />
-                                        </div>
-                                        <div>
-                                            <p className="text-lg font-semibold text-white">{power.title}</p>
-                                            <p className="text-sm text-slate-300">{power.value}</p>
-                                            <p className="text-xs text-slate-500">{power.description}</p>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            ))
-                        ) : (
-                            <div className="rounded-3xl border border-dashed border-white/10 p-8 text-center text-slate-400">
-                                Activate a streak, roadmap, or project to unlock power-ups.
-                            </div>
-                        )}
-                    </div>
-                </section>
+                <ActiveQuests
+                    questCards={questCards}
+                    powerUps={powerUps}
+                />
 
                 <section className="grid gap-6 xl:grid-cols-[1.4fr,0.8fr]">
                     <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
@@ -716,7 +536,7 @@ function DashboardContent() {
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="rounded-full bg-white/10 p-2">
-                                                <TrophyIcon />
+                                                <TrophyIcon className="h-4 w-4 text-amber-300" />
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-white">{achievement.name}</p>
@@ -800,8 +620,16 @@ function DashboardContent() {
                                 <p className="text-3xl font-bold text-white">{lessonsCompleted}</p>
                             </div>
                             <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Projects Built</p>
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Active Projects</p>
                                 <p className="text-3xl font-bold text-white">{userData?.projects?.length || 0}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Total Roadmaps</p>
+                                <p className="text-3xl font-bold text-white">{completedRoadmaps}</p>
+                            </div>
+                            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Following</p>
+                                <p className="text-3xl font-bold text-white">{following}</p>
                             </div>
                         </div>
                     </div>
@@ -809,108 +637,4 @@ function DashboardContent() {
             </div>
         </div>
     );
-}
-
-export default function DashboardPage() {
-    const { user, loading: authLoading } = useAuth();
-
-    if (authLoading) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center space-y-6 text-center">
-                <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-                    className="h-16 w-16 rounded-full border-4 border-cyan-400/30 border-t-cyan-300"
-                />
-            </div>
-        );
-    }
-
-    if (!user) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center text-center space-y-4">
-                <h1 className="text-3xl font-bold text-white">Sign in to access your dashboard</h1>
-                <p className="text-slate-400 max-w-md">
-                    Connect your account to restore your gamified control center, track missions, and sync rewards.
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <ErrorBoundary>
-            <DashboardContent />
-        </ErrorBoundary>
-    );
-}
-
-function TrophyIcon() {
-    return (
-        <svg
-            className="h-5 w-5 text-amber-300"
-            viewBox="0 0 32 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <path
-                d="M9 6h14v6a7 7 0 0 1-7 7 7 7 0 0 1-7-7V6Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M9 8H5a4 4 0 0 0 4 4m14-4h4a4 4 0 0 1-4 4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-            <path
-                d="M12 27h8m-4-8v4m-4 4v3m8-3v3"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
-function getUnlockedStars(achievement: Achievement) {
-    return achievement.stars.filter((star) => star.unlocked).length;
-}
-
-function formatRelativeTime(dateString?: string) {
-    if (!dateString) return "moments ago";
-    const date = new Date(dateString);
-    const diff = Date.now() - date.getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    if (minutes < 60) return `${Math.max(1, minutes)}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-}
-
-function getChallengeProgress(challenge: Challenge) {
-    const start = new Date(challenge.startDate).getTime();
-    const end = new Date(challenge.endDate).getTime();
-    const now = Date.now();
-    if (end <= start) return 0;
-    return Math.min(100, Math.max(0, Math.round(((now - start) / (end - start)) * 100)));
-}
-
-function getTimeRemaining(endDate: string) {
-    const diff = new Date(endDate).getTime() - Date.now();
-    if (diff <= 0) return "Ended";
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 24) return `${hours}h left`;
-    const days = Math.ceil(hours / 24);
-    return `${days}d left`;
-}
-
-function truncate(value: string, max = 26) {
-    if (!value) return "";
-    return value.length > max ? `${value.slice(0, max - 1)}…` : value;
 }

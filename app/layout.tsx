@@ -5,6 +5,7 @@ import { LayoutContent } from "@/components/layout/LayoutContent";
 import Script from "next/script";
 import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { Toaster } from "sonner";
+import { QueryProvider } from "@/components/providers/QueryProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -51,16 +52,18 @@ export default function RootLayout({
         className={`${inter.variable} ${poppins.variable} antialiased bg-slate-950 text-slate-200`}
         suppressHydrationWarning
       >
-        <LayoutContent>{children}</LayoutContent>
-        <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''} />
-        <Toaster
-          theme="dark"
-          position="bottom-right"
-          toastOptions={{
-            className: 'bg-slate-900 border-slate-800 text-white',
-            duration: 4000,
-          }}
-        />
+        <QueryProvider>
+          <LayoutContent>{children}</LayoutContent>
+          <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''} />
+          <Toaster
+            theme="dark"
+            position="bottom-right"
+            toastOptions={{
+              className: 'bg-slate-900 border-slate-800 text-white',
+              duration: 4000,
+            }}
+          />
+        </QueryProvider>
       </body>
     </html>
   );

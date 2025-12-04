@@ -97,6 +97,7 @@ export interface UserSlice {
     lastActivityDate: string;
     selectedSkin: SkinId;
     ownedSkins: SkinId[];
+    blockedUsers: string[];
 
     setUserId: (id: string | null) => void;
     addXp: (amount: number, source: XPGainEvent['source'], multiplier?: number) => void;

@@ -3,10 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getGroup, joinGroup, leaveGroup, Group } from "@/lib/services/groups";
-import { getGroupDiscussionsPaginated, createDiscussion, likeDiscussion, GroupDiscussion, PaginatedDiscussions } from "@/lib/services/discussions";
+import { getGroup, joinGroup, leaveGroup, banMember, Group } from "@/lib/services/groups";
+import { getGroupDiscussionsPaginated, createDiscussion, likeDiscussion, deleteDiscussion, GroupDiscussion, PaginatedDiscussions } from "@/lib/services/discussions";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Users, Lock, Globe, Calendar, ArrowLeft, MessageSquare, Shield, Heart, Send } from "lucide-react";
+import { GroupMembersModal } from "@/components/groups/GroupMembersModal";
+import { EditGroupModal } from "@/components/groups/EditGroupModal";
+import { ReportModal } from "@/components/moderation/ReportModal";
+import { Loader2, Users, Lock, Globe, Calendar, ArrowLeft, MessageSquare, Shield, Heart, Send, Trash2, UserX, MoreVertical, Flag } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
@@ -29,6 +32,10 @@ export default function GroupDetailsPage() {
     const [isMember, setIsMember] = useState(false);
     const [newPost, setNewPost] = useState("");
     const [posting, setPosting] = useState(false);
+    const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+    const [reportingDiscussionId, setReportingDiscussionId] = useState<string | null>(null);
     const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
 
     useEffect(() => {
@@ -127,6 +134,33 @@ export default function GroupDetailsPage() {
         } finally {
             setPosting(false);
         }
+    };
+
+    const handleDeleteDiscussion = async (discussionId: string) => {
+        if (!confirm("Are you sure you want to delete this post?")) return;
+        try {
+            await deleteDiscussion(discussionId);
+            setDiscussions(prev => prev.filter(d => d.id !== discussionId));
+        } catch (error) {
+            console.error("Error deleting discussion:", error);
+        }
+    };
+
+    const handleBanMember = async (userId: string) => {
+        if (!confirm("Are you sure you want to ban this member?")) return;
+        try {
+            await banMember(groupId, userId);
+            setGroup(prev => prev ? { ...prev, membersCount: prev.membersCount - 1 } : null);
+            // Also remove their posts from view
+            setDiscussions(prev => prev.filter(d => d.authorId !== userId));
+        } catch (error) {
+            console.error("Error banning member:", error);
+        }
+    };
+
+    const handleReport = (discussionId: string) => {
+        setReportingDiscussionId(discussionId);
+        setReportModalOpen(true);
     };
 
     const handleLike = async (discussionId: string) => {
@@ -238,20 +272,31 @@ export default function GroupDetailsPage() {
                                 )}
                             </div>
 
-                            <Button
-                                onClick={handleJoinLeave}
-                                disabled={actionLoading}
-                                variant={isMember ? "outline" : "primary"}
-                                className={isMember ? "border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300" : "bg-accent-indigo hover:bg-accent-indigo/90"}
-                            >
-                                {actionLoading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : isMember ? (
-                                    "Leave Group"
-                                ) : (
-                                    "Join Group"
+                            <div className="flex gap-2">
+                                {group.createdBy === user?.uid && (
+                                    <Button
+                                        onClick={() => setIsEditModalOpen(true)}
+                                        variant="outline"
+                                        className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                                    >
+                                        Manage Group
+                                    </Button>
                                 )}
-                            </Button>
+                                <Button
+                                    onClick={handleJoinLeave}
+                                    disabled={actionLoading}
+                                    variant={isMember ? "outline" : "primary"}
+                                    className={isMember ? "border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300" : "bg-accent-indigo hover:bg-accent-indigo/90"}
+                                >
+                                    {actionLoading ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : isMember ? (
+                                        "Leave Group"
+                                    ) : (
+                                        "Join Group"
+                                    )}
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -324,11 +369,45 @@ export default function GroupDetailsPage() {
                                                     )}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="font-medium text-white">{discussion.authorName}</span>
-                                                        <span className="text-xs text-slate-500">
-                                                            {formatDistanceToNow(new Date(discussion.createdAt))} ago
-                                                        </span>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-medium text-white">{discussion.authorName}</span>
+                                                            <span className="text-xs text-slate-500">
+                                                                {formatDistanceToNow(new Date(discussion.createdAt))} ago
+                                                            </span>
+                                                        </div>
+
+                                                        {user && (
+                                                            <div className="flex items-center gap-2">
+                                                                {(group?.createdBy === user.uid && discussion.authorId !== user.uid) && (
+                                                                    <button
+                                                                        onClick={() => handleBanMember(discussion.authorId)}
+                                                                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                                        title="Ban Member"
+                                                                    >
+                                                                        <UserX className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {(group?.createdBy === user.uid || discussion.authorId === user.uid) && (
+                                                                    <button
+                                                                        onClick={() => handleDeleteDiscussion(discussion.id)}
+                                                                        className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                                        title="Delete Post"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                                {discussion.authorId !== user.uid && (
+                                                                    <button
+                                                                        onClick={() => handleReport(discussion.id)}
+                                                                        className="p-1.5 text-slate-500 hover:text-yellow-400 hover:bg-yellow-500/10 rounded-lg transition-colors"
+                                                                        title="Report Content"
+                                                                    >
+                                                                        <Flag className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <p className="text-slate-300 mb-4 whitespace-pre-wrap">{discussion.content}</p>
 
@@ -336,8 +415,8 @@ export default function GroupDetailsPage() {
                                                         <button
                                                             onClick={() => handleLike(discussion.id)}
                                                             className={`flex items-center gap-1.5 text-sm transition-colors ${discussion.likedBy?.includes(user?.uid || "")
-                                                                    ? "text-pink-400"
-                                                                    : "text-slate-400 hover:text-pink-400"
+                                                                ? "text-pink-400"
+                                                                : "text-slate-400 hover:text-pink-400"
                                                                 }`}
                                                         >
                                                             <Heart className={`w-4 h-4 ${discussion.likedBy?.includes(user?.uid || "") ? "fill-current" : ""}`} />
@@ -396,7 +475,12 @@ export default function GroupDetailsPage() {
                         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-white font-semibold">Members</h3>
-                                <span className="text-xs text-accent-indigo cursor-pointer hover:underline">View All</span>
+                                <span
+                                    className="text-xs text-accent-indigo cursor-pointer hover:underline"
+                                    onClick={() => setIsMembersModalOpen(true)}
+                                >
+                                    View All
+                                </span>
                             </div>
                             <div className="flex -space-x-2 overflow-hidden">
                                 {group.membersCount > 0 && [...Array(Math.min(5, group.membersCount))].map((_, i) => (
@@ -417,6 +501,39 @@ export default function GroupDetailsPage() {
                     </div>
                 </div>
             </div>
+
+            {group && (
+                <GroupMembersModal
+                    isOpen={isMembersModalOpen}
+                    onClose={() => setIsMembersModalOpen(false)}
+                    groupId={groupId}
+                    members={group.members}
+                    currentUser={user ? { uid: user.uid } as any : null}
+                    groupCreatorId={group.createdBy}
+                    onBan={handleBanMember}
+                />
+            )}
+
+            {group && (
+                <EditGroupModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    group={group}
+                    onUpdate={(updated) => setGroup(prev => prev ? { ...prev, ...updated } : null)}
+                />
+            )}
+
+            {reportingDiscussionId && (
+                <ReportModal
+                    isOpen={reportModalOpen}
+                    onClose={() => {
+                        setReportModalOpen(false);
+                        setReportingDiscussionId(null);
+                    }}
+                    targetId={reportingDiscussionId}
+                    targetType="post"
+                />
+            )}
         </div>
     );
 }

@@ -47,20 +47,15 @@ export async function POST(req: Request) {
             modules
         };
 
-        // Store in Firestore
-        // Ensure no undefined values are passed
+        // Return the generated data for the client to save
         const courseData = {
             topic: topic || "Untitled Course",
             level: difficulty?.level || "Beginner",
             syllabus: JSON.parse(JSON.stringify(syllabus)), // Remove any deep undefineds
-            createdAt: new Date(),
-            userId: "anonymous", // TODO: Replace with actual user ID
             source: "roadmap" // Tag to identify source
         };
 
-        const courseRef = await addDoc(collection(db, "courses"), courseData);
-
-        return NextResponse.json({ courseId: courseRef.id });
+        return NextResponse.json({ courseData });
 
     } catch (error) {
         console.error("Course generation from roadmap failed:", error);

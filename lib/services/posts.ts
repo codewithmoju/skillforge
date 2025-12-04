@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, addDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment, startAfter, QueryDocumentSnapshot, DocumentData, setDoc } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment, startAfter, QueryDocumentSnapshot, DocumentData, setDoc, documentId } from 'firebase/firestore';
 
 export interface Post {
     id: string;
@@ -346,5 +346,90 @@ export async function getFeedPostsPaginated(
     } catch (error) {
         console.error('Error getting paginated feed posts:', error);
         return { items: [], lastDoc: null, hasMore: false };
+    }
+}
+export async function getAllPostsPaginated(
+    pageSize: number = 10,
+    lastDoc?: QueryDocumentSnapshot<DocumentData>
+): Promise<PaginatedResult<Post>> {
+    try {
+        let q = query(
+            collection(db, 'posts'),
+            orderBy('createdAt', 'desc'),
+            limit(pageSize + 1)
+        );
+
+        if (lastDoc) {
+            q = query(
+                collection(db, 'posts'),
+                orderBy('createdAt', 'desc'),
+                startAfter(lastDoc),
+                limit(pageSize + 1)
+            );
+        }
+
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs;
+        const hasMore = docs.length > pageSize;
+        const items = docs.slice(0, pageSize).map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        const newLastDoc = docs.length > 0 ? docs[Math.min(docs.length - 1, pageSize - 1)] : null;
+
+        return { items, lastDoc: newLastDoc, hasMore };
+    } catch (error) {
+        console.error('Error getting paginated all posts:', error);
+        return { items: [], lastDoc: null, hasMore: false };
+    }
+}
+export async function checkPostInteractions(
+    userId: string,
+    postIds: string[]
+): Promise<{ liked: Set<string>; saved: Set<string> }> {
+    try {
+        if (postIds.length === 0) return { liked: new Set(), saved: new Set() };
+
+        // Firestore 'in' query limit is 10 (or 30 depending on context, but safe bet is 10 for documentId in)
+        // Since our page size is 10, this works perfectly.
+        // If postIds > 10, we would need to batch.
+
+        const liked = new Set<string>();
+        const saved = new Set<string>();
+
+        // Process in chunks of 10 just in case
+        for (let i = 0; i < postIds.length; i += 10) {
+            const chunk = postIds.slice(i, i + 10);
+            const likeIds = chunk.map(id => `${userId}_${id}`);
+            const saveIds = chunk.map(id => `${userId}_${id}`);
+
+            const likesQuery = query(
+                collection(db, 'likes'),
+                where(documentId(), 'in', likeIds)
+            );
+
+            const savesQuery = query(
+                collection(db, 'saves'),
+                where(documentId(), 'in', saveIds)
+            );
+
+            const [likesSnap, savesSnap] = await Promise.all([
+                getDocs(likesQuery),
+                getDocs(savesQuery)
+            ]);
+
+            likesSnap.docs.forEach(doc => {
+                // ID is userId_postId, so we extract postId
+                const postId = doc.id.split('_')[1];
+                liked.add(postId);
+            });
+
+            savesSnap.docs.forEach(doc => {
+                const postId = doc.id.split('_')[1];
+                saved.add(postId);
+            });
+        }
+
+        return { liked, saved };
+    } catch (error) {
+        console.error('Error checking post interactions:', error);
+        return { liked: new Set(), saved: new Set() };
     }
 }

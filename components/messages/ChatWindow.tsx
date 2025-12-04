@@ -26,8 +26,10 @@ import {
     MessageAchievement
 } from '@/lib/services/conversationStats';
 import { updateChallengeProgress } from '@/lib/services/challenges';
-import { getUserData } from '@/lib/services/firestore';
-import { Reply, Search, Pin } from 'lucide-react';
+import { getUserData, blockUser, unblockUser } from '@/lib/services/firestore';
+import { Reply, Search, Pin, MoreVertical, Flag, UserX, Shield } from 'lucide-react';
+import { ReportModal } from '../moderation/ReportModal';
+import { useUserStore } from '@/lib/store';
 import { TypingIndicator } from './TypingIndicator';
 import { OnlineStatus } from './OnlineStatus';
 import { AchievementModal } from './AchievementModal';
@@ -50,6 +52,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
     const router = useRouter();
     const [messages, setMessages] = useState<Message[]>([]);
     const [recipientDetails, setRecipientDetails] = useState<ParticipantDetails | null>(null);
+    const [recipientId, setRecipientId] = useState<string | null>(null);
     const [recipientUsername, setRecipientUsername] = useState<string | null>(null);
     const messageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +66,12 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
     const [showSearch, setShowSearch] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [pinnedMessageId, setPinnedMessageId] = useState<string | null>(null);
+    const [showMenu, setShowMenu] = useState(false);
+    const [reportModalOpen, setReportModalOpen] = useState(false);
+
+    // Blocked Users
+    const { blockedUsers, loadUserData } = useUserStore();
+    const isBlocked = recipientId ? blockedUsers.includes(recipientId) : false;
 
     // Subscribe to messages
     useEffect(() => {
@@ -93,6 +102,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                 const data = snapshot.data() as Conversation;
                 const otherUserId = data.participants.find(id => id !== user.uid);
                 if (otherUserId) {
+                    setRecipientId(otherUserId);
                     setRecipientDetails(data.participantDetails[otherUserId]);
 
                     // Fetch username for profile link
@@ -195,6 +205,34 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
         }
     };
 
+    const handleBlock = async () => {
+        if (!user || !recipientId) return;
+        if (confirm(`Are you sure you want to block ${recipientName}?`)) {
+            try {
+                await blockUser(user.uid, recipientId);
+                // Update local store immediately for UI feedback
+                loadUserData({ blockedUsers: [...blockedUsers, recipientId] });
+                setShowMenu(false);
+            } catch (error) {
+                console.error('Error blocking user:', error);
+            }
+        }
+    };
+
+    const handleUnblock = async () => {
+        if (!user || !recipientId) return;
+        if (confirm(`Unblock ${recipientName}?`)) {
+            try {
+                await unblockUser(user.uid, recipientId);
+                // Update local store immediately
+                loadUserData({ blockedUsers: blockedUsers.filter(id => id !== recipientId) });
+                setShowMenu(false);
+            } catch (error) {
+                console.error('Error unblocking user:', error);
+            }
+        }
+    };
+
     const handleProfileClick = () => {
         if (recipientUsername) {
             router.push(`/profile/${recipientUsername}`);
@@ -244,7 +282,7 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-slate-900 dark:text-white">
+                <div className="flex items-center gap-3 text-slate-900 dark:text-white relative">
                     <button
                         onClick={() => setShowSearch(!showSearch)}
                         className={`p-2.5 rounded-full transition-colors ${showSearch ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
@@ -252,6 +290,45 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                     >
                         <Search className="w-6 h-6 stroke-[1.5]" />
                     </button>
+
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className={`p-2.5 rounded-full transition-colors ${showMenu ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                    >
+                        <MoreVertical className="w-6 h-6 stroke-[1.5]" />
+                    </button>
+
+                    {showMenu && (
+                        <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                            {isBlocked ? (
+                                <button
+                                    onClick={handleUnblock}
+                                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                >
+                                    <Shield className="w-4 h-4" />
+                                    Unblock User
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleBlock}
+                                    className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2"
+                                >
+                                    <UserX className="w-4 h-4" />
+                                    Block User
+                                </button>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setReportModalOpen(true);
+                                    setShowMenu(false);
+                                }}
+                                className="w-full px-4 py-3 text-left text-sm font-medium text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-900/10 flex items-center gap-2"
+                            >
+                                <Flag className="w-4 h-4" />
+                                Report User
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -332,22 +409,31 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
 
             {/* Input Area */}
             <div className="p-4 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
-                {replyingTo && (
-                    <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 mb-3 animate-in slide-in-from-bottom-2">
-                        <div className="flex flex-col pl-3 border-l-[3px] border-accent-indigo">
-                            <span className="text-xs font-bold text-accent-indigo mb-0.5">
-                                Replying to {replyingTo.senderId === user?.uid ? 'You' : recipientName}
-                            </span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[300px]">
-                                {replyingTo.text}
-                            </span>
-                        </div>
-                        <button onClick={() => setReplyingTo(null)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
-                            ✕
-                        </button>
+                {isBlocked ? (
+                    <div className="flex items-center justify-center p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 text-sm">
+                        <UserX className="w-4 h-4 mr-2" />
+                        You have blocked this user. Unblock to send messages.
                     </div>
+                ) : (
+                    <>
+                        {replyingTo && (
+                            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 mb-3 animate-in slide-in-from-bottom-2">
+                                <div className="flex flex-col pl-3 border-l-[3px] border-accent-indigo">
+                                    <span className="text-xs font-bold text-accent-indigo mb-0.5">
+                                        Replying to {replyingTo.senderId === user?.uid ? 'You' : recipientName}
+                                    </span>
+                                    <span className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[300px]">
+                                        {replyingTo.text}
+                                    </span>
+                                </div>
+                                <button onClick={() => setReplyingTo(null)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+                                    ✕
+                                </button>
+                            </div>
+                        )}
+                        <MessageInput onSend={handleSend} onTyping={handleTyping} />
+                    </>
                 )}
-                <MessageInput onSend={handleSend} onTyping={handleTyping} />
             </div>
 
             {/* Overlays */}
@@ -365,6 +451,15 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                     icon={achievementModal.icon}
                     xpReward={achievementModal.xpReward}
                     onClose={() => setAchievementModal(null)}
+                />
+            )}
+
+            {recipientId && (
+                <ReportModal
+                    isOpen={reportModalOpen}
+                    onClose={() => setReportModalOpen(false)}
+                    targetId={recipientId}
+                    targetType="user"
                 />
             )}
         </div>

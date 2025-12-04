@@ -629,6 +629,13 @@ export function getTotalStarsEarned(achievement: Achievement): number {
 }
 
 /**
+ * Get number of unlocked stars (alias for getTotalStarsEarned)
+ */
+export function getUnlockedStars(achievement: Achievement): number {
+    return getTotalStarsEarned(achievement);
+}
+
+/**
  * Get next star requirement
  */
 export function getNextStarRequirement(achievement: Achievement): {
