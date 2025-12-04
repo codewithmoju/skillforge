@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Settings, MapPin, Link as LinkIcon, Loader2, Grid, Bookmark,
     Trophy, Flame, Star, Award, Target, Zap, Crown, Shield,
-    TrendingUp, BookOpen, Code, Briefcase
+    TrendingUp, BookOpen, Code, Briefcase, Sparkles, Rocket,
+    Medal, Heart, Users, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { FollowButton } from "@/components/social/FollowButton";
@@ -23,13 +24,84 @@ import { cn } from "@/lib/utils";
 
 type TabType = 'posts' | 'saved' | 'achievements';
 
+// Floating particle component for ambient effect
+const FloatingParticle = ({ delay, duration, size }: { delay: number; duration: number; size: number }) => (
+    <motion.div
+        className="absolute rounded-full"
+        style={{
+            width: size,
+            height: size,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            background: `radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(236,72,153,0.2) 50%, transparent 70%)`,
+        }}
+        animate={{
+            y: [-20, -60, -20],
+            x: [0, Math.random() * 30 - 15, 0],
+            opacity: [0.3, 0.8, 0.3],
+            scale: [1, 1.2, 1],
+        }}
+        transition={{
+            duration,
+            repeat: Infinity,
+            delay,
+            ease: "easeInOut",
+        }}
+    />
+);
+
+// Animated stat ring component
+const StatRing = ({ value, max, color, size = 80 }: { value: number; max: number; color: string; size?: number }) => {
+    const percentage = Math.min((value / max) * 100, 100);
+    const circumference = 2 * Math.PI * (size / 2 - 8);
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <svg width={size} height={size} className="transform -rotate-90">
+            <circle
+                cx={size / 2}
+                cy={size / 2}
+                r={size / 2 - 8}
+                stroke="rgba(255,255,255,0.1)"
+                strokeWidth="6"
+                fill="none"
+            />
+            <motion.circle
+                cx={size / 2}
+                cy={size / 2}
+                r={size / 2 - 8}
+                stroke={`url(#gradient-${color})`}
+                strokeWidth="6"
+                fill="none"
+                strokeLinecap="round"
+                initial={{ strokeDashoffset: circumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+                style={{ strokeDasharray: circumference }}
+            />
+            <defs>
+                <linearGradient id={`gradient-${color}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor={color === 'purple' ? '#a855f7' : color === 'cyan' ? '#06b6d4' : color === 'orange' ? '#f97316' : '#22c55e'} />
+                    <stop offset="100%" stopColor={color === 'purple' ? '#ec4899' : color === 'cyan' ? '#3b82f6' : color === 'orange' ? '#ef4444' : '#10b981'} />
+                </linearGradient>
+            </defs>
+        </svg>
+    );
+};
+
 export default function ProfilePage() {
     const params = useParams();
     const username = params.username as string;
     const { user: currentUser } = useAuth();
 
     const [userData, setUserData] = useState<FirestoreUserData | null>(null);
-    const [userStats, setUserStats] = useState<{ xp: number; level: number; streak: number; totalLessonsCompleted: number; completedRoadmaps: number } | null>(null);
+    const [userStats, setUserStats] = useState<{
+        xp: number;
+        level: number;
+        streak: number;
+        totalLessonsCompleted: number;
+        completedRoadmaps: number;
+    } | null>(null);
     const [earnedAchievements, setEarnedAchievements] = useState<string[]>([]);
     const [posts, setPosts] = useState<Post[]>([]);
     const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
@@ -38,385 +110,601 @@ export default function ProfilePage() {
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
-    setLoading(true);
-    try {
-        const saved = await getSavedPosts(currentUser.uid);
-        setPosts(saved);
+    const isOwnProfile = currentUser?.uid === userData?.uid;
 
-        const newSaved = new Set(savedPosts);
-        saved.forEach(p => newSaved.add(p.id));
-        setSavedPosts(newSaved);
+    // Calculate level progress
+    const xpForCurrentLevel = useMemo(() => {
+        if (!userStats) return 0;
+        return userStats.xp % 1000;
+    }, [userStats]);
 
-        const liked = new Set(likedPosts);
-        for (const post of saved) {
-            if (await isPostLiked(currentUser.uid, post.id)) {
-                liked.add(post.id);
-            }
-        }
-        setLikedPosts(liked);
+    const xpProgress = useMemo(() => {
+        return (xpForCurrentLevel / 1000) * 100;
+    }, [xpForCurrentLevel]);
 
-    } catch (error) {
-        console.error('Error loading saved posts:', error);
-    } finally {
-        setLoading(false);
-    }
-};
+    // Get rank title based on level
+    const getRankTitle = (level: number) => {
+        if (level >= 50) return { title: "Legendary Master", icon: Crown, color: "from-yellow-400 to-amber-600" };
+        if (level >= 40) return { title: "Grand Champion", icon: Trophy, color: "from-purple-400 to-pink-600" };
+        if (level >= 30) return { title: "Elite Scholar", icon: Medal, color: "from-cyan-400 to-blue-600" };
+        if (level >= 20) return { title: "Senior Learner", icon: Star, color: "from-green-400 to-emerald-600" };
+        if (level >= 10) return { title: "Rising Star", icon: Rocket, color: "from-orange-400 to-red-600" };
+        if (level >= 5) return { title: "Apprentice", icon: Zap, color: "from-blue-400 to-indigo-600" };
+        return { title: "Novice", icon: BookOpen, color: "from-slate-400 to-slate-600" };
+    };
 
-const handlePostDeleted = (deletedPostId: string) => {
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
-    if (activeTab === 'posts') {
-        setUserData(prevData => prevData ? { ...prevData, postsCount: (prevData.postsCount || 0) - 1 } : null);
-    }
-};
-
-const handleTabChange = (tab: TabType) => {
-    if (activeTab === tab) return;
-    setActiveTab(tab);
-    if (tab === 'saved') {
-        loadSavedPosts();
-    } else if (tab === 'posts') {
+    useEffect(() => {
         loadProfile();
-    }
-};
+    }, [username, currentUser]);
 
-if (loading && !userData) {
-    return (
-        <div className="min-h-screen flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
-        </div>
-    );
-}
+    const loadProfile = async () => {
+        setLoading(true);
+        setNotFound(false);
 
-if (notFound || !userData) {
-    return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-                <h1 className="text-4xl font-bold text-white mb-2">User Not Found</h1>
-                <p className="text-slate-400 mb-6">The profile you're looking for doesn't exist.</p>
-                <Link href="/social">
-                    <Button>Back to Feed</Button>
-                </Link>
+        try {
+            const user = await getUserByUsername(username);
+
+            if (!user) {
+                setNotFound(true);
+                setLoading(false);
+                return;
+            }
+
+            setUserData(user);
+
+            // Fetch dynamic user progress stats from userProgress collection
+            const progress = await getUserProgress(user.uid);
+            if (progress) {
+                setUserStats({
+                    xp: progress.xp || 0,
+                    level: progress.level || 1,
+                    streak: progress.streak || 0,
+                    totalLessonsCompleted: progress.totalLessonsCompleted || 0,
+                    completedRoadmaps: progress.completedRoadmaps || 0
+                });
+
+                // Compute earned achievements based on user stats
+                const earned = ACHIEVEMENTS.filter(achievement => {
+                    switch (achievement.type) {
+                        case 'xp': return (progress.xp || 0) >= achievement.requirement;
+                        case 'streak': return (progress.streak || 0) >= achievement.requirement;
+                        case 'lessons': return (progress.totalLessonsCompleted || 0) >= achievement.requirement;
+                        case 'roadmaps': return (progress.completedRoadmaps || 0) >= achievement.requirement;
+                        default: return false;
+                    }
+                }).map(a => a.id);
+                setEarnedAchievements(earned);
+            } else {
+                // Default stats if no progress document exists
+                setUserStats({
+                    xp: 0,
+                    level: 1,
+                    streak: 0,
+                    totalLessonsCompleted: 0,
+                    completedRoadmaps: 0
+                });
+            }
+
+            // Load posts
+            const userPosts = await getUserPosts(user.uid);
+            setPosts(userPosts);
+
+            // Check liked/saved status if logged in
+            if (currentUser) {
+                const liked = new Set<string>();
+                const saved = new Set<string>();
+
+                for (const post of userPosts) {
+                    const [isLiked, isSaved] = await Promise.all([
+                        isPostLiked(currentUser.uid, post.id),
+                        isPostSaved(currentUser.uid, post.id),
+                    ]);
+                    if (isLiked) liked.add(post.id);
+                    if (isSaved) saved.add(post.id);
+                }
+
+                setLikedPosts(liked);
+                setSavedPosts(saved);
+            }
+        } catch (error) {
+            console.error('Error loading profile:', error);
+            setNotFound(true);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const loadSavedPosts = async () => {
+        if (!currentUser || !isOwnProfile) return;
+
+        setLoading(true);
+        try {
+            const saved = await getSavedPosts(currentUser.uid);
+            setPosts(saved);
+
+            const newSaved = new Set(savedPosts);
+            saved.forEach(p => newSaved.add(p.id));
+            setSavedPosts(newSaved);
+
+            const liked = new Set(likedPosts);
+            for (const post of saved) {
+                if (await isPostLiked(currentUser.uid, post.id)) {
+                    liked.add(post.id);
+                }
+            }
+            setLikedPosts(liked);
+        } catch (error) {
+            console.error('Error loading saved posts:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handlePostDeleted = (deletedPostId: string) => {
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
+        if (activeTab === 'posts') {
+            setUserData(prevData => prevData ? { ...prevData, postsCount: (prevData.postsCount || 0) - 1 } : null);
+        }
+    };
+
+    const handleTabChange = (tab: TabType) => {
+        if (activeTab === tab) return;
+        setActiveTab(tab);
+        if (tab === 'saved') {
+            loadSavedPosts();
+        } else if (tab === 'posts') {
+            loadProfile();
+        }
+    };
+
+    if (loading && !userData) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950">
+                <motion.div
+                    className="flex flex-col items-center gap-4"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                >
+                    <div className="relative">
+                        <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-500 to-pink-500 opacity-50 animate-pulse" />
+                        <Loader2 className="w-12 h-12 text-purple-400 animate-spin relative" />
+                    </div>
+                    <p className="text-slate-400 animate-pulse">Loading profile...</p>
+                </motion.div>
             </div>
-        </div>
-    );
-}
+        );
+    }
 
-const xpProgress = ((userData.xp % 1000) / 1000) * 100;
-const nextLevelXP = (userData.level) * 1000;
+    if (notFound || !userData) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950/20 to-slate-950">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center"
+                >
+                    <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center border border-slate-700">
+                        <Users className="w-12 h-12 text-slate-600" />
+                    </div>
+                    <h1 className="text-4xl font-bold text-white mb-2">User Not Found</h1>
+                    <p className="text-slate-400 mb-6">The profile you're looking for doesn't exist.</p>
+                    <Link href="/social">
+                        <Button className="gap-2">
+                            <Rocket className="w-4 h-4" />
+                            Back to Feed
+                        </Button>
+                    </Link>
+                </motion.div>
+            </div>
+        );
+    }
 
-return (
-    <div className="min-h-screen pb-20 bg-gradient-to-b from-slate-900 via-slate-900 to-black">
-        {/* Epic Header with Gradient */}
-        <div className="h-64 bg-gradient-to-r from-indigo-900 via-purple-900 to-pink-900 relative overflow-hidden">
-            <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+    const rank = getRankTitle(userStats?.level || 1);
+    const RankIcon = rank.icon;
 
-            {/* Floating particles effect */}
-            <div className="absolute inset-0">
-                {[...Array(20)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className="absolute w-1 h-1 bg-white rounded-full"
-                        style={{
-                            left: `${Math.random() * 100}%`,
-                            top: `${Math.random() * 100}%`,
-                        }}
-                        animate={{
-                            y: [0, -30, 0],
-                            opacity: [0.2, 0.8, 0.2],
-                        }}
-                        transition={{
-                            duration: 3 + Math.random() * 2,
-                            repeat: Infinity,
-                            delay: Math.random() * 2,
-                        }}
-                    />
+    return (
+        <div className="min-h-screen pb-20 bg-gradient-to-br from-slate-950 via-purple-950/10 to-slate-950 relative overflow-hidden">
+            {/* Ambient floating particles */}
+            <div className="fixed inset-0 pointer-events-none overflow-hidden">
+                {[...Array(15)].map((_, i) => (
+                    <FloatingParticle key={i} delay={i * 0.3} duration={4 + Math.random() * 3} size={8 + Math.random() * 20} />
                 ))}
             </div>
-        </div>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10">
-            {/* Main Profile Card */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-3xl p-8 shadow-2xl shadow-purple-500/20"
-            >
-                <div className="flex flex-col md:flex-row gap-8 items-start">
-                    {/* Avatar with Level Badge */}
-                    <div className="relative mx-auto md:mx-0">
-                        <div className="relative">
-                            {userData.profilePicture ? (
-                                <div className="relative w-32 h-32 md:w-40 md:h-40">
-                                    <Image
-                                        src={userData.profilePicture}
-                                        alt={userData.name}
-                                        fill
-                                        className="rounded-full object-cover border-4 border-purple-500 shadow-lg shadow-purple-500/50"
-                                    />
-                                </div>
-                            ) : (
-                                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-4 border-purple-400 shadow-lg shadow-purple-500/50">
-                                    <span className="text-white font-bold text-5xl">
-                                        {userData.name.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                            )}
+            {/* Epic Header with Holographic Effect */}
+            <div className="relative h-72 md:h-80 overflow-hidden">
+                {/* Gradient background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-purple-900/80 via-indigo-900/60 to-pink-900/40" />
 
-                            {/* Level Badge */}
-                            <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full p-3 border-4 border-slate-900 shadow-lg">
-                                <div className="flex flex-col items-center">
-                                    <Crown className="w-5 h-5 text-white mb-0.5" />
-                                    <span className="text-white font-bold text-sm">{userData.level}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Profile Info */}
-                    <div className="flex-1 text-center md:text-left">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                            <div>
-                                <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3 justify-center md:justify-start">
-                                    {userData.name}
-                                    <Trophy className="w-6 h-6 text-yellow-400" />
-                                </h1>
-                                <p className="text-purple-300 text-lg">@{userData.username}</p>
-                            </div>
-
-                            <div className="flex items-center justify-center gap-3">
-                                {isOwnProfile ? (
-                                    <Link href="/settings">
-                                        <Button variant="outline" className="gap-2 border-purple-500 hover:bg-purple-500/20">
-                                            <Settings className="w-4 h-4" />
-                                            Edit Profile
-                                        </Button>
-                                    </Link>
-                                ) : (
-                                    <FollowButton
-                                        targetUserId={userData.uid}
-                                        isPrivate={userData.isPrivate}
-                                        onFollowChange={(isFollowing) => {
-                                            setUserData(prev => prev ? {
-                                                ...prev,
-                                                followers: (prev.followers || 0) + (isFollowing ? 1 : -1)
-                                            } : null);
-                                        }}
-                                    />
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Bio */}
-                        {userData.bio && (
-                            <p className="text-slate-300 mb-4 max-w-2xl mx-auto md:mx-0 leading-relaxed">
-                                {userData.bio}
-                            </p>
-                        )}
-
-                        {/* Additional Info */}
-                        {(userData.location || userData.occupation || userData.website) && (
-                            <div className="flex flex-wrap gap-4 mb-6 text-sm text-slate-400 justify-center md:justify-start">
-                                {userData.location && (
-                                    <div className="flex items-center gap-1.5">
-                                        <MapPin className="w-4 h-4" />
-                                        <span>{userData.location}</span>
-                                    </div>
-                                )}
-                                {userData.occupation && (
-                                    <div className="flex items-center gap-1.5">
-                                        <Briefcase className="w-4 h-4" />
-                                        <span>{userData.occupation}</span>
-                                    </div>
-                                )}
-                                {userData.website && (
-                                    <a
-                                        href={userData.website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex items-center gap-1.5 hover:text-purple-400 transition-colors"
-                                    >
-                                        <LinkIcon className="w-4 h-4" />
-                                        <span>{userData.website.replace(/^https?:\/\//, '')}</span>
-                                    </a>
-                                )}
-                            </div>
-                        )}
-
-                        {/* XP Progress Bar */}
-                        <div className="mb-6">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm font-medium text-purple-300">Level {userData.level}</span>
-                                <span className="text-sm text-slate-400">{userData.xp} / {nextLevelXP} XP</span>
-                            </div>
-                            <div className="h-3 bg-slate-700 rounded-full overflow-hidden border border-purple-500/30">
-                                <motion.div
-                                    className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-[length:200%_100%]"
-                                    initial={{ width: 0 }}
-                                    animate={{
-                                        width: `${xpProgress}%`,
-                                        backgroundPosition: ['0% 0%', '100% 0%']
-                                    }}
-                                    transition={{
-                                        width: { duration: 1, ease: "easeOut" },
-                                        backgroundPosition: { duration: 2, repeat: Infinity, ease: "linear" }
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Social Stats */}
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-slate-800/50 rounded-xl p-4 border border-purple-500/20 text-center">
-                                <div className="text-2xl font-bold text-white">{userData.postsCount || 0}</div>
-                                <div className="text-xs text-slate-400">Posts</div>
-                            </div>
-                            <Link href={`/profile/${username}/followers`} className="bg-slate-800/50 rounded-xl p-4 border border-purple-500/20 hover:border-purple-500/40 transition-colors text-center">
-                                <div className="text-2xl font-bold text-white">{userData.followers || 0}</div>
-                                <div className="text-xs text-slate-400">Followers</div>
-                            </Link>
-                            <Link href={`/profile/${username}/following`} className="bg-slate-800/50 rounded-xl p-4 border border-purple-500/20 hover:border-purple-500/40 transition-colors text-center">
-                                <div className="text-2xl font-bold text-white">{userData.following || 0}</div>
-                                <div className="text-xs text-slate-400">Following</div>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Gamification Stats Grid */}
-                <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard
-                        icon={Flame}
-                        label="Streak"
-                        value={`${userData.streak} Days`}
-                        gradient="from-orange-500 to-red-500"
-                        iconBg="bg-orange-500/10"
-                        iconColor="text-orange-400"
-                    />
-                    <StatCard
-                        icon={Target}
-                        label="Lessons"
-                        value={userData.totalLessonsCompleted || 0}
-                        gradient="from-blue-500 to-cyan-500"
-                        iconBg="bg-blue-500/10"
-                        iconColor="text-blue-400"
-                    />
-                    <StatCard
-                        icon={Award}
-                        label="Achievements"
-                        value={userData.achievements?.length || 0}
-                        gradient="from-purple-500 to-pink-500"
-                        iconBg="bg-purple-500/10"
-                        iconColor="text-purple-400"
-                    />
-                    <StatCard
-                        icon={TrendingUp}
-                        label="Roadmaps"
-                        value={userData.completedRoadmaps || 0}
-                        gradient="from-green-500 to-emerald-500"
-                        iconBg="bg-green-500/10"
-                        iconColor="text-green-400"
-                    />
-                </div>
-            </motion.div>
-
-            {/* Content Tabs */}
-            <div className="mt-8">
-                <div className="flex items-center gap-8 border-b border-slate-800 mb-6">
-                    <TabButton
-                        active={activeTab === 'posts'}
-                        onClick={() => handleTabChange('posts')}
-                        icon={Grid}
-                        label="POSTS"
-                    />
-                    {isOwnProfile && (
-                        <TabButton
-                            active={activeTab === 'saved'}
-                            onClick={() => handleTabChange('saved')}
-                            icon={Bookmark}
-                            label="SAVED"
-                        />
-                    )}
-                    <TabButton
-                        active={activeTab === 'achievements'}
-                        onClick={() => handleTabChange('achievements')}
-                        icon={Trophy}
-                        label="ACHIEVEMENTS"
-                    />
-                </div>
-
-                {/* Tab Content */}
-                {activeTab === 'achievements' ? (
-                    <AchievementsSection achievements={userData.achievements?.map(a => a.id) || []} />
-                ) : loading ? (
-                    <div className="flex justify-center py-20">
-                        <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
-                    </div>
-                ) : posts.length === 0 ? (
+                {/* Animated mesh pattern */}
+                <div className="absolute inset-0 opacity-30">
+                    <div className="absolute inset-0 bg-[url('/grid.svg')]" />
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="text-center py-20 bg-slate-900/30 rounded-2xl border border-slate-800/50"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                            {activeTab === 'posts' ? (
-                                <Grid className="w-8 h-8 text-slate-600" />
-                            ) : (
-                                <Bookmark className="w-8 h-8 text-slate-600" />
-                            )}
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/20 to-transparent"
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                    />
+                </div>
+
+                {/* Holographic scanlines */}
+                <div className="absolute inset-0 pointer-events-none">
+                    {[...Array(6)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute h-px w-full bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent"
+                            style={{ top: `${20 + i * 12}%` }}
+                            animate={{ opacity: [0.2, 0.5, 0.2], x: [-100, 100] }}
+                            transition={{ duration: 3, delay: i * 0.5, repeat: Infinity }}
+                        />
+                    ))}
+                </div>
+
+                {/* Fade to content */}
+                <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-slate-950 to-transparent" />
+            </div>
+
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-44 relative z-10">
+                {/* Main Profile Card - Glassmorphism */}
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="relative"
+                >
+                    {/* Glow effect behind card */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-purple-600/20 via-pink-600/20 to-cyan-600/20 rounded-3xl blur-xl" />
+
+                    <div className="relative bg-gradient-to-br from-slate-900/95 to-slate-950/95 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl">
+                        <div className="flex flex-col lg:flex-row gap-8">
+                            {/* Left Section - Avatar & Level */}
+                            <div className="flex flex-col items-center lg:items-start gap-4">
+                                {/* Avatar with ring indicator */}
+                                <div className="relative">
+                                    <div className="absolute -inset-3">
+                                        <StatRing value={xpForCurrentLevel} max={1000} color="purple" size={176} />
+                                    </div>
+                                    {userData.profilePicture ? (
+                                        <div className="relative w-40 h-40 rounded-full overflow-hidden border-4 border-slate-800 shadow-xl">
+                                            <Image
+                                                src={userData.profilePicture}
+                                                alt={userData.name}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-40 h-40 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center border-4 border-slate-800 shadow-xl">
+                                            <span className="text-white font-bold text-5xl">
+                                                {userData.name.charAt(0).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    {/* Level badge */}
+                                    <motion.div
+                                        className="absolute -bottom-2 -right-2 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl px-4 py-2 border-4 border-slate-900 shadow-lg"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                    >
+                                        <div className="flex items-center gap-1.5">
+                                            <Crown className="w-4 h-4 text-white" />
+                                            <span className="text-white font-bold text-lg">{userStats?.level || 1}</span>
+                                        </div>
+                                    </motion.div>
+                                </div>
+
+                                {/* Rank badge */}
+                                <motion.div
+                                    className={cn("flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r", rank.color)}
+                                    whileHover={{ scale: 1.05 }}
+                                >
+                                    <RankIcon className="w-4 h-4 text-white" />
+                                    <span className="text-white text-sm font-semibold">{rank.title}</span>
+                                </motion.div>
+                            </div>
+
+                            {/* Center Section - Profile Info */}
+                            <div className="flex-1 text-center lg:text-left">
+                                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
+                                    <div>
+                                        <div className="flex items-center gap-3 justify-center lg:justify-start mb-1">
+                                            <h1 className="text-3xl md:text-4xl font-bold text-white">{userData.name}</h1>
+                                            {earnedAchievements.length >= 5 && (
+                                                <motion.div
+                                                    animate={{ rotate: [0, 10, -10, 0] }}
+                                                    transition={{ duration: 2, repeat: Infinity }}
+                                                >
+                                                    <Sparkles className="w-6 h-6 text-yellow-400" />
+                                                </motion.div>
+                                            )}
+                                        </div>
+                                        <p className="text-purple-400 text-lg">@{userData.username}</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-center gap-3">
+                                        {isOwnProfile ? (
+                                            <Link href="/settings">
+                                                <Button variant="outline" className="gap-2 border-purple-500/50 hover:bg-purple-500/20 hover:border-purple-400">
+                                                    <Settings className="w-4 h-4" />
+                                                    Edit Profile
+                                                </Button>
+                                            </Link>
+                                        ) : (
+                                            <FollowButton
+                                                targetUserId={userData.uid}
+                                                isPrivate={userData.isPrivate}
+                                                onFollowChange={(isFollowing) => {
+                                                    setUserData(prev => prev ? {
+                                                        ...prev,
+                                                        followers: (prev.followers || 0) + (isFollowing ? 1 : -1)
+                                                    } : null);
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Bio */}
+                                {userData.bio && (
+                                    <p className="text-slate-300 mb-4 max-w-2xl leading-relaxed">{userData.bio}</p>
+                                )}
+
+                                {/* Meta info */}
+                                {(userData.location || userData.occupation || userData.website) && (
+                                    <div className="flex flex-wrap gap-4 mb-6 text-sm text-slate-400 justify-center lg:justify-start">
+                                        {userData.occupation && (
+                                            <div className="flex items-center gap-1.5 bg-slate-800/50 px-3 py-1.5 rounded-full">
+                                                <Briefcase className="w-3.5 h-3.5" />
+                                                <span>{userData.occupation}</span>
+                                            </div>
+                                        )}
+                                        {userData.location && (
+                                            <div className="flex items-center gap-1.5 bg-slate-800/50 px-3 py-1.5 rounded-full">
+                                                <MapPin className="w-3.5 h-3.5" />
+                                                <span>{userData.location}</span>
+                                            </div>
+                                        )}
+                                        {userData.website && (
+                                            <a
+                                                href={userData.website}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 bg-slate-800/50 px-3 py-1.5 rounded-full hover:bg-purple-500/20 transition-colors"
+                                            >
+                                                <LinkIcon className="w-3.5 h-3.5" />
+                                                <span>{userData.website.replace(/^https?:\/\//, '')}</span>
+                                            </a>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* XP Progress bar */}
+                                <div className="mb-6 max-w-md mx-auto lg:mx-0">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm font-medium text-purple-300">Level {userStats?.level || 1}</span>
+                                        <span className="text-sm text-slate-400">{xpForCurrentLevel} / 1000 XP</span>
+                                    </div>
+                                    <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700">
+                                        <motion.div
+                                            className="h-full bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-[length:200%_100%] relative"
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${xpProgress}%` }}
+                                            transition={{ duration: 1, ease: "easeOut" }}
+                                        >
+                                            <motion.div
+                                                className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
+                                                animate={{ x: ['-100%', '200%'] }}
+                                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                            />
+                                        </motion.div>
+                                    </div>
+                                </div>
+
+                                {/* Social Stats */}
+                                <div className="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0">
+                                    <motion.div
+                                        className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center hover:border-purple-500/50 transition-colors cursor-default"
+                                        whileHover={{ y: -2 }}
+                                    >
+                                        <div className="text-2xl font-bold text-white">{userData.postsCount || 0}</div>
+                                        <div className="text-xs text-slate-400 uppercase tracking-wide">Posts</div>
+                                    </motion.div>
+                                    <Link href={`/profile/${username}/followers`}>
+                                        <motion.div
+                                            className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center hover:border-purple-500/50 transition-all"
+                                            whileHover={{ y: -2, scale: 1.02 }}
+                                        >
+                                            <div className="text-2xl font-bold text-white">{userData.followers || 0}</div>
+                                            <div className="text-xs text-slate-400 uppercase tracking-wide">Followers</div>
+                                        </motion.div>
+                                    </Link>
+                                    <Link href={`/profile/${username}/following`}>
+                                        <motion.div
+                                            className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50 text-center hover:border-purple-500/50 transition-all"
+                                            whileHover={{ y: -2, scale: 1.02 }}
+                                        >
+                                            <div className="text-2xl font-bold text-white">{userData.following || 0}</div>
+                                            <div className="text-xs text-slate-400 uppercase tracking-wide">Following</div>
+                                        </motion.div>
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
-                            {activeTab === 'posts' ? "No posts yet" : "No saved posts"}
-                        </h3>
-                        <p className="text-slate-400">
-                            {activeTab === 'posts'
-                                ? (isOwnProfile ? "Share your learning journey with your first post!" : "This user hasn't posted anything yet.")
-                                : "Posts you save will appear here."}
-                        </p>
-                    </motion.div>
-                ) : (
-                    <div className="space-y-6">
-                        <AnimatePresence mode="popLayout">
-                            {posts.map((post) => (
-                                <PostCard
-                                    key={post.id}
-                                    post={post}
-                                    isLiked={likedPosts.has(post.id)}
-                                    isSaved={savedPosts.has(post.id)}
-                                    onDelete={handlePostDeleted}
-                                />
-                            ))}
-                        </AnimatePresence>
+
+                        {/* Gamification Stats Grid */}
+                        <div className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <GamifiedStatCard
+                                icon={Flame}
+                                label="Streak"
+                                value={`${userStats?.streak || 0}`}
+                                suffix="Days"
+                                gradient="from-orange-500 to-red-500"
+                                glow="shadow-orange-500/25"
+                                progress={(userStats?.streak || 0) / 30}
+                            />
+                            <GamifiedStatCard
+                                icon={Target}
+                                label="Lessons"
+                                value={`${userStats?.totalLessonsCompleted || 0}`}
+                                gradient="from-cyan-500 to-blue-500"
+                                glow="shadow-cyan-500/25"
+                                progress={(userStats?.totalLessonsCompleted || 0) / 100}
+                            />
+                            <GamifiedStatCard
+                                icon={Award}
+                                label="Achievements"
+                                value={`${earnedAchievements.length}`}
+                                suffix={`/ ${ACHIEVEMENTS.length}`}
+                                gradient="from-purple-500 to-pink-500"
+                                glow="shadow-purple-500/25"
+                                progress={earnedAchievements.length / ACHIEVEMENTS.length}
+                            />
+                            <GamifiedStatCard
+                                icon={TrendingUp}
+                                label="Roadmaps"
+                                value={`${userStats?.completedRoadmaps || 0}`}
+                                gradient="from-green-500 to-emerald-500"
+                                glow="shadow-green-500/25"
+                                progress={(userStats?.completedRoadmaps || 0) / 10}
+                            />
+                        </div>
                     </div>
-                )}
+                </motion.div>
+
+                {/* Content Tabs */}
+                <div className="mt-8">
+                    <div className="flex items-center gap-2 bg-slate-900/50 backdrop-blur-sm p-1.5 rounded-2xl border border-slate-800/50 w-fit mx-auto mb-8">
+                        <TabButton
+                            active={activeTab === 'posts'}
+                            onClick={() => handleTabChange('posts')}
+                            icon={Grid}
+                            label="Posts"
+                        />
+                        {isOwnProfile && (
+                            <TabButton
+                                active={activeTab === 'saved'}
+                                onClick={() => handleTabChange('saved')}
+                                icon={Bookmark}
+                                label="Saved"
+                            />
+                        )}
+                        <TabButton
+                            active={activeTab === 'achievements'}
+                            onClick={() => handleTabChange('achievements')}
+                            icon={Trophy}
+                            label="Achievements"
+                        />
+                    </div>
+
+                    {/* Tab Content */}
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'achievements' ? (
+                            <motion.div
+                                key="achievements"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                            >
+                                <AchievementsSection achievements={earnedAchievements} userStats={userStats} />
+                            </motion.div>
+                        ) : loading ? (
+                            <motion.div
+                                key="loading"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex justify-center py-20"
+                            >
+                                <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
+                            </motion.div>
+                        ) : posts.length === 0 ? (
+                            <motion.div
+                                key="empty"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -20 }}
+                                className="text-center py-20 bg-slate-900/30 rounded-3xl border border-slate-800/50 backdrop-blur-sm"
+                            >
+                                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center mx-auto mb-4 border border-slate-700">
+                                    {activeTab === 'posts' ? (
+                                        <Grid className="w-10 h-10 text-slate-600" />
+                                    ) : (
+                                        <Bookmark className="w-10 h-10 text-slate-600" />
+                                    )}
+                                </div>
+                                <h3 className="text-xl font-semibold text-white mb-2">
+                                    {activeTab === 'posts' ? "No posts yet" : "No saved posts"}
+                                </h3>
+                                <p className="text-slate-400 max-w-sm mx-auto">
+                                    {activeTab === 'posts'
+                                        ? (isOwnProfile ? "Share your learning journey with your first post!" : "This user hasn't posted anything yet.")
+                                        : "Posts you save will appear here."}
+                                </p>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="posts"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="space-y-6"
+                            >
+                                <AnimatePresence mode="popLayout">
+                                    {posts.map((post) => (
+                                        <PostCard
+                                            key={post.id}
+                                            post={post}
+                                            isLiked={likedPosts.has(post.id)}
+                                            isSaved={savedPosts.has(post.id)}
+                                            onDelete={handlePostDeleted}
+                                        />
+                                    ))}
+                                </AnimatePresence>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
 }
 
-// Stat Card Component
-function StatCard({ icon: Icon, label, value, gradient, iconBg, iconColor }: {
+// Gamified Stat Card Component
+function GamifiedStatCard({ icon: Icon, label, value, suffix, gradient, glow, progress }: {
     icon: any;
     label: string;
-    value: string | number;
+    value: string;
+    suffix?: string;
     gradient: string;
-    iconBg: string;
-    iconColor: string;
+    glow: string;
+    progress: number;
 }) {
     return (
         <motion.div
-            whileHover={{ scale: 1.05, y: -5 }}
-            className={`bg-gradient-to-br ${gradient} p-[2px] rounded-xl`}
+            whileHover={{ scale: 1.03, y: -5 }}
+            whileTap={{ scale: 0.98 }}
+            className={cn("relative group cursor-default", `shadow-lg ${glow}`)}
         >
-            <div className="bg-slate-900 rounded-xl p-4 h-full">
-                <div className="flex items-center gap-3">
-                    <div className={`p-3 rounded-lg ${iconBg}`}>
-                        <Icon className={`w-6 h-6 ${iconColor}`} />
+            <div className={cn("absolute inset-0 bg-gradient-to-br rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl", gradient)} />
+            <div className="relative bg-slate-900/80 backdrop-blur-sm rounded-2xl p-5 border border-slate-700/50 overflow-hidden">
+                {/* Progress indicator */}
+                <motion.div
+                    className={cn("absolute bottom-0 left-0 h-1 bg-gradient-to-r", gradient)}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(progress * 100, 100)}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                />
+
+                <div className="flex items-center gap-4">
+                    <div className={cn("p-3 rounded-xl bg-gradient-to-br", gradient)}>
+                        <Icon className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                        <div className="text-sm text-slate-400">{label}</div>
-                        <div className="text-2xl font-bold text-white">{value}</div>
+                        <div className="text-xs text-slate-400 uppercase tracking-wide mb-0.5">{label}</div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold text-white">{value}</span>
+                            {suffix && <span className="text-sm text-slate-500">{suffix}</span>}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -432,75 +720,148 @@ function TabButton({ active, onClick, icon: Icon, label }: {
     label: string;
 }) {
     return (
-        <button
+        <motion.button
             onClick={onClick}
             className={cn(
-                "flex items-center gap-2 pb-4 text-sm font-medium transition-all relative",
-                active ? "text-white" : "text-slate-400 hover:text-slate-200"
+                "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-all relative",
+                active
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
             )}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
         >
             <Icon className="w-4 h-4" />
             {label}
-            {active && (
-                <motion.div
-                    layoutId="activeTab"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500"
-                />
-            )}
-        </button>
+        </motion.button>
     );
 }
 
-// Achievements Section
-function AchievementsSection({ achievements }: { achievements: string[] }) {
-    const achievementData = [
-        { id: 'first-post', name: 'First Steps', description: 'Created your first post', icon: Star, color: 'from-blue-500 to-cyan-500' },
-        { id: 'week-streak', name: 'Week Warrior', description: '7-day learning streak', icon: Flame, color: 'from-orange-500 to-red-500' },
-        { id: 'social-butterfly', name: 'Social Butterfly', description: '10 followers gained', icon: Shield, color: 'from-purple-500 to-pink-500' },
-        { id: 'knowledge-seeker', name: 'Knowledge Seeker', description: 'Completed 5 lessons', icon: BookOpen, color: 'from-green-500 to-emerald-500' },
-        { id: 'code-master', name: 'Code Master', description: 'Completed a roadmap', icon: Code, color: 'from-yellow-500 to-orange-500' },
-        { id: 'rising-star', name: 'Rising Star', description: 'Reached level 5', icon: Zap, color: 'from-indigo-500 to-purple-500' },
-    ];
+// Achievements Section with real achievements from lib
+function AchievementsSection({ achievements, userStats }: { achievements: string[]; userStats: any }) {
+    // Get achievement icon mapping
+    const getAchievementIcon = (type: string) => {
+        switch (type) {
+            case 'xp': return Star;
+            case 'streak': return Flame;
+            case 'lessons': return BookOpen;
+            case 'roadmaps': return TrendingUp;
+            case 'projects': return Code;
+            default: return Award;
+        }
+    };
+
+    // Get achievement color based on type
+    const getAchievementColor = (type: string) => {
+        switch (type) {
+            case 'xp': return 'from-yellow-500 to-orange-500';
+            case 'streak': return 'from-orange-500 to-red-500';
+            case 'lessons': return 'from-blue-500 to-cyan-500';
+            case 'roadmaps': return 'from-green-500 to-emerald-500';
+            case 'projects': return 'from-purple-500 to-pink-500';
+            default: return 'from-slate-500 to-slate-600';
+        }
+    };
+
+    // Get progress towards achievement
+    const getProgress = (achievement: typeof ACHIEVEMENTS[0]) => {
+        if (!userStats) return 0;
+        let current = 0;
+        switch (achievement.type) {
+            case 'xp': current = userStats.xp || 0; break;
+            case 'streak': current = userStats.streak || 0; break;
+            case 'lessons': current = userStats.totalLessonsCompleted || 0; break;
+            case 'roadmaps': current = userStats.completedRoadmaps || 0; break;
+            default: current = 0;
+        }
+        return Math.min(current / achievement.requirement, 1);
+    };
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {achievementData.map((achievement) => {
+            {ACHIEVEMENTS.map((achievement, index) => {
                 const isUnlocked = achievements.includes(achievement.id);
+                const Icon = getAchievementIcon(achievement.type);
+                const color = getAchievementColor(achievement.type);
+                const progress = getProgress(achievement);
+
                 return (
                     <motion.div
                         key={achievement.id}
-                        whileHover={isUnlocked ? { scale: 1.05 } : {}}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={isUnlocked ? { scale: 1.03, y: -5 } : { scale: 1.01 }}
                         className={cn(
-                            "relative rounded-xl p-6 border-2 transition-all",
+                            "relative rounded-2xl p-6 border-2 transition-all overflow-hidden",
                             isUnlocked
-                                ? `bg-gradient-to-br ${achievement.color} border-transparent`
-                                : "bg-slate-800/30 border-slate-700 opacity-50"
+                                ? "border-transparent shadow-lg"
+                                : "bg-slate-900/50 border-slate-800 opacity-60"
                         )}
                     >
+                        {/* Background gradient for unlocked */}
                         {isUnlocked && (
-                            <div className="absolute top-2 right-2">
-                                <Star className="w-5 h-5 text-yellow-300 fill-yellow-300" />
-                            </div>
+                            <div className={cn("absolute inset-0 bg-gradient-to-br opacity-90", color)} />
                         )}
-                        <achievement.icon className={cn(
-                            "w-12 h-12 mb-3",
-                            isUnlocked ? "text-white" : "text-slate-600"
-                        )} />
-                        <h3 className={cn(
-                            "font-bold text-lg mb-1",
-                            isUnlocked ? "text-white" : "text-slate-500"
-                        )}>
-                            {achievement.name}
-                        </h3>
-                        <p className={cn(
-                            "text-sm",
-                            isUnlocked ? "text-white/80" : "text-slate-600"
-                        )}>
-                            {achievement.description}
-                        </p>
+
+                        {/* Progress bar for locked */}
                         {!isUnlocked && (
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="text-6xl opacity-10">🔒</div>
+                            <motion.div
+                                className={cn("absolute bottom-0 left-0 h-1 bg-gradient-to-r opacity-50", color)}
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progress * 100}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                            />
+                        )}
+
+                        <div className="relative z-10">
+                            {/* Unlocked badge */}
+                            {isUnlocked && (
+                                <motion.div
+                                    className="absolute -top-1 -right-1"
+                                    animate={{ rotate: [0, 10, -10, 0] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                >
+                                    <div className="bg-yellow-400 rounded-full p-1.5 shadow-lg">
+                                        <Star className="w-4 h-4 text-yellow-900 fill-yellow-900" />
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {/* Icon */}
+                            <div className={cn(
+                                "w-14 h-14 rounded-xl flex items-center justify-center mb-4",
+                                isUnlocked ? "bg-white/20" : "bg-slate-800"
+                            )}>
+                                <span className="text-3xl">{achievement.icon}</span>
+                            </div>
+
+                            {/* Content */}
+                            <h3 className={cn(
+                                "font-bold text-lg mb-1",
+                                isUnlocked ? "text-white" : "text-slate-400"
+                            )}>
+                                {achievement.title}
+                            </h3>
+                            <p className={cn(
+                                "text-sm",
+                                isUnlocked ? "text-white/80" : "text-slate-500"
+                            )}>
+                                {achievement.description}
+                            </p>
+
+                            {/* Progress text for locked */}
+                            {!isUnlocked && (
+                                <div className="mt-3 text-xs text-slate-500">
+                                    {Math.round(progress * 100)}% complete
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Lock overlay for locked achievements */}
+                        {!isUnlocked && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="text-6xl opacity-5">🔒</div>
                             </div>
                         )}
                     </motion.div>
