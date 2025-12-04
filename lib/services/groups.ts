@@ -13,18 +13,26 @@ export interface Group {
     createdAt: string;
 }
 
-export async function createGroup(userId: string, name: string, description: string, tags: string[], imageUrl?: string): Promise<string> {
+export interface CreateGroupData {
+    name: string;
+    description: string;
+    image?: string;
+    isPrivate: boolean;
+    tags: string[];
+    createdBy: string;
+    members: string[];
+    memberCount: number;
+}
+
+export async function createGroup(data: CreateGroupData): Promise<string> {
     try {
         const groupData = {
-            name,
-            description,
-            imageUrl,
-            createdBy: userId,
-            membersCount: 1,
-            members: [userId],
-            tags,
+            ...data,
+            imageUrl: data.image, // Map image to imageUrl
             createdAt: new Date().toISOString(),
         };
+        // Remove 'image' key if it exists to avoid duplication/confusion
+        delete (groupData as any).image;
 
         const docRef = await addDoc(collection(db, 'groups'), groupData);
         return docRef.id;

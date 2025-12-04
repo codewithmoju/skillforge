@@ -258,6 +258,13 @@ function DashboardContent() {
             meta: `${postsCount} posts live`,
         });
 
+        actions.push({
+            label: "Community Groups",
+            href: "/groups",
+            icon: Users,
+            meta: "Join or create",
+        });
+
         return actions;
     }, [currentRoadmapNode, projectSpotlight, userData?.currentTopic, postsCount]);
 

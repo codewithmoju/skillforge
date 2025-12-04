@@ -12,6 +12,7 @@ interface ImageUploadProps {
     label?: string;
     rounded?: boolean;
     size?: "sm" | "md" | "lg";
+    children?: React.ReactNode;
 }
 
 export function ImageUpload({
@@ -20,7 +21,8 @@ export function ImageUpload({
     className,
     label = "Upload Image",
     rounded = false,
-    size = "md"
+    size = "md",
+    children
 }: ImageUploadProps) {
     const [preview, setPreview] = useState<string>(value || "");
     const [loading, setLoading] = useState(false);
@@ -117,6 +119,24 @@ export function ImageUpload({
     };
 
     const roundedClass = rounded ? "rounded-full" : "rounded-xl";
+
+    if (children) {
+        return (
+            <div className={className}>
+                <div onClick={() => fileInputRef.current?.click()}>
+                    {children}
+                </div>
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                />
+                {error && <p className="text-sm text-red-400 mt-1">{error}</p>}
+            </div>
+        );
+    }
 
     return (
         <div className={cn("space-y-3", className)}>

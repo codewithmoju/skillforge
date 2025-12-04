@@ -8,6 +8,7 @@ import { getFeedPosts, isPostLiked, isPostSaved } from "@/lib/services/posts";
 import type { Post } from "@/lib/services/posts";
 import { getFollowing } from "@/lib/services/follow";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { CreatePost } from "@/components/social/CreatePost";
 
 export default function SocialPage() {
     const { user } = useAuth();
@@ -53,6 +54,10 @@ export default function SocialPage() {
         }
     };
 
+    const handlePostCreated = (newPost: Post) => {
+        setPosts(prev => [newPost, ...prev]);
+    };
+
     const handlePostDeleted = (deletedPostId: string) => {
         setPosts(prevPosts => prevPosts.filter(post => post.id !== deletedPostId));
     };
@@ -62,7 +67,7 @@ export default function SocialPage() {
     }, [user]);
 
     return (
-        <div className="min-h-screen p-8">
+        <div className="min-h-screen p-8 pt-24">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
                 <div className="mb-8 flex items-center justify-between">
@@ -74,6 +79,11 @@ export default function SocialPage() {
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
                         Refresh
                     </Button>
+                </div>
+
+                {/* Create Post */}
+                <div className="mb-8">
+                    <CreatePost onPostCreated={handlePostCreated} />
                 </div>
 
                 {/* Feed */}

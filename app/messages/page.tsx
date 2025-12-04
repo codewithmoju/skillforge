@@ -48,7 +48,7 @@ export default function MessagesPage() {
         setSuggestedLoading(true);
         try {
             const { getFollowers } = await import('@/lib/services/follow');
-            const { getUserData } = await import('@/lib/services/firestore');
+            const { getUserData, getRecentUsers } = await import('@/lib/services/firestore');
 
             const followerIds = await getFollowers(user.uid);
 
@@ -56,8 +56,16 @@ export default function MessagesPage() {
                 const users = await Promise.all(
                     followerIds.slice(0, 5).map(id => getUserData(id))
                 );
-                setSuggestedUsers(users.filter((u): u is FirestoreUserData => u !== null));
+                const validUsers = users.filter((u): u is FirestoreUserData => u !== null && u.uid !== user.uid);
+                if (validUsers.length > 0) {
+                    setSuggestedUsers(validUsers);
+                    return;
+                }
             }
+
+            // Fallback: get recently active users if no followers
+            const recentUsers = await getRecentUsers(5);
+            setSuggestedUsers(recentUsers.filter(u => u.uid !== user.uid));
         } catch (error) {
             console.error('Error fetching suggested users:', error);
         } finally {

@@ -2,123 +2,92 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { collection, query, where, orderBy, getDocs, updateDoc, doc, writeBatch } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Check, Trash2, MessageSquare, Heart, UserPlus, Trophy, Star } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { getNotifications, markAsRead, markAllAsRead, Notification } from "@/lib/services/notifications";
+import { Loader2, Bell, Heart, MessageSquare, UserPlus, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { useRouter } from "next/navigation";
-
-interface Notification {
-    id: string;
-    type: 'like' | 'comment' | 'follow' | 'achievement' | 'system';
-    title: string;
-    message: string;
-    read: boolean;
-    createdAt: any;
-    link?: string;
-    sender?: {
-        name: string;
-        photoURL?: string;
-    };
-}
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/Button";
 
 export default function NotificationsPage() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
-    const router = useRouter();
 
     useEffect(() => {
-        if (!user) return;
-
-        const fetchNotifications = async () => {
-            try {
-                const q = query(
-                    collection(db, "users", user.uid, "notifications"),
-                    orderBy("createdAt", "desc")
-                );
-                const snapshot = await getDocs(q);
-                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
-                setNotifications(data);
-            } catch (error) {
-                console.error("Failed to fetch notifications:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchNotifications();
+        if (user) {
+            loadNotifications();
+        }
     }, [user]);
 
-    const markAsRead = async (id: string) => {
+    const loadNotifications = async () => {
         if (!user) return;
         try {
-            await updateDoc(doc(db, "users", user.uid, "notifications", id), { read: true });
+            const data = await getNotifications(user.uid);
+            setNotifications(data);
+        } catch (error) {
+            console.error("Error loading notifications:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleMarkAsRead = async (id: string) => {
+        try {
+            await markAsRead(id);
             setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         } catch (error) {
-            console.error("Failed to mark as read:", error);
+            console.error("Error marking as read:", error);
         }
     };
 
-    const markAllAsRead = async () => {
+    const handleMarkAllRead = async () => {
         if (!user) return;
         try {
-            const batch = writeBatch(db);
-            notifications.forEach(n => {
-                if (!n.read) {
-                    const ref = doc(db, "users", user.uid, "notifications", n.id);
-                    batch.update(ref, { read: true });
-                }
-            });
-            await batch.commit();
+            await markAllAsRead(user.uid);
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (error) {
-            console.error("Failed to mark all as read:", error);
+            console.error("Error marking all as read:", error);
         }
     };
 
-    const deleteNotification = async (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!user) return;
-        try {
-            const { deleteDoc } = await import("firebase/firestore");
-            await deleteDoc(doc(db, "users", user.uid, "notifications", id));
-            setNotifications(prev => prev.filter(n => n.id !== id));
-        } catch (error) {
-            console.error("Failed to delete notification:", error);
-        }
-    };
-
-    const getIcon = (type: string) => {
+    const getIcon = (type: Notification['type']) => {
         switch (type) {
-            case 'like': return <Heart className="w-5 h-5 text-rose-500" />;
-            case 'comment': return <MessageSquare className="w-5 h-5 text-blue-500" />;
-            case 'follow': return <UserPlus className="w-5 h-5 text-emerald-500" />;
-            case 'achievement': return <Trophy className="w-5 h-5 text-amber-500" />;
+            case 'like': return <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />;
+            case 'comment': return <MessageSquare className="w-5 h-5 text-blue-400 fill-blue-400" />;
+            case 'follow': return <UserPlus className="w-5 h-5 text-emerald-400" />;
+            case 'mention': return <span className="text-lg">@</span>;
             default: return <Bell className="w-5 h-5 text-slate-400" />;
+        }
+    };
+
+    const getMessage = (notification: Notification) => {
+        switch (notification.type) {
+            case 'like': return "liked your post";
+            case 'comment': return "commented on your post";
+            case 'follow': return "started following you";
+            case 'mention': return "mentioned you in a post";
+            default: return "interacted with you";
         }
     };
 
     if (loading) {
         return (
-            <div className="min-h-screen pt-24 px-6 flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+            <div className="min-h-screen pt-24 flex justify-center">
+                <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-6 max-w-4xl mx-auto">
+        <div className="min-h-screen pt-24 pb-12 px-4 max-w-3xl mx-auto">
             <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Notifications</h1>
-                    <p className="text-slate-400">Stay updated with your community activity</p>
-                </div>
+                <h1 className="text-3xl font-bold text-white">Notifications</h1>
                 {notifications.some(n => !n.read) && (
-                    <Button variant="outline" size="sm" onClick={markAllAsRead} className="flex items-center gap-2">
-                        <Check className="w-4 h-4" /> Mark all read
+                    <Button variant="ghost" onClick={handleMarkAllRead} className="text-sm text-slate-400 hover:text-white">
+                        <Check className="w-4 h-4 mr-2" />
+                        Mark all read
                     </Button>
                 )}
             </div>
@@ -129,50 +98,58 @@ export default function NotificationsPage() {
                         notifications.map((notification) => (
                             <motion.div
                                 key={notification.id}
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                onClick={() => {
-                                    if (!notification.read) markAsRead(notification.id);
-                                    if (notification.link) router.push(notification.link);
-                                }}
-                                className={`relative p-5 rounded-2xl border transition-all cursor-pointer group ${notification.read
-                                        ? "bg-slate-900/50 border-white/5 hover:border-white/10"
-                                        : "bg-slate-800/50 border-cyan-500/30 hover:border-cyan-500/50"
+                                exit={{ opacity: 0, height: 0 }}
+                                className={`bg-slate-900/50 border rounded-2xl p-4 flex items-center gap-4 transition-colors ${notification.read ? "border-slate-800" : "border-accent-indigo/30 bg-accent-indigo/5"
                                     }`}
+                                onClick={() => !notification.read && handleMarkAsRead(notification.id)}
                             >
-                                <div className="flex items-start gap-4">
-                                    <div className={`p-3 rounded-xl ${notification.read ? "bg-slate-800" : "bg-slate-700"}`}>
+                                <div className="relative">
+                                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800">
+                                        {notification.fromUserPhoto ? (
+                                            <Image
+                                                src={notification.fromUserPhoto}
+                                                alt={notification.fromUserName}
+                                                width={48}
+                                                height={48}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-white font-bold bg-gradient-to-br from-slate-700 to-slate-600">
+                                                {notification.fromUserName.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full p-1">
                                         {getIcon(notification.type)}
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h3 className={`font-semibold ${notification.read ? "text-slate-200" : "text-white"}`}>
-                                                {notification.title}
-                                            </h3>
-                                            <span className="text-xs text-slate-500 whitespace-nowrap ml-4">
-                                                {notification.createdAt?.toDate ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
-                                            </span>
-                                        </div>
-                                        <p className="text-slate-400 text-sm leading-relaxed">{notification.message}</p>
-                                    </div>
-                                    <button
-                                        onClick={(e) => deleteNotification(notification.id, e)}
-                                        className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-rose-500 transition-all"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
                                 </div>
+
+                                <div className="flex-1">
+                                    <p className="text-white">
+                                        <span className="font-semibold hover:underline cursor-pointer">
+                                            {notification.fromUserName}
+                                        </span>
+                                        {" "}{getMessage(notification)}
+                                    </p>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {formatDistanceToNow(new Date(notification.createdAt))} ago
+                                    </p>
+                                </div>
+
                                 {!notification.read && (
-                                    <div className="absolute top-5 right-5 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+                                    <div className="w-2 h-2 rounded-full bg-accent-indigo" />
                                 )}
                             </motion.div>
                         ))
                     ) : (
-                        <div className="text-center py-20 rounded-3xl border border-dashed border-white/10 bg-slate-900/50">
-                            <Bell className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                            <h3 className="text-xl font-semibold text-white mb-2">All caught up!</h3>
-                            <p className="text-slate-400">No new notifications to show.</p>
+                        <div className="text-center py-20">
+                            <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Bell className="w-8 h-8 text-slate-600" />
+                            </div>
+                            <h3 className="text-xl font-semibold text-white mb-2">No notifications</h3>
+                            <p className="text-slate-400">You're all caught up!</p>
                         </div>
                     )}
                 </AnimatePresence>

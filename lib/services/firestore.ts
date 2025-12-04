@@ -258,3 +258,20 @@ export async function searchUsers(queryText: string, limitCount: number = 10): P
         return [];
     }
 }
+/**
+ * Get recently active users for suggestions fallback
+ */
+export async function getRecentUsers(limitCount: number = 10): Promise<FirestoreUserData[]> {
+    try {
+        const q = query(
+            collection(db, 'users'),
+            orderBy('lastActive', 'desc'),
+            limit(limitCount)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => doc.data() as FirestoreUserData);
+    } catch (error) {
+        console.error('Error fetching recent users:', error);
+        return [];
+    }
+}

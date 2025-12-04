@@ -16,6 +16,7 @@ const navItems = [
     { name: "Courses", href: "/courses", icon: BookOpen },
     { name: "Projects", href: "/projects", icon: FolderKanban },
     { name: "Social", href: "/social", icon: Users },
+    { name: "Groups", href: "/groups", icon: Globe },
     { name: "Create Post", href: "/create", icon: PlusCircle },
     { name: "Messages", href: "/messages", icon: MessageCircle },
     { name: "Notifications", href: "/notifications", icon: Bell },
