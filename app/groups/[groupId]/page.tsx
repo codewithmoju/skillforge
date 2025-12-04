@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getGroup, joinGroup, leaveGroup, Group } from "@/lib/services/groups";
-import { getGroupDiscussions, createDiscussion, likeDiscussion, GroupDiscussion } from "@/lib/services/discussions";
+import { getGroupDiscussionsPaginated, createDiscussion, likeDiscussion, GroupDiscussion, PaginatedDiscussions } from "@/lib/services/discussions";
 import { Button } from "@/components/ui/Button";
 import { Loader2, Users, Lock, Globe, Calendar, ArrowLeft, MessageSquare, Shield, Heart, Send } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+
+const PAGE_SIZE = 10;
 
 export default function GroupDetailsPage() {
     const params = useParams();
@@ -20,10 +23,13 @@ export default function GroupDetailsPage() {
     const [group, setGroup] = useState<Group | null>(null);
     const [discussions, setDiscussions] = useState<GroupDiscussion[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [isMember, setIsMember] = useState(false);
     const [newPost, setNewPost] = useState("");
     const [posting, setPosting] = useState(false);
+    const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
 
     useEffect(() => {
         loadGroup();
@@ -38,13 +44,31 @@ export default function GroupDetailsPage() {
                 setIsMember(groupData.members?.includes(user.uid) || false);
             }
 
-            // Load discussions
-            const groupDiscussions = await getGroupDiscussions(groupId);
-            setDiscussions(groupDiscussions);
+            // Load discussions with pagination
+            const result = await getGroupDiscussionsPaginated(groupId, PAGE_SIZE);
+            setDiscussions(result.items);
+            lastDocRef.current = result.lastDoc;
+            setHasMore(result.hasMore);
         } catch (error) {
             console.error("Error loading group:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMoreDiscussions = async () => {
+        if (loadingMore || !hasMore || !lastDocRef.current) return;
+
+        setLoadingMore(true);
+        try {
+            const result = await getGroupDiscussionsPaginated(groupId, PAGE_SIZE, lastDocRef.current);
+            setDiscussions(prev => [...prev, ...result.items]);
+            lastDocRef.current = result.lastDoc;
+            setHasMore(result.hasMore);
+        } catch (error) {
+            console.error("Error loading more discussions:", error);
+        } finally {
+            setLoadingMore(false);
         }
     };
 
@@ -82,7 +106,6 @@ export default function GroupDetailsPage() {
                 user.photoURL || undefined
             );
 
-            // Add to local state
             const newDiscussion: GroupDiscussion = {
                 id: discussionId,
                 groupId,
@@ -112,7 +135,6 @@ export default function GroupDetailsPage() {
         try {
             await likeDiscussion(discussionId, user.uid);
 
-            // Update local state
             setDiscussions(prev => prev.map(d => {
                 if (d.id === discussionId) {
                     const isLiked = d.likedBy?.includes(user.uid);
@@ -164,7 +186,6 @@ export default function GroupDetailsPage() {
 
                 {/* Header Card */}
                 <div className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden mb-8">
-                    {/* Cover Image / Gradient */}
                     <div className="h-48 bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-900 relative">
                         {group.imageUrl && (
                             <img
@@ -331,6 +352,27 @@ export default function GroupDetailsPage() {
                                             </div>
                                         </motion.div>
                                     ))}
+
+                                    {/* Load More Button */}
+                                    {hasMore && (
+                                        <div className="flex justify-center pt-4">
+                                            <Button
+                                                variant="outline"
+                                                onClick={loadMoreDiscussions}
+                                                disabled={loadingMore}
+                                                className="w-full max-w-xs"
+                                            >
+                                                {loadingMore ? (
+                                                    <>
+                                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                        Loading...
+                                                    </>
+                                                ) : (
+                                                    "Load More Discussions"
+                                                )}
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="text-center py-12 border-2 border-dashed border-slate-800 rounded-2xl">
@@ -344,7 +386,6 @@ export default function GroupDetailsPage() {
 
                     {/* Sidebar */}
                     <div className="space-y-6">
-                        {/* About */}
                         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                             <h3 className="text-white font-semibold mb-4">About</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
@@ -352,7 +393,6 @@ export default function GroupDetailsPage() {
                             </p>
                         </div>
 
-                        {/* Members Preview */}
                         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-white font-semibold">Members</h3>

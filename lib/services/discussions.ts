@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, addDoc, getDocs, getDoc, query, where, orderBy, limit, updateDoc, increment, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, getDocs, getDoc, query, where, orderBy, limit, updateDoc, increment, deleteDoc, Timestamp, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export interface GroupDiscussion {
     id: string;
@@ -148,5 +148,47 @@ export async function getDiscussionComments(discussionId: string): Promise<Discu
     } catch (error) {
         console.error('Error getting comments:', error);
         return [];
+    }
+}
+
+export interface PaginatedDiscussions {
+    items: GroupDiscussion[];
+    lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+    hasMore: boolean;
+}
+
+export async function getGroupDiscussionsPaginated(
+    groupId: string, 
+    pageSize: number = 10,
+    lastDoc?: QueryDocumentSnapshot<DocumentData>
+): Promise<PaginatedDiscussions> {
+    try {
+        let q = query(
+            collection(db, 'groupDiscussions'),
+            where('groupId', '==', groupId),
+            orderBy('createdAt', 'desc'),
+            limit(pageSize + 1)
+        );
+
+        if (lastDoc) {
+            q = query(
+                collection(db, 'groupDiscussions'),
+                where('groupId', '==', groupId),
+                orderBy('createdAt', 'desc'),
+                startAfter(lastDoc),
+                limit(pageSize + 1)
+            );
+        }
+
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs;
+        const hasMore = docs.length > pageSize;
+        const items = docs.slice(0, pageSize).map(doc => ({ id: doc.id, ...doc.data() } as GroupDiscussion));
+        const newLastDoc = docs.length > 0 ? docs[Math.min(docs.length - 1, pageSize - 1)] : null;
+
+        return { items, lastDoc: newLastDoc, hasMore };
+    } catch (error) {
+        console.error('Error getting paginated discussions:', error);
+        return { items: [], lastDoc: null, hasMore: false };
     }
 }

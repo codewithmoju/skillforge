@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData, FirestoreUserData } from "@/lib/services/firestore";
 import { getUserPosts, Post } from "@/lib/services/posts";
+import { getUserProgress } from "@/lib/services/userProgress";
+import { Achievement, ACHIEVEMENTS } from "@/lib/utils/achievements";
 import { Loader2, MapPin, Link as LinkIcon, Calendar, Edit, Trophy, Flame, Star } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
@@ -15,6 +18,8 @@ export default function ProfilePage() {
     const [profile, setProfile] = useState<FirestoreUserData | null>(null);
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
+    const [userStats, setUserStats] = useState<{ xp: number; level: number; streak: number } | null>(null);
+    const [achievements, setAchievements] = useState<Achievement[]>([]);
 
     useEffect(() => {
         if (user) {
@@ -25,12 +30,34 @@ export default function ProfilePage() {
     const loadProfile = async () => {
         if (!user) return;
         try {
-            const [userData, userPosts] = await Promise.all([
+            const [userData, userPosts, userProgress] = await Promise.all([
                 getUserData(user.uid),
-                getUserPosts(user.uid)
+                getUserPosts(user.uid),
+                getUserProgress(user.uid)
             ]);
             setProfile(userData);
             setPosts(userPosts);
+
+            // Set dynamic stats from userProgress
+            if (userProgress) {
+                setUserStats({
+                    xp: userProgress.xp || 0,
+                    level: userProgress.level || 1,
+                    streak: userProgress.streak || 0
+                });
+
+                // Compute earned achievements based on user stats
+                const earnedAchievements = ACHIEVEMENTS.filter(achievement => {
+                    switch (achievement.type) {
+                        case 'xp': return (userProgress.xp || 0) >= achievement.requirement;
+                        case 'streak': return (userProgress.streak || 0) >= achievement.requirement;
+                        case 'lessons': return (userProgress.totalLessonsCompleted || 0) >= achievement.requirement;
+                        case 'roadmaps': return (userProgress.completedRoadmaps || 0) >= achievement.requirement;
+                        default: return false;
+                    }
+                });
+                setAchievements(earnedAchievements);
+            }
         } catch (error) {
             console.error("Error loading profile:", error);
         } finally {
@@ -87,10 +114,12 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="flex gap-3 mb-2 w-full md:w-auto">
-                            <Button className="flex-1 md:flex-none">
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit Profile
-                            </Button>
+                            <Link href="/settings">
+                                <Button className="flex-1 md:flex-none">
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit Profile
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -144,9 +173,9 @@ export default function ProfilePage() {
                                 Achievements
                             </h3>
 
-                            {profile.achievements && profile.achievements.length > 0 ? (
+                            {achievements && achievements.length > 0 ? (
                                 <div className="grid grid-cols-4 gap-2">
-                                    {profile.achievements.map((achievement) => (
+                                    {achievements.map((achievement) => (
                                         <div key={achievement.id} className="aspect-square rounded-xl bg-slate-800 p-2 flex items-center justify-center relative group cursor-help">
                                             <span className="text-2xl">{achievement.icon}</span>
 
@@ -173,21 +202,21 @@ export default function ProfilePage() {
                                     <Flame className="w-4 h-4 text-orange-500" />
                                     Streak
                                 </div>
-                                <span className="text-2xl font-bold text-white">{profile.streak} Days</span>
+                                <span className="text-2xl font-bold text-white">{userStats?.streak || 0} Days</span>
                             </div>
                             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
                                 <div className="flex items-center gap-2 mb-1 text-slate-400 text-sm">
                                     <Star className="w-4 h-4 text-yellow-500" />
                                     XP
                                 </div>
-                                <span className="text-2xl font-bold text-white">{profile.xp}</span>
+                                <span className="text-2xl font-bold text-white">{userStats?.xp || 0}</span>
                             </div>
                             <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4">
                                 <div className="flex items-center gap-2 mb-1 text-slate-400 text-sm">
                                     <Trophy className="w-4 h-4 text-purple-500" />
                                     Level
                                 </div>
-                                <span className="text-2xl font-bold text-white">{profile.level}</span>
+                                <span className="text-2xl font-bold text-white">{userStats?.level || 1}</span>
                             </div>
                         </div>
 

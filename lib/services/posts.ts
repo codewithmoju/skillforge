@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, addDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment } from 'firebase/firestore';
+import { collection, doc, addDoc, deleteDoc, getDoc, getDocs, query, where, orderBy, limit, updateDoc, increment, startAfter, QueryDocumentSnapshot, DocumentData, setDoc } from 'firebase/firestore';
 
 export interface Post {
     id: string;
@@ -184,18 +184,18 @@ export async function getTrendingPosts(limitCount: number = 50): Promise<Post[]>
 export async function likePost(userId: string, postId: string): Promise<void> {
     try {
         const likeId = `${userId}_${postId}`;
-        const likeDoc = await getDoc(doc(db, 'likes', likeId));
+        const likeRef = doc(db, 'likes', likeId);
+        const likeDocSnap = await getDoc(likeRef);
 
-        if (likeDoc.exists()) {
+        if (likeDocSnap.exists()) {
             // Unlike
-            await deleteDoc(doc(db, 'likes', likeId));
+            await deleteDoc(likeRef);
             await updateDoc(doc(db, 'posts', postId), {
                 likes: increment(-1),
             });
         } else {
-            // Like
-            await addDoc(collection(db, 'likes'), {
-                id: likeId,
+            // Like - use setDoc with explicit document ID to prevent duplicates
+            await setDoc(likeRef, {
                 userId,
                 postId,
                 createdAt: new Date().toISOString(),
@@ -232,18 +232,18 @@ export async function likePost(userId: string, postId: string): Promise<void> {
 export async function savePost(userId: string, postId: string): Promise<void> {
     try {
         const saveId = `${userId}_${postId}`;
-        const saveDoc = await getDoc(doc(db, 'saves', saveId));
+        const saveRef = doc(db, 'saves', saveId);
+        const saveDocSnap = await getDoc(saveRef);
 
-        if (saveDoc.exists()) {
+        if (saveDocSnap.exists()) {
             // Unsave
-            await deleteDoc(doc(db, 'saves', saveId));
+            await deleteDoc(saveRef);
             await updateDoc(doc(db, 'posts', postId), {
                 saves: increment(-1),
             });
         } else {
-            // Save
-            await addDoc(collection(db, 'saves'), {
-                id: saveId,
+            // Save - use setDoc with explicit document ID to prevent duplicates
+            await setDoc(saveRef, {
                 userId,
                 postId,
                 createdAt: new Date().toISOString(),
@@ -303,5 +303,48 @@ export async function getSavedPosts(userId: string): Promise<Post[]> {
     } catch (error) {
         console.error('Error getting saved posts:', error);
         return [];
+    }
+}
+export interface PaginatedResult<T> {
+    items: T[];
+    lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+    hasMore: boolean;
+}
+
+export async function getFeedPostsPaginated(
+    followingIds: string[],
+    pageSize: number = 10,
+    lastDoc?: QueryDocumentSnapshot<DocumentData>
+): Promise<PaginatedResult<Post>> {
+    try {
+        if (followingIds.length === 0) return { items: [], lastDoc: null, hasMore: false };
+
+        let q = query(
+            collection(db, 'posts'),
+            where('userId', 'in', followingIds.slice(0, 10)),
+            orderBy('createdAt', 'desc'),
+            limit(pageSize + 1)
+        );
+
+        if (lastDoc) {
+            q = query(
+                collection(db, 'posts'),
+                where('userId', 'in', followingIds.slice(0, 10)),
+                orderBy('createdAt', 'desc'),
+                startAfter(lastDoc),
+                limit(pageSize + 1)
+            );
+        }
+
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs;
+        const hasMore = docs.length > pageSize;
+        const items = docs.slice(0, pageSize).map(doc => ({ id: doc.id, ...doc.data() } as Post));
+        const newLastDoc = docs.length > 0 ? docs[Math.min(docs.length - 1, pageSize - 1)] : null;
+
+        return { items, lastDoc: newLastDoc, hasMore };
+    } catch (error) {
+        console.error('Error getting paginated feed posts:', error);
+        return { items: [], lastDoc: null, hasMore: false };
     }
 }

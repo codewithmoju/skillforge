@@ -1,5 +1,5 @@
 import { db } from '../firebase';
-import { collection, doc, addDoc, getDocs, query, where, orderBy, limit, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, getDocs, query, where, orderBy, limit, updateDoc, Timestamp, startAfter, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 
 export interface Notification {
     id: string;
@@ -89,5 +89,47 @@ export async function markAllAsRead(userId: string): Promise<void> {
     } catch (error) {
         console.error('Error marking all notifications as read:', error);
         throw error;
+    }
+}
+
+export interface PaginatedNotifications {
+    items: Notification[];
+    lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+    hasMore: boolean;
+}
+
+export async function getNotificationsPaginated(
+    userId: string, 
+    pageSize: number = 15,
+    lastDoc?: QueryDocumentSnapshot<DocumentData>
+): Promise<PaginatedNotifications> {
+    try {
+        let q = query(
+            collection(db, 'notifications'),
+            where('userId', '==', userId),
+            orderBy('createdAt', 'desc'),
+            limit(pageSize + 1)
+        );
+
+        if (lastDoc) {
+            q = query(
+                collection(db, 'notifications'),
+                where('userId', '==', userId),
+                orderBy('createdAt', 'desc'),
+                startAfter(lastDoc),
+                limit(pageSize + 1)
+            );
+        }
+
+        const snapshot = await getDocs(q);
+        const docs = snapshot.docs;
+        const hasMore = docs.length > pageSize;
+        const items = docs.slice(0, pageSize).map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+        const newLastDoc = docs.length > 0 ? docs[Math.min(docs.length - 1, pageSize - 1)] : null;
+
+        return { items, lastDoc: newLastDoc, hasMore };
+    } catch (error) {
+        console.error('Error getting paginated notifications:', error);
+        return { items: [], lastDoc: null, hasMore: false };
     }
 }

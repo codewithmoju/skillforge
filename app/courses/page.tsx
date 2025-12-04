@@ -16,6 +16,7 @@ import { ActiveCourseCard } from "@/components/courses/ActiveCourseCard";
 import { RecommendationCard } from "@/components/courses/RecommendationCard";
 import { RecommendationSkeleton } from "@/components/courses/RecommendationSkeleton";
 import { AuroraBackground } from "@/components/ui/AuroraBackground";
+import { toast } from "sonner";
 
 export default function CoursesPage() {
     const { user } = useAuth();
@@ -123,6 +124,17 @@ export default function CoursesPage() {
         e.preventDefault();
         e.stopPropagation();
 
+        // Verify ownership before allowing delete
+        const course = activeCourses.find(c => c.id === courseId);
+        if (!user) {
+            toast.error("Please sign in to delete courses");
+            return;
+        }
+        if (course?.userId && course.userId !== user.uid) {
+            toast.error("You can only delete courses you created");
+            return;
+        }
+
         if (!confirm("Are you sure you want to delete this course? This action cannot be undone.")) {
             return;
         }
@@ -132,19 +144,18 @@ export default function CoursesPage() {
             await deleteDoc(doc(db, "courses", courseId));
 
             // 2. Remove from user progress
-            if (user) {
-                const { doc, updateDoc, deleteField } = await import("firebase/firestore");
-                const progressRef = doc(db, "userProgress", user.uid);
-                await updateDoc(progressRef, {
-                    [`courses.${courseId}`]: deleteField()
-                }).catch(err => console.warn("Failed to update user progress during delete:", err));
-            }
+            const { doc: docRef, updateDoc, deleteField } = await import("firebase/firestore");
+            const progressRef = docRef(db, "userProgress", user.uid);
+            await updateDoc(progressRef, {
+                [`courses.${courseId}`]: deleteField()
+            }).catch(err => console.warn("Failed to update user progress during delete:", err));
 
             // 3. Update UI
             setActiveCourses(prev => prev.filter(course => course.id !== courseId));
+            toast.success("Course deleted successfully");
         } catch (error) {
             console.error("Failed to delete course:", error);
-            alert("Failed to delete course. Please try again.");
+            toast.error("Failed to delete course. Please try again.");
         }
     };
 

@@ -59,7 +59,13 @@ export default function SettingsPage() {
     const [occupation, setOccupation] = useState("");
     const [phone, setPhone] = useState("");
     const [isPrivate, setIsPrivate] = useState(false);
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+    // Notification settings
+    const [notifyPush, setNotifyPush] = useState(true);
+    const [notifyLikes, setNotifyLikes] = useState(true);
+    const [notifyComments, setNotifyComments] = useState(true);
+    const [notifyFollows, setNotifyFollows] = useState(true);
+    const [notifyMessages, setNotifyMessages] = useState(true);
 
     useEffect(() => {
         if (user) {
@@ -81,6 +87,12 @@ export default function SettingsPage() {
             setOccupation(data.occupation || "");
             setPhone(data.phone || "");
             setIsPrivate(data.isPrivate || false);
+            // Load notification settings
+            setNotifyPush(data.notifyPush !== false);
+            setNotifyLikes(data.notifyLikes !== false);
+            setNotifyComments(data.notifyComments !== false);
+            setNotifyFollows(data.notifyFollows !== false);
+            setNotifyMessages(data.notifyMessages !== false);
         }
     };
 
@@ -133,6 +145,28 @@ export default function SettingsPage() {
             setTimeout(() => setMessage(null), 3000);
         } catch (error: any) {
             setMessage({ type: "error", text: error.message || "Failed to update privacy" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveNotifications = async () => {
+        if (!user) return;
+        setLoading(true);
+        setMessage(null);
+
+        try {
+            await updateUserData(user.uid, {
+                notifyPush,
+                notifyLikes,
+                notifyComments,
+                notifyFollows,
+                notifyMessages,
+            });
+            setMessage({ type: "success", text: "Notification settings saved!" });
+            setTimeout(() => setMessage(null), 3000);
+        } catch (error: any) {
+            setMessage({ type: "error", text: error.message || "Failed to save notifications" });
         } finally {
             setLoading(false);
         }
@@ -387,24 +421,46 @@ export default function SettingsPage() {
                                         icon={Bell}
                                         title="Push Notifications"
                                         description="Receive notifications about your activity"
-                                        toggle={notificationsEnabled}
-                                        onToggle={() => setNotificationsEnabled(!notificationsEnabled)}
+                                        toggle={notifyPush}
+                                        onToggle={() => setNotifyPush(!notifyPush)}
                                     />
                                     <SettingItem
                                         icon={Heart}
                                         title="Likes"
                                         description="Get notified when someone likes your post"
-                                        toggle={true}
-                                        onToggle={() => { }}
+                                        toggle={notifyLikes}
+                                        onToggle={() => setNotifyLikes(!notifyLikes)}
                                     />
                                     <SettingItem
                                         icon={MessageCircle}
                                         title="Comments"
                                         description="Get notified about new comments"
-                                        toggle={true}
-                                        onToggle={() => { }}
+                                        toggle={notifyComments}
+                                        onToggle={() => setNotifyComments(!notifyComments)}
+                                    />
+                                    <SettingItem
+                                        icon={User}
+                                        title="New Followers"
+                                        description="Get notified when someone follows you"
+                                        toggle={notifyFollows}
+                                        onToggle={() => setNotifyFollows(!notifyFollows)}
+                                    />
+                                    <SettingItem
+                                        icon={MessageCircle}
+                                        title="Direct Messages"
+                                        description="Get notified about new messages"
+                                        toggle={notifyMessages}
+                                        onToggle={() => setNotifyMessages(!notifyMessages)}
                                     />
                                 </div>
+
+                                <Button
+                                    onClick={handleSaveNotifications}
+                                    disabled={loading}
+                                    className="w-full mt-6"
+                                >
+                                    {loading ? "Saving..." : "Save Notification Settings"}
+                                </Button>
                             </div>
                         )}
 

@@ -36,6 +36,12 @@ export interface FirestoreUserData {
     createdAt: string;
     updatedAt: string;
     profileComplete: boolean;
+    // Notification settings
+    notifyPush?: boolean;
+    notifyLikes?: boolean;
+    notifyComments?: boolean;
+    notifyFollows?: boolean;
+    notifyMessages?: boolean;
 }
 
 export async function getUserData(uid: string): Promise<FirestoreUserData | null> {
@@ -90,7 +96,7 @@ export async function createUserData(uid: string, email: string, name: string, u
     }
 }
 
-export async function updateUserData(uid: string, data: Partial<UserState> & { totalLessonsCompleted?: number, completedRoadmaps?: number, username?: string, bio?: string, profilePicture?: string, website?: string, location?: string, occupation?: string, phone?: string, isPrivate?: boolean, profileComplete?: boolean }): Promise<void> {
+export async function updateUserData(uid: string, data: Partial<UserState> & { totalLessonsCompleted?: number, completedRoadmaps?: number, username?: string, bio?: string, profilePicture?: string, website?: string, location?: string, occupation?: string, phone?: string, isPrivate?: boolean, profileComplete?: boolean, notifyPush?: boolean, notifyLikes?: boolean, notifyComments?: boolean, notifyFollows?: boolean, notifyMessages?: boolean }): Promise<void> {
     try {
         const now = new Date().toISOString();
 

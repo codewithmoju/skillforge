@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getGroups, getUserGroups, Group } from "@/lib/services/groups";
+import { getGroups, getUserGroups, joinGroup, leaveGroup, Group } from "@/lib/services/groups";
 import { motion } from "framer-motion";
 import { Users, Plus, Search, Hash, Globe, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Image from "next/image";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type TabType = "all" | "my";
 
@@ -39,6 +40,52 @@ export default function GroupsPage() {
 
         fetchGroups();
     }, [user]);
+
+    const [joiningGroup, setJoiningGroup] = useState<string | null>(null);
+
+    // Check if user is a member of a group
+    const isMember = (group: Group): boolean => {
+        return user ? myGroups.some(g => g.id === group.id) : false;
+    };
+
+    // Handle join/leave group
+    const handleJoinLeave = async (e: React.MouseEvent, group: Group) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!user) {
+            toast.error("Please sign in to join groups");
+            return;
+        }
+
+        setJoiningGroup(group.id);
+        try {
+            if (isMember(group)) {
+                await leaveGroup(user.uid, group.id);
+                setMyGroups(prev => prev.filter(g => g.id !== group.id));
+                setAllGroups(prev => prev.map(g =>
+                    g.id === group.id
+                        ? { ...g, membersCount: Math.max(0, (g.membersCount || 1) - 1) }
+                        : g
+                ));
+                toast.success(`Left ${group.name}`);
+            } else {
+                await joinGroup(user.uid, group.id);
+                setMyGroups(prev => [...prev, { ...group, membersCount: (group.membersCount || 0) + 1 }]);
+                setAllGroups(prev => prev.map(g =>
+                    g.id === group.id
+                        ? { ...g, membersCount: (g.membersCount || 0) + 1 }
+                        : g
+                ));
+                toast.success(`Joined ${group.name}`);
+            }
+        } catch (error) {
+            console.error("Failed to join/leave group:", error);
+            toast.error("Failed to update membership. Please try again.");
+        } finally {
+            setJoiningGroup(null);
+        }
+    };
 
     const displayGroups = activeTab === "all" ? allGroups : myGroups;
 
@@ -78,8 +125,8 @@ export default function GroupsPage() {
                 <button
                     onClick={() => setActiveTab("all")}
                     className={`px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === "all"
-                            ? "bg-accent-indigo text-white"
-                            : "bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white"
+                        ? "bg-accent-indigo text-white"
+                        : "bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white"
                         }`}
                 >
                     <Globe className="w-4 h-4 inline mr-2" />
@@ -88,8 +135,8 @@ export default function GroupsPage() {
                 <button
                     onClick={() => setActiveTab("my")}
                     className={`px-5 py-2.5 rounded-xl font-medium transition-all ${activeTab === "my"
-                            ? "bg-accent-indigo text-white"
-                            : "bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white"
+                        ? "bg-accent-indigo text-white"
+                        : "bg-slate-800/50 text-slate-400 hover:bg-slate-700/50 hover:text-white"
                         }`}
                 >
                     <Users className="w-4 h-4 inline mr-2" />
@@ -133,8 +180,8 @@ export default function GroupsPage() {
                                         )}
                                     </div>
                                     <div className={`px-3 py-1 rounded-full text-xs font-medium border ${(group as any).isPrivate
-                                            ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
-                                            : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                        ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                                        : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                                         }`}>
                                         {(group as any).isPrivate ? <Lock className="w-3 h-3 inline mr-1" /> : <Globe className="w-3 h-3 inline mr-1" />}
                                         {(group as any).isPrivate ? "Private" : "Public"}
@@ -163,9 +210,26 @@ export default function GroupsPage() {
                                         <Users className="w-4 h-4" />
                                         <span>{group.membersCount || 0} members</span>
                                     </div>
-                                    <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30">
-                                        View Group
-                                    </Button>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant={isMember(group) ? "outline" : "primary"}
+                                            size="sm"
+                                            onClick={(e) => handleJoinLeave(e, group)}
+                                            disabled={joiningGroup === group.id}
+                                            className={isMember(group)
+                                                ? "border-rose-500/50 text-rose-400 hover:bg-rose-950/30 hover:text-rose-300"
+                                                : "bg-accent-indigo hover:bg-accent-indigo/90 text-white"
+                                            }
+                                        >
+                                            {joiningGroup === group.id ? (
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                            ) : isMember(group) ? (
+                                                "Leave"
+                                            ) : (
+                                                "Join"
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </motion.div>
                         </Link>

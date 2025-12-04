@@ -10,6 +10,9 @@ import { getUserData } from "@/lib/services/firestore";
 import { useUserStore } from "@/lib/store";
 import { postSchema } from "@/lib/validations/schemas";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+const MAX_CHARS = 500;
 
 interface CreatePostProps {
     onPostCreated?: (post: Post) => void;
@@ -112,12 +115,22 @@ export function CreatePost({ onPostCreated }: CreatePostProps) {
                 <div className="flex-1">
                     <textarea
                         value={text}
-                        onChange={(e) => setText(e.target.value)}
+                        onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
                         onFocus={() => setIsExpanded(true)}
                         className="w-full bg-transparent border-none text-white placeholder-slate-500 focus:ring-0 resize-none min-h-[40px]"
                         placeholder="What are you learning today?"
                         rows={isExpanded ? 3 : 1}
+                        maxLength={MAX_CHARS}
                     />
+                    {isExpanded && (
+                        <div className={cn(
+                            "text-xs text-right transition-colors",
+                            text.length > MAX_CHARS * 0.9 ? "text-red-400" :
+                                text.length > MAX_CHARS * 0.75 ? "text-yellow-400" : "text-slate-500"
+                        )}>
+                            {text.length}/{MAX_CHARS}
+                        </div>
+                    )}
 
                     <AnimatePresence>
                         {isExpanded && (

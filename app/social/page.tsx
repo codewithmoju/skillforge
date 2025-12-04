@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, Users, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PostCard } from "@/components/social/PostCard";
-import { getFeedPosts, isPostLiked, isPostSaved } from "@/lib/services/posts";
+import { getFeedPostsPaginated, isPostLiked, isPostSaved, PaginatedResult } from "@/lib/services/posts";
 import type { Post } from "@/lib/services/posts";
 import { getFollowing } from "@/lib/services/follow";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { CreatePost } from "@/components/social/CreatePost";
+import { QueryDocumentSnapshot, DocumentData } from "firebase/firestore";
+
+const PAGE_SIZE = 10;
 
 export default function SocialPage() {
     const { user } = useAuth();
@@ -16,42 +19,81 @@ export default function SocialPage() {
     const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
     const [savedPosts, setSavedPosts] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const lastDocRef = useRef<QueryDocumentSnapshot<DocumentData> | null>(null);
+    const followingIdsRef = useRef<string[]>([]);
 
-    const loadFeed = async () => {
+    const loadFeed = async (isRefresh = false) => {
         if (!user) return;
 
-        setLoading(true);
+        if (isRefresh) {
+            setLoading(true);
+            setPosts([]);
+            lastDocRef.current = null;
+        }
+
         try {
             // Get users that current user follows
             const followingIds = await getFollowing(user.uid);
+            followingIdsRef.current = [user.uid, ...followingIds];
 
-            // Add current user to see their own posts
-            const feedUserIds = [user.uid, ...followingIds];
-
-            // Get posts from followed users
-            const feedPosts = await getFeedPosts(feedUserIds);
-            setPosts(feedPosts);
+            // Get paginated posts
+            const result = await getFeedPostsPaginated(followingIdsRef.current, PAGE_SIZE);
+            setPosts(result.items);
+            lastDocRef.current = result.lastDoc;
+            setHasMore(result.hasMore);
 
             // Check which posts are liked/saved
-            const liked = new Set<string>();
-            const saved = new Set<string>();
-
-            for (const post of feedPosts) {
-                const [isLiked, isSaved] = await Promise.all([
-                    isPostLiked(user.uid, post.id),
-                    isPostSaved(user.uid, post.id),
-                ]);
-                if (isLiked) liked.add(post.id);
-                if (isSaved) saved.add(post.id);
-            }
-
-            setLikedPosts(liked);
-            setSavedPosts(saved);
+            await checkLikedSaved(result.items);
         } catch (error) {
             console.error('Error loading feed:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadMore = async () => {
+        if (!user || loadingMore || !hasMore || !lastDocRef.current) return;
+
+        setLoadingMore(true);
+        try {
+            const result = await getFeedPostsPaginated(
+                followingIdsRef.current,
+                PAGE_SIZE,
+                lastDocRef.current
+            );
+
+            setPosts(prev => [...prev, ...result.items]);
+            lastDocRef.current = result.lastDoc;
+            setHasMore(result.hasMore);
+
+            // Check liked/saved for new posts
+            await checkLikedSaved(result.items);
+        } catch (error) {
+            console.error('Error loading more:', error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const checkLikedSaved = async (newPosts: Post[]) => {
+        if (!user) return;
+
+        const liked = new Set(likedPosts);
+        const saved = new Set(savedPosts);
+
+        for (const post of newPosts) {
+            const [isLiked, isSaved] = await Promise.all([
+                isPostLiked(user.uid, post.id),
+                isPostSaved(user.uid, post.id),
+            ]);
+            if (isLiked) liked.add(post.id);
+            if (isSaved) saved.add(post.id);
+        }
+
+        setLikedPosts(liked);
+        setSavedPosts(saved);
     };
 
     const handlePostCreated = (newPost: Post) => {
@@ -63,7 +105,7 @@ export default function SocialPage() {
     };
 
     useEffect(() => {
-        loadFeed();
+        loadFeed(true);
     }, [user]);
 
     return (
@@ -75,7 +117,7 @@ export default function SocialPage() {
                         <h1 className="text-4xl font-bold text-white mb-2">Social Feed</h1>
                         <p className="text-slate-400">See what others are learning</p>
                     </div>
-                    <Button variant="outline" onClick={loadFeed} disabled={loading}>
+                    <Button variant="outline" onClick={() => loadFeed(true)} disabled={loading}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
                         Refresh
                     </Button>
@@ -112,6 +154,27 @@ export default function SocialPage() {
                                 onDelete={handlePostDeleted}
                             />
                         ))}
+
+                        {/* Load More Button */}
+                        {hasMore && (
+                            <div className="flex justify-center pt-4">
+                                <Button
+                                    variant="outline"
+                                    onClick={loadMore}
+                                    disabled={loadingMore}
+                                    className="w-full max-w-xs"
+                                >
+                                    {loadingMore ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        "Load More Posts"
+                                    )}
+                                </Button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

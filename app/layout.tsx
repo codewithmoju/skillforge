@@ -53,7 +53,14 @@ export default function RootLayout({
       >
         <LayoutContent>{children}</LayoutContent>
         <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''} />
-        <Toaster />
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          toastOptions={{
+            className: 'bg-slate-900 border-slate-800 text-white',
+            duration: 4000,
+          }}
+        />
       </body>
     </html>
   );
