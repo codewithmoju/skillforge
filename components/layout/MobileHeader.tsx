@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { ArrowLeft, Search, Menu } from "lucide-react";
 import { BrandMark } from "@/components/ui/BrandMark";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface MobileHeaderProps {
     onMenuClick: () => void;
@@ -40,12 +41,15 @@ export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
                 </div>
 
                 {/* Right Side */}
-                <button
-                    onClick={() => router.push('/explore')}
-                    className="p-2 -mr-2 text-slate-400 hover:text-white active:scale-95 transition-all"
-                >
-                    <Search className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-2">
+                    <NotificationBell />
+                    <button
+                        onClick={() => router.push('/explore')}
+                        className="p-2 -mr-2 text-slate-400 hover:text-white active:scale-95 transition-all"
+                    >
+                        <Search className="w-6 h-6" />
+                    </button>
+                </div>
             </div>
         </header>
     );

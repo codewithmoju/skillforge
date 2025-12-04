@@ -95,7 +95,7 @@ export function SkillTree({ learningAreas, goal, onFetchDetails }: SkillTreeProp
             // Check if next topic needs details
             const hasDetails = nextTopic.subtopics?.[0]?.keyPoints && nextTopic.subtopics[0].keyPoints.length > 0;
             if (!hasDetails) {
-                console.log(`Prefetching details for area ${nextArea.id} (next topic: ${nextTopic.name})`);
+
                 // Fire and forget, don't await
                 onFetchDetails(nextArea.id).catch(err => console.error("Prefetch failed", err));
             }

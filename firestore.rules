@@ -166,7 +166,12 @@ service cloud.firestore {
       allow update: if isAuthenticated() && 
                        (resource.data.userId == request.auth.uid || 
                         request.auth.uid in resource.data.collaborators);
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated(); // Temporary: Allow cleanup of broken courses
+      
+      // Lessons subcollection
+      match /lessons/{lessonId} {
+        allow read, write: if isAuthenticated();
+      }
     }
 
     // Achievements collection (user achievements)

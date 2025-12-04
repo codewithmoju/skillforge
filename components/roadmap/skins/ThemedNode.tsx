@@ -241,12 +241,12 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
 
                                 {/* Inner Glow Gradient */}
                                 <defs>
-                                    <radialGradient id="magicGlow" cx="50%" cy="50%" r="50%">
+                                    <radialGradient id="magicGlow-unique" cx="50%" cy="50%" r="50%">
                                         <stop offset="0%" stopColor="#34d399" stopOpacity="0.8" />
                                         <stop offset="100%" stopColor="#064e3b" stopOpacity="0" />
                                     </radialGradient>
                                 </defs>
-                                <circle cx="50" cy="50" r="30" fill="url(#magicGlow)" className="animate-pulse" />
+                                <circle cx="50" cy="50" r="30" fill="url(#magicGlow-unique)" className="animate-pulse" />
 
                                 {/* Rotating Runes Ring */}
                                 <g className="animate-[spin_8s_linear_infinite]">
@@ -269,10 +269,10 @@ export function ThemedNode({ id, title, level, status, onClick, isSelected, skin
 
                             <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-[0_0_15px_rgba(251,191,36,0.6)]">
                                 {/* Golden Hexagon */}
-                                <path d="M50 5 L95 27 L95 73 L50 95 L5 73 L5 27 Z" fill="url(#goldGradient)" stroke="#b45309" strokeWidth="2" />
+                                <path d="M50 5 L95 27 L95 73 L50 95 L5 73 L5 27 Z" fill="url(#goldGradient-unique)" stroke="#b45309" strokeWidth="2" />
 
                                 <defs>
-                                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <linearGradient id="goldGradient-unique" x1="0%" y1="0%" x2="100%" y2="100%">
                                         <stop offset="0%" stopColor="#fcd34d" />
                                         <stop offset="50%" stopColor="#fbbf24" />
                                         <stop offset="100%" stopColor="#d97706" />

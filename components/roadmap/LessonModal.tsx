@@ -63,11 +63,11 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
 
     const fetchContent = async () => {
         const cacheKey = `${topic}-${moduleTitle}-${lessonTitle}`;
-        console.log('Fetching lesson content:', { topic, moduleTitle, lessonTitle, cacheKey });
+
 
         // Check cache first for instant load
         if (lessonCache[cacheKey]) {
-            console.log('Loading from cache:', cacheKey);
+
             setContent(lessonCache[cacheKey].content);
             setIsLoading(false);
             return;
@@ -75,18 +75,18 @@ export function LessonModal({ isOpen, onClose, onComplete, topic, moduleTitle, l
 
         setIsLoading(true);
         try {
-            console.log('Making API request to /api/generate-lesson');
+
             const res = await fetch('/api/generate-lesson', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ topic, moduleTitle, lessonTitle, userLevel: '1' }),
             });
             const data = await res.json();
-            console.log('API Response:', data);
+
 
             if (data.content && data.content.missionBriefing && data.content.realWorldAnalogy &&
                 data.content.powerUps && data.content.interactiveDemo && data.content.bossChallenge) {
-                console.log('Content validated successfully');
+
                 setContent(data.content);
 
                 // Prefetch next lesson

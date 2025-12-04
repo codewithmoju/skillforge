@@ -72,11 +72,12 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
         });
 
         // Sync to Firestore
-        if (typeof window !== 'undefined' && state.currentTopic) {
+        if (typeof window !== 'undefined' && state.currentTopic && state.userId) {
             try {
                 const { updateRoadmapProgress } = await import('@/lib/services/userProgress');
-                // You'll need to get the user ID - add it to store or pass as parameter
-                // For now, we'll handle this in the component level
+                await updateRoadmapProgress(state.userId, state.currentTopic, {
+                    roadmapProgress: updatedProgress,
+                });
             } catch (error) {
                 console.error('Failed to sync to Firestore:', error);
             }
@@ -196,6 +197,20 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
         }
     },
 
+    loadRoadmap: (data: any) => {
+        set((state) => ({
+            currentTopic: data.topic,
+            roadmapDefinitions: data.roadmapDefinitions || [],
+            learningAreas: data.learningAreas || [],
+            prerequisites: data.prerequisites || [],
+            roadmapGoal: data.goal || "",
+            roadmapProgress: data.roadmapProgress || {},
+            // Restore other progress if available, otherwise keep current or default
+            completedKeyPoints: data.completedKeyPoints || state.completedKeyPoints,
+            completedSubtopics: data.completedSubtopics || state.completedSubtopics,
+        }));
+    },
+
     updateLearningArea: (areaId, details) => {
         set((state) => ({
             learningAreas: state.learningAreas.map(area =>
@@ -292,10 +307,21 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
                     historical.add(key);
                 }
             }
-            return {
+            const newState = {
                 completedSubtopics: Array.from(completed),
                 historicallyCompletedSubtopics: Array.from(historical)
             };
+
+            // Sync to Firestore
+            if (typeof window !== 'undefined' && state.currentTopic && state.userId) {
+                import('@/lib/services/userProgress').then(({ updateRoadmapProgress }) => {
+                    updateRoadmapProgress(state.userId!, state.currentTopic, {
+                        completedSubtopics: newState.completedSubtopics
+                    }).catch(err => console.error('Failed to sync subtopic completion:', err));
+                });
+            }
+
+            return newState;
         });
     },
 
@@ -316,10 +342,21 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
                 }
             }
 
-            return {
+            const newState = {
                 completedKeyPoints: Array.from(completed),
                 historicallyCompletedKeyPoints: Array.from(historical)
             };
+
+            // Sync to Firestore
+            if (typeof window !== 'undefined' && state.currentTopic && state.userId) {
+                import('@/lib/services/userProgress').then(({ updateRoadmapProgress }) => {
+                    updateRoadmapProgress(state.userId!, state.currentTopic, {
+                        completedKeyPoints: newState.completedKeyPoints
+                    }).catch(err => console.error('Failed to sync keypoint completion:', err));
+                });
+            }
+
+            return newState;
         });
     },
 });

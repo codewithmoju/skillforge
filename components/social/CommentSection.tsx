@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Send, Trash2, Loader2, MoreHorizontal, CornerDownRight } from "lucide-react";
+import { Send, Trash2, Loader2, MoreHorizontal, CornerDownRight, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { addComment, getComments, deleteComment, Comment } from "@/lib/services/comments";
 import { getUserData } from "@/lib/services/firestore";
@@ -9,6 +9,8 @@ import { useUserStore } from "@/lib/store";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { ReportModal } from "@/components/moderation/ReportModal";
+import Image from "next/image";
 
 interface CommentSectionProps {
     postId: string;
@@ -23,6 +25,8 @@ export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentS
     const [newComment, setNewComment] = useState("");
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
+    const [reportTargetId, setReportTargetId] = useState("");
 
     useEffect(() => {
         loadComments();
@@ -59,10 +63,10 @@ export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentS
 
             setComments([comment, ...comments]);
             setNewComment("");
-            
+
             // Update achievement progress
             incrementComments();
-            
+
             if (onCommentAdded) onCommentAdded();
         } catch (error) {
             console.error("Error posting comment:", error);
@@ -122,11 +126,14 @@ export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentS
                         >
                             <Link href={`/profile/${comment.username}`} className="flex-shrink-0 mt-1">
                                 {comment.userPhoto ? (
-                                    <img
-                                        src={comment.userPhoto}
-                                        alt={comment.userName}
-                                        className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-800 group-hover/comment:ring-slate-700 transition-all"
-                                    />
+                                    <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-slate-800 group-hover/comment:ring-slate-700 transition-all">
+                                        <Image
+                                            src={comment.userPhoto}
+                                            alt={comment.userName}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center ring-2 ring-slate-800 group-hover/comment:ring-slate-700 transition-all">
                                         <span className="text-xs text-white font-semibold">
@@ -148,13 +155,25 @@ export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentS
                                     <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{comment.text}</p>
                                 </div>
 
-                                {(user?.uid === comment.userId || user?.uid === postOwnerId) && (
+                                {(user?.uid === comment.userId || user?.uid === postOwnerId) ? (
                                     <div className="flex justify-end mt-1 opacity-0 group-hover/comment:opacity-100 transition-opacity">
                                         <button
                                             onClick={() => handleDelete(comment.id)}
                                             className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 px-2 py-1 rounded hover:bg-red-500/10 transition-colors"
                                         >
                                             <Trash2 className="w-3 h-3" /> Delete
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex justify-end mt-1 opacity-0 group-hover/comment:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => {
+                                                setReportTargetId(comment.id);
+                                                setShowReportModal(true);
+                                            }}
+                                            className="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 px-2 py-1 rounded hover:bg-slate-800 transition-colors"
+                                        >
+                                            <AlertTriangle className="w-3 h-3" /> Report
                                         </button>
                                     </div>
                                 )}
@@ -177,6 +196,13 @@ export function CommentSection({ postId, postOwnerId, onCommentAdded }: CommentS
                     </motion.div>
                 )}
             </div>
+
+            <ReportModal
+                isOpen={showReportModal}
+                onClose={() => setShowReportModal(false)}
+                targetId={reportTargetId}
+                targetType="comment"
+            />
         </div>
     );
 }

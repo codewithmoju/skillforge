@@ -15,6 +15,7 @@ import { getUserByUsername, FirestoreUserData } from "@/lib/services/firestore";
 import { getUserPosts, getSavedPosts, isPostLiked, isPostSaved, Post } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type TabType = 'posts' | 'saved' | 'achievements';
@@ -194,11 +195,14 @@ export default function ProfilePage() {
                         <div className="relative mx-auto md:mx-0">
                             <div className="relative">
                                 {userData.profilePicture ? (
-                                    <img
-                                        src={userData.profilePicture}
-                                        alt={userData.name}
-                                        className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-purple-500 shadow-lg shadow-purple-500/50"
-                                    />
+                                    <div className="relative w-32 h-32 md:w-40 md:h-40">
+                                        <Image
+                                            src={userData.profilePicture}
+                                            alt={userData.name}
+                                            fill
+                                            className="rounded-full object-cover border-4 border-purple-500 shadow-lg shadow-purple-500/50"
+                                        />
+                                    </div>
                                 ) : (
                                     <div className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center border-4 border-purple-400 shadow-lg shadow-purple-500/50">
                                         <span className="text-white font-bold text-5xl">

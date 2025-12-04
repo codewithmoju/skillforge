@@ -179,6 +179,25 @@ export async function likePost(userId: string, postId: string): Promise<void> {
             await updateDoc(doc(db, 'posts', postId), {
                 likes: increment(1),
             });
+
+            // Create notification
+            const postDoc = await getDoc(doc(db, 'posts', postId));
+            if (postDoc.exists()) {
+                const postData = postDoc.data();
+                const userDoc = await getDoc(doc(db, 'users', userId));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const { createNotification } = await import('./notifications');
+                    await createNotification(
+                        postData.userId,
+                        'like',
+                        userId,
+                        userData.displayName || 'User',
+                        userData.photoURL,
+                        postId
+                    );
+                }
+            }
         }
     } catch (error) {
         console.error('Error liking post:', error);

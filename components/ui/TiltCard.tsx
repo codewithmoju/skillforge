@@ -8,9 +8,10 @@ interface TiltCardProps {
     children: React.ReactNode;
     className?: string;
     containerClassName?: string;
+    style?: React.CSSProperties;
 }
 
-export const TiltCard = ({ children, className, containerClassName }: TiltCardProps) => {
+export const TiltCard = ({ children, className, containerClassName, style }: TiltCardProps) => {
     const ref = useRef<HTMLDivElement>(null);
 
     const x = useMotionValue(0);
@@ -48,6 +49,7 @@ export const TiltCard = ({ children, className, containerClassName }: TiltCardPr
                     rotateX,
                     rotateY,
                     transformStyle: "preserve-3d",
+                    ...style
                 }}
                 className={cn(
                     "relative h-full transition-all duration-200 ease-linear transform-gpu",

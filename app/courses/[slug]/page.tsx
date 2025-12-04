@@ -526,7 +526,7 @@ export default function CourseSyllabusPage() {
                                                 <stop offset="90%" stopColor={secondaryColor} stopOpacity="0.8" />
                                                 <stop offset="100%" stopColor={secondaryColor} stopOpacity="0" />
                                             </linearGradient>
-                                            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                                            <filter id="course-glow" x="-20%" y="-20%" width="140%" height="140%">
                                                 <feGaussianBlur stdDeviation="4" result="coloredBlur" />
                                                 <feMerge>
                                                     <feMergeNode in="coloredBlur" />
@@ -579,7 +579,7 @@ export default function CourseSyllabusPage() {
                                                         stroke={`url(#pathGradient-${moduleIdx})`}
                                                         strokeWidth="6"
                                                         strokeLinecap="round"
-                                                        filter="url(#glow)"
+                                                        filter="url(#course-glow)"
                                                         initial={{ pathLength: 0, strokeDasharray: "10 10", strokeDashoffset: 0 }}
                                                         whileInView={{
                                                             pathLength: 1,

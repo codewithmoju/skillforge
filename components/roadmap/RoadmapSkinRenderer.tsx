@@ -49,7 +49,6 @@ export function RoadmapSkinRenderer({
 
     // Calculate node positions based on current skin
     const layout = useMemo(() => {
-        console.log('Calculating layout for skin:', skin.id, 'Available width:', availableWidth);
         const baseLayout = calculateNodePositions(roadmapDefinitions, skin, availableWidth);
 
         // Apply overlap prevention if enabled
@@ -57,13 +56,6 @@ export function RoadmapSkinRenderer({
             const spacing = skin.positioning.spacing;
             baseLayout.positions = preventOverlaps(baseLayout.positions, spacing.minDistance);
         }
-
-        console.log('Layout result:', {
-            width: baseLayout.width,
-            height: baseLayout.height,
-            nodeCount: baseLayout.positions.size,
-            samplePosition: baseLayout.positions.values().next().value
-        });
 
         return baseLayout;
     }, [roadmapDefinitions, skin, availableWidth]);

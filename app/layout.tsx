@@ -3,6 +3,8 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { LayoutContent } from "@/components/layout/LayoutContent";
 import Script from "next/script";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -50,7 +52,8 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <LayoutContent>{children}</LayoutContent>
-
+        <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || ''} />
+        <Toaster />
       </body>
     </html>
   );

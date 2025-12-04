@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/Button";
 import { User, Share2, Award, Zap, Trophy, Star, Target, Hexagon, Shield, Crown, Sparkles, GraduationCap, BookOpen, Code, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -131,10 +132,11 @@ export function ProfilePreview() {
                                     <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-pink-600 rounded-full blur-md opacity-50" />
                                     <div className="absolute inset-1 bg-[#0a0a0a] rounded-full flex items-center justify-center border-2 border-orange-500/30 overflow-hidden shadow-[0_0_50px_rgba(249,115,22,0.2)]">
                                         {/* Scholar Boy Avatar */}
-                                        <img
+                                        <Image
                                             src="/scholar-avatar.jpg"
                                             alt="Scholar Avatar"
-                                            className="absolute inset-0 w-full h-full object-cover opacity-90 scale-110 translate-y-4"
+                                            fill
+                                            className="object-cover opacity-90 scale-110 translate-y-4"
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 

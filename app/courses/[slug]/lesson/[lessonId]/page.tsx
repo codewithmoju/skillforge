@@ -10,7 +10,7 @@ import { MermaidRenderer } from "@/components/lesson/MermaidRenderer";
 import ReactMarkdown from "react-markdown";
 import { userBehavior } from "@/lib/services/behavior";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { AISensei } from "@/components/lesson/AISensei";
 import { PodcastPlayer } from "@/components/lesson/PodcastPlayer";
@@ -86,8 +86,13 @@ export default function LessonPage() {
             let syllabus = null;
             const stored = localStorage.getItem(`course-${slug}`);
 
-            if (stored) {
-                syllabus = JSON.parse(stored);
+            if (stored && stored !== "undefined") {
+                try {
+                    syllabus = JSON.parse(stored);
+                } catch (e) {
+                    console.warn("Invalid syllabus cache, clearing");
+                    localStorage.removeItem(`course-${slug}`);
+                }
             } else {
                 try {
                     const courseDoc = await getDoc(doc(db, "courses", slug));
@@ -118,13 +123,20 @@ export default function LessonPage() {
             const cacheKey = `lesson-${slug}-${moduleIdx}-${lessonIdx}`;
             const cachedContent = localStorage.getItem(cacheKey);
 
-            if (cachedContent) {
-                const parsed = JSON.parse(cachedContent);
-                if (parsed.bossChallenge) {
-                    setContent(parsed);
-                    setLoading(false);
-                    return;
+            if (cachedContent && cachedContent !== "undefined") {
+                try {
+                    const parsed = JSON.parse(cachedContent);
+                    if (parsed && parsed.bossChallenge) {
+                        setContent(parsed);
+                        setLoading(false);
+                        return;
+                    }
+                } catch (e) {
+                    console.warn("Invalid cache, clearing:", cacheKey);
+                    localStorage.removeItem(cacheKey);
                 }
+            } else if (cachedContent === "undefined") {
+                localStorage.removeItem(cacheKey);
             }
 
             // Check Firestore for lesson
@@ -156,8 +168,24 @@ export default function LessonPage() {
                 });
                 const data = await res.json();
                 setContent(data.content);
+
+                // Save to Firestore (Client SDK - Authenticated)
+                if (user) {
+                    const lessonRef = doc(db, "courses", slug, "lessons", `${moduleIdx}-${lessonIdx}`);
+                    await setDoc(lessonRef, {
+                        ...data.content,
+                        createdAt: new Date(),
+                        metadata: {
+                            version: "2.0",
+                            personalized: true // Assuming personalized if generated fresh
+                        }
+                    });
+                }
+
                 // Save to cache
-                localStorage.setItem(cacheKey, JSON.stringify(data.content));
+                if (data.content) {
+                    localStorage.setItem(cacheKey, JSON.stringify(data.content));
+                }
             } catch (error) {
                 console.error("Failed to load lesson:", error);
             } finally {
@@ -214,8 +242,23 @@ export default function LessonPage() {
                 });
                 const data = await res.json();
                 if (data.content) {
-                    localStorage.setItem(nextCacheKey, JSON.stringify(data.content));
-                    console.log(`✅ Prefetched successfully: ${nextLessonTitle}`);
+                    // Save to Firestore (Client SDK - Authenticated)
+                    if (user) {
+                        const lessonRef = doc(db, "courses", slug, "lessons", `${nextModuleIdx}-${nextLessonIdx}`);
+                        await setDoc(lessonRef, {
+                            ...data.content,
+                            createdAt: new Date(),
+                            metadata: {
+                                version: "2.0",
+                                personalized: true
+                            }
+                        });
+                    }
+
+                    if (data.content) {
+                        localStorage.setItem(nextCacheKey, JSON.stringify(data.content));
+                        console.log(`✅ Prefetched successfully: ${nextLessonTitle}`);
+                    }
                 }
             } catch (err) {
                 console.warn("Prefetch failed:", err);

@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from "@/lib/firebase";
-import { addDoc, collection } from "firebase/firestore";
+
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
     try {
-        const { topic, level, answers, difficulty, persona } = await req.json();
+        const { topic, level, answers, difficulty, persona, userId } = await req.json(); // Expect userId from client
 
         if (!topic) {
             return NextResponse.json({ error: "Topic is required" }, { status: 400 });
@@ -75,16 +74,8 @@ export async function POST(req: Request) {
         const jsonStr = text.substring(jsonStart, jsonEnd + 1);
         const syllabus = JSON.parse(jsonStr);
 
-        // Store in Firestore
-        const courseRef = await addDoc(collection(db, "courses"), {
-            topic,
-            level,
-            syllabus,
-            createdAt: new Date(),
-            userId: "anonymous" // TODO: Replace with actual user ID when auth is ready
-        });
-
-        return NextResponse.json({ syllabus, courseId: courseRef.id });
+        // Return syllabus to client for saving
+        return NextResponse.json({ syllabus });
 
     } catch (error) {
         console.error("Syllabus generation failed:", error);

@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Flame, Search, LogOut } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { useUserStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -53,6 +54,7 @@ export function TopBar() {
             </div>
 
             <div className="flex items-center gap-6">
+                <NotificationBell />
                 {/* Streak */}
                 <div
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-500"

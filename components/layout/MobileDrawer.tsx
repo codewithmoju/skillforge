@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface MobileDrawerProps {
     isOpen: boolean;
@@ -72,10 +73,12 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                                     className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-colors"
                                 >
                                     {userData.profilePicture ? (
-                                        <img
+                                        <Image
                                             src={userData.profilePicture}
                                             alt={userData.name}
-                                            className="w-12 h-12 rounded-full object-cover"
+                                            width={48}
+                                            height={48}
+                                            className="rounded-full object-cover"
                                         />
                                     ) : (
                                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center">

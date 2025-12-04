@@ -11,6 +11,7 @@ export interface RoadmapNode {
     lessons: number;
     completedLessons: number;
     order: number;
+    level: number;
 }
 
 export interface RoadmapProgress {
@@ -19,12 +20,15 @@ export interface RoadmapProgress {
     learningAreas: Array<{
         id: string;
         name: string;
+        order: number;
+        why: string;
         topics: any[];
         detailsStatus: 'skeleton' | 'loading' | 'loaded';
     }>;
     prerequisites: string[];
     goal: string;
     completedKeyPoints: string[];
+    completedSubtopics: string[];
     roadmapDefinitions: RoadmapNode[];
     roadmapProgress: Record<string, {
         status: 'locked' | 'active' | 'completed';

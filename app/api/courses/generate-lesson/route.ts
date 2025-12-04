@@ -1,13 +1,27 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { db } from "@/lib/firebase";
-import { doc, setDoc } from "firebase/firestore";
+
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
     try {
         const { topic, lessonTitle, moduleTitle, userProfile, courseId, lessonId, objectives } = await req.json();
+
+        // Rate Limiting
+        const ip = req.headers.get("x-forwarded-for") || "unknown";
+        const { checkRateLimit } = await import("@/lib/services/rateLimit");
+        const rateLimitResult = await checkRateLimit(ip, "AI_GENERATION");
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                {
+                    error: "Rate limit exceeded",
+                    resetTime: rateLimitResult.resetTime
+                },
+                { status: 429 }
+            );
+        }
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -135,18 +149,8 @@ export async function POST(req: Request) {
         const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
         const content = JSON.parse(jsonStr);
 
-        // Store in Firestore if courseId is provided
-        if (courseId && lessonId) {
-            const lessonRef = doc(db, "courses", courseId, "lessons", lessonId);
-            await setDoc(lessonRef, {
-                ...content,
-                createdAt: new Date(),
-                metadata: {
-                    version: "2.0",
-                    personalized: !!userProfile
-                }
-            });
-        }
+        // Return content to client for saving
+        return NextResponse.json({ content });
 
         return NextResponse.json({ content });
 

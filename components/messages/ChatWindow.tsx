@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/lib/hooks/useAuth';
 import {
     Message,
@@ -210,7 +211,13 @@ export function ChatWindow({ conversationId, recipientName, recipientPhoto }: Ch
                 >
                     <div className="relative">
                         {recipientPhoto ? (
-                            <img src={recipientPhoto} alt={recipientName} className="w-11 h-11 rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800" />
+                            <Image
+                                src={recipientPhoto}
+                                alt={recipientName}
+                                width={44}
+                                height={44}
+                                className="rounded-full object-cover ring-2 ring-slate-100 dark:ring-slate-800"
+                            />
                         ) : (
                             <div className="w-11 h-11 rounded-full bg-gradient-to-br from-accent-indigo to-accent-violet flex items-center justify-center text-white font-bold text-base shadow-md">
                                 {recipientName.charAt(0).toUpperCase()}

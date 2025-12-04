@@ -43,7 +43,9 @@ export default function RoadmapPage() {
         streakData,
         prerequisites,
         roadmapGoal,
-        _hasHydrated
+        _hasHydrated,
+        loadRoadmap,
+        setUserId
     } = useUserStore();
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
     const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
@@ -64,6 +66,30 @@ export default function RoadmapPage() {
     useEffect(() => {
         updateStreak();
     }, []);
+
+    // Sync roadmap from Firestore
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        setUserId(user.uid);
+
+        const syncRoadmap = async () => {
+            try {
+                const { getUserProgress } = await import('@/lib/services/userProgress');
+                const progress = await getUserProgress(user.uid);
+
+                if (progress?.currentTopic && progress.roadmaps?.[progress.currentTopic]) {
+                    const remoteRoadmap = progress.roadmaps[progress.currentTopic];
+
+                    loadRoadmap(remoteRoadmap as any);
+                }
+            } catch (error) {
+                console.error("Failed to sync roadmap:", error);
+            }
+        };
+
+        syncRoadmap();
+    }, [user, loadRoadmap]);
 
     // Set initial selected node if available and none selected
     useEffect(() => {

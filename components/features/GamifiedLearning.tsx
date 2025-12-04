@@ -289,7 +289,7 @@ export function GamifiedLearning() {
 
                                     <svg className="w-64 h-64 transform -rotate-90 drop-shadow-2xl">
                                         <defs>
-                                            <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                            <linearGradient id="gamified-progress-gradient-unique" x1="0%" y1="0%" x2="100%" y2="0%">
                                                 <stop offset="0%" stopColor="#c084fc" />
                                                 <stop offset="100%" stopColor="#ec4899" />
                                             </linearGradient>
@@ -299,7 +299,7 @@ export function GamifiedLearning() {
                                             ref={progressRef}
                                             cx="128" cy="128" r="100"
                                             className="drop-shadow-[0_0_20px_rgba(168,85,247,0.6)]"
-                                            stroke="url(#progressGradient)"
+                                            stroke="url(#gamified-progress-gradient-unique)"
                                             strokeWidth="12"
                                             fill="none"
                                             strokeDasharray="628"

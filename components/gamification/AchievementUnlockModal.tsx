@@ -164,7 +164,7 @@ export function AchievementUnlockModal({
                                     className="flex-1"
                                     onClick={() => {
                                         // TODO: Implement share functionality
-                                        console.log("Share achievement");
+
                                     }}
                                 >
                                     <Share2 className="w-4 h-4 mr-2" />

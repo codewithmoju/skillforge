@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useUserStore } from "@/lib/store";
 import { AchievementCard } from "@/components/gamification/AchievementCard";
@@ -13,13 +13,35 @@ import { Trophy, Filter, Star, Lock, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AchievementCategory } from "@/lib/types/gamification";
 
+import { useAuth } from "@/lib/hooks/useAuth";
+
 export default function AchievementsPage() {
-    const { achievements, xp, streakData } = useUserStore();
+    const { user } = useAuth();
+    const { achievements, xp, streakData, loadAchievements } = useUserStore();
     const [selectedAchievement, setSelectedAchievement] = useState<any>(null);
     const [filterCategory, setFilterCategory] = useState<AchievementCategory | "all">("all");
     const [filterStatus, setFilterStatus] = useState<"all" | "locked" | "in-progress" | "completed">("all");
 
     const userLevel = calculateUserLevel(xp);
+
+    // Sync achievements from Firestore
+    useEffect(() => {
+        if (!user?.uid) return;
+
+        const syncAchievements = async () => {
+            try {
+                const { getUserProgress } = await import('@/lib/services/userProgress');
+                const progress = await getUserProgress(user.uid);
+                if (progress?.achievements) {
+                    loadAchievements(progress.achievements as any);
+                }
+            } catch (error) {
+                console.error("Failed to sync achievements:", error);
+            }
+        };
+
+        syncAchievements();
+    }, [user, loadAchievements]);
 
     // Filter achievements
     const filteredAchievements = achievements.filter((achievement) => {

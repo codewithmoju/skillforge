@@ -31,6 +31,21 @@ export async function addComment(postId: string, userId: string, username: strin
             comments: increment(1),
         });
 
+        // Create notification
+        const postDoc = await getDoc(doc(db, 'posts', postId));
+        if (postDoc.exists()) {
+            const postData = postDoc.data();
+            const { createNotification } = await import('./notifications');
+            await createNotification(
+                postData.userId,
+                'comment',
+                userId,
+                userName,
+                userPhoto,
+                postId
+            );
+        }
+
         return { id: docRef.id, ...commentData };
     } catch (error) {
         console.error('Error adding comment:', error);

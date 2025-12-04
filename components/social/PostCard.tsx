@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2 } from "lucide-react";
+import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2, AlertTriangle } from "lucide-react";
 import { Post, likePost, savePost, deletePost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { ShareButton } from "@/components/social/ShareButton";
 import { sharePost } from "@/lib/utils/share";
 import { CommentSection } from "@/components/social/CommentSection";
+import { ReportModal } from "@/components/moderation/ReportModal";
+import Image from "next/image";
 
 interface PostCardProps {
     post: Post;
@@ -30,6 +32,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
     const [saves, setSaves] = useState(post.saves);
     const [showComments, setShowComments] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
+    const [showReportModal, setShowReportModal] = useState(false);
 
     const handleLike = async () => {
         if (!user) return;
@@ -77,7 +80,7 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
 
         if (confirm("Are you sure you want to delete this post?")) {
             try {
-                await deletePost(post.id);
+                await deletePost(post.id, user.uid);
                 if (onDelete) {
                     onDelete(post.id);
                 }
@@ -152,6 +155,29 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                                 >
                                     <Trash2 className="w-4 h-4" />
                                     Delete Post
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {user?.uid !== post.userId && (
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowMenu(!showMenu)}
+                            className="text-slate-500 hover:text-white transition-colors"
+                        >
+                            <MoreVertical className="w-5 h-5" />
+                        </button>
+
+                        {showMenu && (
+                            <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 z-10 overflow-hidden">
+                                <button
+                                    onClick={() => setShowReportModal(true)}
+                                    className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2"
+                                >
+                                    <AlertTriangle className="w-4 h-4" />
+                                    Report Post
                                 </button>
                             </div>
                         )}
@@ -277,6 +303,13 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                     <CommentSection postId={post.id} postOwnerId={post.userId} />
                 </div>
             )}
+
+            <ReportModal
+                isOpen={showReportModal}
+                onClose={() => setShowReportModal(false)}
+                targetId={post.id}
+                targetType="post"
+            />
         </motion.div>
     );
 }

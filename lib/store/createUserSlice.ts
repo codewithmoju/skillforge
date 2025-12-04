@@ -5,6 +5,7 @@ import { XPGainEvent } from '../types/gamification';
 import { DEFAULT_SKIN } from '../types/skins';
 
 export const createUserSlice: StateCreator<StoreState, [], [], UserSlice> = (set, get) => ({
+    userId: null,
     xp: 0,
     level: 1,
     name: "Learner",
@@ -25,6 +26,8 @@ export const createUserSlice: StateCreator<StoreState, [], [], UserSlice> = (set
     lastActivityDate: "",
     selectedSkin: DEFAULT_SKIN,
     ownedSkins: ["cyber-neon", "forest-quest", "space-odyssey", "dragons-lair", "ocean-depths"] as import('../types/skins').SkinId[],
+
+    setUserId: (id) => set({ userId: id }),
 
     addXp: (amount: number, source: XPGainEvent['source'], multiplier?: number) => {
         set((state) => {
@@ -123,7 +126,24 @@ export const createUserSlice: StateCreator<StoreState, [], [], UserSlice> = (set
             });
 
             state.addXp(totalXpGained, 'achievement', 1);
+
+            // Sync to Firestore
+            if (typeof window !== 'undefined' && state.userId) {
+                import('@/lib/services/userProgress').then(({ updateAchievements }) => {
+                    updateAchievements(state.userId!, state.achievements)
+                        .catch(err => console.error('Failed to sync achievements:', err));
+                });
+            }
         }
+    },
+
+    loadAchievements: (achievements: any[]) => {
+        set((state) => ({
+            achievements: achievements.map(remote => {
+                const local = state.achievements.find(a => a.id === remote.id);
+                return local ? { ...local, ...remote } : remote;
+            })
+        }));
     },
 
     setSkin: (skinId) => {

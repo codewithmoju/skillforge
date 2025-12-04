@@ -76,7 +76,7 @@ export const PodcastPlayer: React.FC<PodcastPlayerProps> = ({ script, onClose, p
         utterance.rate = 1.1; // Slightly faster for energy
         utterance.pitch = line.speaker === "Alex" ? 1.1 : 0.9; // Alex higher, Sam lower
 
-        console.log(`Speaking line ${index}: ${line.speaker} - ${line.text.substring(0, 20)}...`);
+
 
         utterance.onend = () => {
             if (index < script.length - 1) {

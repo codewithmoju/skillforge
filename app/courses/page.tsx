@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { recommendationService, Recommendation } from "@/lib/services/recommendations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { collection, query, getDocs, orderBy, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, deleteDoc, doc, addDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -93,13 +93,25 @@ export default function CoursesPage() {
                     answers,
                     difficulty,
                     persona,
-                    level: difficulty?.level || 'beginner'
+                    level: difficulty?.level || 'beginner',
+                    userId: user?.uid // Pass user ID to API
                 })
             });
             const data = await res.json();
-            if (data.syllabus && data.courseId) {
+
+            if (data.syllabus) {
+                // Save to Firestore from client (authenticated)
+                const courseRef = await addDoc(collection(db, "courses"), {
+                    topic,
+                    level: difficulty?.level || 'beginner',
+                    syllabus: data.syllabus,
+                    createdAt: new Date(),
+                    userId: user?.uid,
+                    collaborators: []
+                });
+
                 await new Promise(resolve => setTimeout(resolve, 1500));
-                router.push(`/courses/${data.courseId}`);
+                router.push(`/courses/${courseRef.id}`);
             }
         } catch (error) {
             console.error("Failed to generate:", error);
@@ -116,7 +128,19 @@ export default function CoursesPage() {
         }
 
         try {
+            // 1. Delete the course document
             await deleteDoc(doc(db, "courses", courseId));
+
+            // 2. Remove from user progress
+            if (user) {
+                const { doc, updateDoc, deleteField } = await import("firebase/firestore");
+                const progressRef = doc(db, "userProgress", user.uid);
+                await updateDoc(progressRef, {
+                    [`courses.${courseId}`]: deleteField()
+                }).catch(err => console.warn("Failed to update user progress during delete:", err));
+            }
+
+            // 3. Update UI
             setActiveCourses(prev => prev.filter(course => course.id !== courseId));
         } catch (error) {
             console.error("Failed to delete course:", error);

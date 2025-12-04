@@ -7,6 +7,21 @@ export async function POST(req: Request) {
     try {
         const { messages, codeContext, lessonContext, userHistory } = await req.json();
 
+        // Rate Limiting
+        const ip = req.headers.get("x-forwarded-for") || "unknown";
+        const { checkRateLimit } = await import("@/lib/services/rateLimit");
+        const rateLimitResult = await checkRateLimit(ip, "AI_GENERATION");
+
+        if (!rateLimitResult.success) {
+            return NextResponse.json(
+                {
+                    error: "Rate limit exceeded",
+                    resetTime: rateLimitResult.resetTime
+                },
+                { status: 429 }
+            );
+        }
+
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         // Format user history for context

@@ -85,6 +85,7 @@ export interface RoadmapHistory {
 }
 
 export interface UserSlice {
+    userId: string | null;
     xp: number;
     level: number;
     name: string;
@@ -97,11 +98,13 @@ export interface UserSlice {
     selectedSkin: SkinId;
     ownedSkins: SkinId[];
 
+    setUserId: (id: string | null) => void;
     addXp: (amount: number, source: XPGainEvent['source'], multiplier?: number) => void;
     addProject: (project: Project) => void;
     updateProjectProgress: (id: string, progress: number) => void;
     setUserName: (name: string) => void;
     updateAchievementProgress: (achievementId: string, progress: number) => void;
+    loadAchievements: (achievements: Achievement[]) => void;
     setSkin: (skinId: SkinId) => void;
     loadUserData: (data: Partial<any>) => Promise<void>;
     resetToDefaults: () => void;
@@ -135,6 +138,15 @@ export interface RoadmapSlice {
     completeQuiz: (nodeId: string) => void;
     prefetchLesson: (topic: string, moduleTitle: string, lessonTitle: string, userLevel: string) => Promise<void>;
     setRoadmap: (topic: string, definitions: RoadmapDefinition[], category: string, learningAreas: LearningArea[], prerequisites: Prerequisite[], goal: string) => void;
+    loadRoadmap: (data: {
+        topic: string;
+        roadmapDefinitions?: RoadmapDefinition[];
+        learningAreas?: LearningArea[];
+        prerequisites?: Prerequisite[];
+        goal?: string;
+        roadmapProgress?: Record<string, RoadmapNode>;
+        completedKeyPoints?: string[];
+    }) => void;
     updateLearningArea: (areaId: string, details: Partial<LearningArea>) => void;
     toggleSubtopicCompletion: (topicId: string, subtopicId: string) => void;
     toggleKeyPointCompletion: (topicId: string, subtopicId: string, pointIndex: number) => void;

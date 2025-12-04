@@ -53,6 +53,7 @@ export async function updateRoadmapProgress(
         prerequisites?: string[];
         goal?: string;
         completedKeyPoints?: string[];
+        completedSubtopics?: string[];
         roadmapDefinitions?: any[];
         roadmapProgress?: any;
     }

@@ -41,14 +41,14 @@ export function useProgressSync() {
                     progress.roadmaps[progress.currentTopic]?.roadmapDefinitions || [],
                     '',
                     progress.roadmaps[progress.currentTopic]?.learningAreas || [],
-                    progress.roadmaps[progress.currentTopic]?.prerequisites || [],
+                    (progress.roadmaps[progress.currentTopic]?.prerequisites || []).map(p => ({ name: p, reason: 'Required prerequisite' })),
                     progress.roadmaps[progress.currentTopic]?.goal || ''
                 );
             }
 
             // Update XP and level
             if (progress.xp !== store.xp) {
-                store.addXP(progress.xp - store.xp);
+                store.addXp(progress.xp - store.xp, 'daily_login');
             }
 
             // Update achievements
@@ -71,7 +71,7 @@ export function useProgressSync() {
             await updateRoadmapProgress(user.uid, store.currentTopic, {
                 topic: store.currentTopic,
                 learningAreas: store.learningAreas,
-                prerequisites: store.prerequisites,
+                prerequisites: store.prerequisites.map(p => p.name),
                 goal: store.roadmapGoal,
                 completedKeyPoints: store.completedKeyPoints,
                 roadmapDefinitions: store.roadmapDefinitions,

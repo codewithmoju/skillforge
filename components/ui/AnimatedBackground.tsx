@@ -194,12 +194,12 @@ function GeometricBackground() {
                         <path
                             d={shape.path}
                             fill="none"
-                            stroke="url(#gradient)"
+                            stroke="url(#geometric-gradient)"
                             strokeWidth="2"
                             opacity="0.5"
                         />
                         <defs>
-                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <linearGradient id="geometric-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" stopColor="#6366f1" />
                                 <stop offset="100%" stopColor="#06b6d4" />
                             </linearGradient>

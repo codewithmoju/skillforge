@@ -232,13 +232,13 @@ export function ParallaxHero() {
                                     <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
                                         <motion.path
                                             d="M0,100 C150,100 150,50 300,50 C450,50 450,80 600,80 C750,80 750,20 900,20 L900,200 L0,200 Z"
-                                            fill="url(#gradient)"
+                                            fill="url(#parallax-hero-gradient)"
                                             initial={{ pathLength: 0, opacity: 0 }}
                                             animate={{ pathLength: 1, opacity: 1 }}
                                             transition={{ duration: 2, ease: "easeInOut" }}
                                         />
                                         <defs>
-                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <linearGradient id="parallax-hero-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                                                 <stop offset="0%" stopColor="rgba(6,182,212,0.3)" />
                                                 <stop offset="100%" stopColor="rgba(6,182,212,0)" />
                                             </linearGradient>

@@ -13,6 +13,7 @@ import { useFirestoreSync } from "@/lib/hooks/useFirestoreSync";
 import { SkinProvider } from "@/lib/contexts/SkinContext";
 import { useUserStore } from "@/lib/store";
 import { ForestQuestWrapper } from "@/components/skins/forest-quest/ForestQuestWrapper";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 export function LayoutContent({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -72,7 +73,9 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
                                             ? 'p-0 pt-16 md:pt-0 overflow-y-auto'
                                             : 'p-4 md:px-8 md:pb-8 md:pt-24 pt-16 pb-20 overflow-y-auto'
                                         }`}>
-                                        {children}
+                                        <ErrorBoundary>
+                                            {children}
+                                        </ErrorBoundary>
                                     </main>
                                 </div>
                             </div>

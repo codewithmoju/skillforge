@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { DeepSpaceBackground } from "@/components/ui/DeepSpaceBackground";
 import { TextGenerateEffect } from "@/components/ui/TextGenerateEffect";
@@ -23,6 +24,7 @@ interface LessonContent {
 export default function PodcastPage() {
     const params = useParams();
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
     const [content, setContent] = useState<LessonContent | null>(null);
     const [loading, setLoading] = useState(true);
     const [script, setScript] = useState<{ speaker: string; text: string }[] | null>(null);
@@ -54,39 +56,46 @@ export default function PodcastPage() {
     const lessonId = params?.lessonId as string;
     const slug = params?.slug as string;
 
-    console.log("🔍 PodcastPage Params:", { slug, lessonId, params });
+
 
     // Defensive check for lessonId
     const [moduleIdx, lessonIdx] = lessonId ? lessonId.split('-').map(Number) : [0, 0];
 
     // 1. Load Lesson Content
     useEffect(() => {
+        if (authLoading) return;
+
         if (!slug || !lessonId) {
             console.warn("⚠️ Missing slug or lessonId, skipping load.");
             return;
         }
 
         const loadLesson = async () => {
-            console.log("🚀 Starting loadLesson for:", { slug, lessonId });
+
             // Try cache first
             const cacheKey = `lesson-${slug}-${moduleIdx}-${lessonIdx}`;
             const cachedContent = localStorage.getItem(cacheKey);
 
-            if (cachedContent) {
-                console.log("📦 Found cached content");
-                setContent(JSON.parse(cachedContent));
-                setLoading(false);
-                return;
+            if (cachedContent && cachedContent !== "undefined") {
+
+                try {
+                    setContent(JSON.parse(cachedContent));
+                    setLoading(false);
+                    return;
+                } catch (e) {
+                    console.warn("Invalid cache, clearing:", cacheKey);
+                    localStorage.removeItem(cacheKey);
+                }
             }
 
             // Try Firestore
             try {
-                console.log("🔥 Fetching from Firestore...");
+
                 const docRef = doc(db, "courses", slug, "lessons", lessonId);
                 const lessonDoc = await getDoc(docRef);
 
                 if (lessonDoc.exists()) {
-                    console.log("✅ Document found:", lessonDoc.id);
+
                     const data = lessonDoc.data() as LessonContent;
                     setContent(data);
                     localStorage.setItem(cacheKey, JSON.stringify(data));
@@ -98,13 +107,13 @@ export default function PodcastPage() {
                 console.error("❌ Failed to load lesson:", err);
                 setError("Failed to load secure data stream.");
             } finally {
-                console.log("🏁 loadLesson finished, setting loading=false");
+
                 setLoading(false);
             }
         };
 
         loadLesson();
-    }, [slug, lessonId, moduleIdx, lessonIdx]);
+    }, [slug, lessonId, moduleIdx, lessonIdx, user, authLoading]);
 
     // 2. Generate Script (with Caching)
     useEffect(() => {
@@ -116,7 +125,7 @@ export default function PodcastPage() {
             const cachedScript = localStorage.getItem(cacheKey);
 
             if (cachedScript) {
-                console.log("📦 Found cached podcast script");
+
                 const parsedScript = JSON.parse(cachedScript);
                 setScript(parsedScript);
 
@@ -234,7 +243,7 @@ export default function PodcastPage() {
         if (!currentScript || index >= currentScript.length || audioQueueRef.current.has(index)) return;
 
         try {
-            console.log(`Fetching TTS for line ${index}...`);
+
             const line = currentScript[index];
             const cleanedText = cleanTextForTTS(line.text); // Clean text before TTS
 
@@ -248,7 +257,7 @@ export default function PodcastPage() {
             if (!res.ok) throw new Error(`TTS Failed: ${res.status} ${res.statusText}`);
 
             const blob = await res.blob();
-            console.log(`✅ Received blob for line ${index}, size: ${blob.size} bytes, type: ${blob.type}`);
+
 
             if (blob.size < 100) {
                 console.warn(`⚠️ Blob for line ${index} is suspiciously small!`);
@@ -275,7 +284,7 @@ export default function PodcastPage() {
 
         // Ensure current line is ready
         if (!audioQueueRef.current.has(index)) {
-            console.log(`⏳ Buffering line ${index}...`);
+
             await prefetchAudio(index);
         }
 
@@ -294,7 +303,7 @@ export default function PodcastPage() {
             try {
                 await mainAudioRef.current.play();
                 setIsPlaying(true);
-                console.log(`🎶 Playback started for line ${index}`);
+
             } catch (e) {
                 console.error(`❌ Play failed for line ${index}:`, e);
             }
@@ -308,7 +317,7 @@ export default function PodcastPage() {
     };
 
     const startPlayback = () => {
-        console.log("🖱️ Start Playback");
+
         if (!script) return;
 
         // Initialize Visualizer Context
@@ -325,7 +334,7 @@ export default function PodcastPage() {
 
         // Play Intro First
         if (introQueue.length > 0 && !hasStarted) {
-            console.log("📻 Playing Cinematic Intro Sequence");
+
             setIsIntroPlaying(true);
             setIsPlaying(true);
             setCurrentIntroIndex(0);

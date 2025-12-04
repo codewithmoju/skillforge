@@ -84,12 +84,12 @@ export function AISensei({ lessonContext, codeContext, primaryColor, onInteracti
 
         recognition.onstart = () => {
             setIsListening(true);
-            console.log("🎤 Voice recognition started");
+
         };
 
         recognition.onend = () => {
             setIsListening(false);
-            console.log("🎤 Voice recognition ended");
+
         };
 
         recognition.onerror = (event: any) => {
@@ -106,7 +106,7 @@ export function AISensei({ lessonContext, codeContext, primaryColor, onInteracti
 
         recognition.onresult = (event: any) => {
             const transcript = event.results[0][0].transcript;
-            console.log("🎤 Heard:", transcript);
+
             setInput(transcript);
             // Optional: Auto-send after a short delay if confidence is high
             // handleSend(); 

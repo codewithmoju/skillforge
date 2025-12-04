@@ -31,9 +31,17 @@ export function useFirestoreSync() {
                 }
 
                 // Only load data into store if we haven't synced yet or if it's a remote update
-                // We use a simple check here to avoid overwriting local unsaved changes
-                // In a real app, you might want more complex conflict resolution
                 if (!syncedRef.current) {
+                    // Sync Roadmap
+                    if (firestoreData.currentTopic && firestoreData.roadmaps?.[firestoreData.currentTopic]) {
+                        store.loadRoadmap(firestoreData.roadmaps[firestoreData.currentTopic]);
+                    }
+
+                    // Sync Achievements
+                    if (firestoreData.achievements) {
+                        store.loadAchievements(firestoreData.achievements);
+                    }
+
                     store.loadUserData({
                         xp: firestoreData.xp,
                         level: firestoreData.level,
@@ -45,10 +53,9 @@ export function useFirestoreSync() {
                         },
                         name: firestoreData.name,
                         projects: firestoreData.projects,
-                        roadmapProgress: firestoreData.roadmapProgress,
-                        roadmapDefinitions: firestoreData.roadmapDefinitions,
+                        // roadmapProgress: firestoreData.roadmapProgress, // Legacy
+                        // roadmapDefinitions: firestoreData.roadmapDefinitions, // Legacy
                         currentTopic: firestoreData.currentTopic || "",
-                        achievements: firestoreData.achievements || [],
                         totalLessonsCompleted: firestoreData.totalLessonsCompleted || 0,
                         totalRoadmapsCompleted: firestoreData.totalRoadmapsCompleted || firestoreData.completedRoadmaps || 0,
                     });
@@ -73,52 +80,8 @@ export function useFirestoreSync() {
         return () => unsubscribe();
     }, [user, store]);
 
-    // Save to Firestore when store changes
-    useEffect(() => {
-        if (!user || !syncedRef.current) return;
-
-        const currentState = JSON.stringify({
-            xp: store.xp,
-            level: store.level,
-            streakData: store.streakData,
-            name: store.name,
-            projects: store.projects,
-            roadmapProgress: store.roadmapProgress,
-            roadmapDefinitions: store.roadmapDefinitions,
-            currentTopic: store.currentTopic,
-            achievements: store.achievements,
-            totalLessonsCompleted: store.totalLessonsCompleted,
-            totalRoadmapsCompleted: store.totalRoadmapsCompleted,
-        });
-
-        // Only sync if data actually changed
-        if (currentState === lastSyncRef.current) return;
-        lastSyncRef.current = currentState;
-
-        const saveData = async () => {
-            try {
-                await updateUserData(user.uid, {
-                    xp: store.xp,
-                    level: store.level,
-                    streakData: store.streakData,
-                    name: store.name,
-                    projects: store.projects,
-                    roadmapProgress: store.roadmapProgress,
-                    roadmapDefinitions: store.roadmapDefinitions,
-                    currentTopic: store.currentTopic,
-                    achievements: store.achievements,
-                    totalLessonsCompleted: store.totalLessonsCompleted,
-                    totalRoadmapsCompleted: store.totalRoadmapsCompleted,
-                });
-            } catch (error) {
-                console.error('Error saving user data:', error);
-            }
-        };
-
-        // Debounce saves
-        const timeoutId = setTimeout(saveData, 1000);
-        return () => clearTimeout(timeoutId);
-    }, [user, store.xp, store.level, store.streakData, store.name, store.projects, store.roadmapProgress, store.roadmapDefinitions, store.currentTopic, store.achievements, store.totalLessonsCompleted, store.totalRoadmapsCompleted]);
+    // Removed: Save to Firestore when store changes
+    // We now handle granular updates in the store actions directly to avoid race conditions and full-state overwrites.
 
     // Reset store when user logs out
     useEffect(() => {
