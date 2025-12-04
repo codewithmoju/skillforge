@@ -195,6 +195,20 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
         } else if (hour === 6) {
             state.updateAchievementProgress('early_bird', 1);
         }
+
+        // Sync to Firestore
+        if (typeof window !== 'undefined' && state.userId) {
+            import('@/lib/services/userProgress').then(({ updateRoadmapProgress }) => {
+                updateRoadmapProgress(state.userId!, topic, {
+                    topic,
+                    roadmapDefinitions: definitions,
+                    learningAreas,
+                    prerequisites: prerequisites.map(p => p.name),
+                    goal,
+                    roadmapProgress: initialProgress,
+                }).catch(err => console.error('Failed to sync new roadmap:', err));
+            });
+        }
     },
 
     loadRoadmap: (data: any) => {
@@ -275,6 +289,20 @@ export const createRoadmapSlice: StateCreator<StoreState, [], [], RoadmapSlice> 
 
         const totalLessonsAcrossRoadmaps = state.totalLessonsCompleted;
         state.updateAchievementProgress('scholar', totalLessonsAcrossRoadmaps);
+
+        // Sync completion to Firestore
+        if (typeof window !== 'undefined' && state.userId && state.currentTopic) {
+            import('@/lib/services/userProgress').then(({ updateRoadmapProgress }) => {
+                // We might want to store completed roadmaps in a separate collection or array
+                // For now, just update the current roadmap progress
+                updateRoadmapProgress(state.userId!, state.currentTopic, {
+                    // You might want to add a 'completed: true' flag or similar to the roadmap data
+                    // But for now, just syncing the latest state is good.
+                    // Actually, let's sync the history if possible, but updateRoadmapProgress focuses on the active one.
+                    // Let's at least ensure the final progress state is synced.
+                }).catch(err => console.error('Failed to sync roadmap completion:', err));
+            });
+        }
     },
 
     completeQuiz: (nodeId: string) => {

@@ -255,6 +255,14 @@ service cloud.firestore {
       allow write: if false; // Only admin SDK
     }
 
+    // Reports collection (Content Moderation)
+    match /reports/{reportId} {
+      allow read: if false; // Only admins
+      allow create: if isAuthenticated();
+      allow update: if false; // Reports are immutable by users
+      allow delete: if false;
+    }
+
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

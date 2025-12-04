@@ -24,6 +24,7 @@ import { ImageUpload } from "@/components/ui/ImageUpload";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData, updateUserData } from "@/lib/services/firestore";
 import { useRouter } from "next/navigation";
+import { profileSchema } from "@/lib/validations/schemas";
 
 type SettingsSection =
     | "edit-profile"
@@ -85,6 +86,20 @@ export default function SettingsPage() {
 
     const handleSaveProfile = async () => {
         if (!user) return;
+
+        // Validation
+        const validationResult = profileSchema.safeParse({
+            displayName: name,
+            bio: bio,
+            website: website,
+            location: location,
+        });
+
+        if (!validationResult.success) {
+            setMessage({ type: "error", text: validationResult.error.issues[0].message });
+            return;
+        }
+
         setLoading(true);
         setMessage(null);
 
@@ -158,8 +173,8 @@ export default function SettingsPage() {
                                     key={item.id}
                                     onClick={() => setActiveSection(item.id)}
                                     className={`w-full px-6 py-3 flex items-center gap-3 transition-all ${activeSection === item.id
-                                            ? "bg-slate-800/50 border-l-2 border-accent-indigo"
-                                            : "hover:bg-slate-800/30"
+                                        ? "bg-slate-800/50 border-l-2 border-accent-indigo"
+                                        : "hover:bg-slate-800/30"
                                         }`}
                                 >
                                     <item.icon className="w-5 h-5 text-slate-400" />
@@ -190,8 +205,8 @@ export default function SettingsPage() {
                         {message && (
                             <div
                                 className={`mb-6 p-4 rounded-lg ${message.type === "success"
-                                        ? "bg-green-500/10 border border-green-500/20 text-green-400"
-                                        : "bg-red-500/10 border border-red-500/20 text-red-400"
+                                    ? "bg-green-500/10 border border-green-500/20 text-green-400"
+                                    : "bg-red-500/10 border border-red-500/20 text-red-400"
                                     }`}
                             >
                                 {message.text}

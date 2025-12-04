@@ -1,30 +1,43 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { getGroups, Group, createGroup } from '@/lib/services/groups';
-import { GroupCard } from '@/components/groups/GroupCard';
-import { Loader2, Plus, Search, Users } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { collection, query, orderBy, getDocs, addDoc, serverTimestamp, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { motion } from "framer-motion";
+import { Users, Plus, Search, MessageSquare, Hash, Globe, Lock } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { toast } from "sonner";
+import Image from "next/image";
+import Link from "next/link";
+
+interface Group {
+    id: string;
+    name: string;
+    description: string;
+    isPrivate: boolean;
+    memberCount: number;
+    tags: string[];
+    image?: string;
+    createdBy: string;
+}
 
 export default function GroupsPage() {
     const { user } = useAuth();
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
-    const [showCreateModal, setShowCreateModal] = useState(false);
-
-    // Create group form state
-    const [newGroupName, setNewGroupName] = useState('');
-    const [newGroupDesc, setNewGroupDesc] = useState('');
-    const [newGroupTags, setNewGroupTags] = useState('');
-    const [creating, setCreating] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [isCreating, setIsCreating] = useState(false);
 
     useEffect(() => {
         const fetchGroups = async () => {
             try {
-                const data = await getGroups();
+                const q = query(collection(db, "groups"), orderBy("memberCount", "desc"));
+                const snapshot = await getDocs(q);
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
                 setGroups(data);
             } catch (error) {
-                console.error('Error fetching groups:', error);
+                console.error("Failed to fetch groups:", error);
             } finally {
                 setLoading(false);
             }
@@ -33,138 +46,108 @@ export default function GroupsPage() {
         fetchGroups();
     }, []);
 
-    const handleCreateGroup = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user || !newGroupName.trim() || creating) return;
-
-        setCreating(true);
-        try {
-            const tags = newGroupTags.split(',').map(t => t.trim()).filter(t => t);
-            await createGroup(user.uid, newGroupName, newGroupDesc, tags);
-
-            // Refresh groups
-            const data = await getGroups();
-            setGroups(data);
-
-            setShowCreateModal(false);
-            setNewGroupName('');
-            setNewGroupDesc('');
-            setNewGroupTags('');
-        } catch (error) {
-            console.error('Error creating group:', error);
-        } finally {
-            setCreating(false);
-        }
-    };
+    const filteredGroups = groups.filter(group =>
+        group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        group.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        group.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
+            <div className="min-h-screen pt-24 px-6 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-4 py-8 pb-24 md:pb-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="min-h-screen pt-24 pb-12 px-6 max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Communities</h1>
-                    <p className="text-slate-400">Connect with others who share your interests</p>
+                    <h1 className="text-4xl font-bold text-white mb-4">Community Groups</h1>
+                    <p className="text-slate-400 max-w-2xl">
+                        Connect with like-minded learners, share knowledge, and collaborate on projects in specialized study groups.
+                    </p>
                 </div>
-
-                <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="flex items-center justify-center gap-2 bg-accent-indigo hover:bg-accent-indigo/90 text-white px-6 py-3 rounded-xl font-semibold transition-all"
-                >
-                    <Plus className="w-5 h-5" />
+                <Button onClick={() => toast.info("Group creation coming soon!")}>
+                    <Plus className="w-4 h-4 mr-2" />
                     Create Group
-                </button>
+                </Button>
             </div>
 
-            {/* Search - Placeholder for now */}
-            <div className="relative mb-8">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+            <div className="relative mb-10">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                     type="text"
-                    placeholder="Search communities..."
-                    className="w-full bg-slate-900/50 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-cyan focus:outline-none"
+                    placeholder="Search groups by name, description, or tags..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-slate-900/50 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500/50 transition-all"
                 />
             </div>
 
-            {groups.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {groups.map(group => (
-                        <GroupCard key={group.id} group={group} />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-12 text-slate-500">
-                    <Users className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                    <p className="text-lg">No communities found</p>
-                    <p className="text-sm">Be the first to create one!</p>
-                </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredGroups.length > 0 ? (
+                    filteredGroups.map((group) => (
+                        <motion.div
+                            key={group.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="bg-slate-900/50 border border-white/5 rounded-3xl p-6 hover:border-cyan-500/30 transition-all group cursor-pointer"
+                        >
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden">
+                                    {group.image ? (
+                                        <Image src={group.image} alt={group.name} width={48} height={48} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <Hash className="w-6 h-6 text-slate-400" />
+                                    )}
+                                </div>
+                                <div className={`px-3 py-1 rounded-full text-xs font-medium border ${group.isPrivate
+                                        ? "bg-rose-500/10 border-rose-500/20 text-rose-400"
+                                        : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                    }`}>
+                                    {group.isPrivate ? <Lock className="w-3 h-3 inline mr-1" /> : <Globe className="w-3 h-3 inline mr-1" />}
+                                    {group.isPrivate ? "Private" : "Public"}
+                                </div>
+                            </div>
 
-            {/* Create Group Modal */}
-            {showCreateModal && (
-                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-                    <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden">
-                        <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                            <h3 className="text-xl font-bold text-white">Create Community</h3>
-                            <button
-                                onClick={() => setShowCreateModal(false)}
-                                className="text-slate-400 hover:text-white"
-                            >
-                                ✕
-                            </button>
+                            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
+                                {group.name}
+                            </h3>
+                            <p className="text-slate-400 text-sm mb-6 line-clamp-2">
+                                {group.description}
+                            </p>
+
+                            <div className="flex flex-wrap gap-2 mb-6">
+                                {group.tags.slice(0, 3).map(tag => (
+                                    <span key={tag} className="px-2 py-1 rounded-lg bg-slate-800 text-xs text-slate-300">
+                                        #{tag}
+                                    </span>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                <div className="flex items-center gap-2 text-slate-400 text-sm">
+                                    <Users className="w-4 h-4" />
+                                    <span>{group.memberCount} members</span>
+                                </div>
+                                <Button variant="ghost" size="sm" className="text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/30">
+                                    View Group
+                                </Button>
+                            </div>
+                        </motion.div>
+                    ))
+                ) : (
+                    <div className="col-span-full text-center py-20">
+                        <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Users className="w-8 h-8 text-slate-600" />
                         </div>
-                        <form onSubmit={handleCreateGroup} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Name</label>
-                                <input
-                                    type="text"
-                                    value={newGroupName}
-                                    onChange={(e) => setNewGroupName(e.target.value)}
-                                    className="w-full bg-slate-800 border-none rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none"
-                                    placeholder="e.g. React Developers"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                                <textarea
-                                    value={newGroupDesc}
-                                    onChange={(e) => setNewGroupDesc(e.target.value)}
-                                    className="w-full bg-slate-800 border-none rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none h-24 resize-none"
-                                    placeholder="What is this community about?"
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">Tags (comma separated)</label>
-                                <input
-                                    type="text"
-                                    value={newGroupTags}
-                                    onChange={(e) => setNewGroupTags(e.target.value)}
-                                    className="w-full bg-slate-800 border-none rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-accent-indigo focus:outline-none"
-                                    placeholder="e.g. react, javascript, webdev"
-                                />
-                            </div>
-
-                            <div className="pt-4">
-                                <button
-                                    type="submit"
-                                    disabled={creating}
-                                    className="w-full bg-accent-indigo hover:bg-accent-indigo/90 text-white py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Community'}
-                                </button>
-                            </div>
-                        </form>
+                        <h3 className="text-xl font-semibold text-white mb-2">No groups found</h3>
+                        <p className="text-slate-400">Try adjusting your search or create a new group.</p>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { PostCard } from "@/components/social/PostCard";
-import { getFeedPosts, isPostLiked, isPostSaved, Post } from "@/lib/services/posts";
+import { getFeedPosts, isPostLiked, isPostSaved } from "@/lib/services/posts";
+import type { Post } from "@/lib/services/posts";
 import { getFollowing } from "@/lib/services/follow";
 import { useAuth } from "@/lib/hooks/useAuth";
 
@@ -63,9 +65,15 @@ export default function SocialPage() {
         <div className="min-h-screen p-8">
             <div className="max-w-2xl mx-auto">
                 {/* Header */}
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-white mb-2">Social Feed</h1>
-                    <p className="text-slate-400">See what others are learning</p>
+                <div className="mb-8 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-4xl font-bold text-white mb-2">Social Feed</h1>
+                        <p className="text-slate-400">See what others are learning</p>
+                    </div>
+                    <Button variant="outline" onClick={loadFeed} disabled={loading}>
+                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                        Refresh
+                    </Button>
                 </div>
 
                 {/* Feed */}

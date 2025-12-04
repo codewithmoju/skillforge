@@ -1,7 +1,8 @@
 "use client";
 
-import { Bell, Flame, Search, LogOut } from "lucide-react";
+import { Bell, Flame, LogOut } from "lucide-react";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { GlobalSearch } from "@/components/search/GlobalSearch";
 import { useUserStore } from "@/lib/store";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -25,32 +26,7 @@ export function TopBar() {
             }}
         >
             <div className="flex items-center gap-4 flex-1">
-                <div className="relative w-96 hidden md:block">
-                    <Search
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-500"
-                        style={{ color: safeColors ? safeColors.textMuted : undefined }}
-                    />
-                    <input
-                        type="text"
-                        placeholder="Search your roadmaps, projects, or posts..."
-                        className="w-full border rounded-xl pl-10 pr-4 py-2.5 text-sm transition-all duration-500"
-                        style={{
-                            backgroundColor: safeColors ? `${safeColors.backgroundCard}80` : undefined,
-                            borderColor: safeColors ? `${safeColors.primary}40` : undefined,
-                            color: safeColors ? safeColors.textPrimary : undefined,
-                        }}
-                        onFocus={(e) => {
-                            e.currentTarget.style.borderColor = safeColors ? safeColors.accent : "";
-                            e.currentTarget.style.boxShadow = safeColors
-                                ? `0 0 0 1px ${safeColors.accent}50`
-                                : "";
-                        }}
-                        onBlur={(e) => {
-                            e.currentTarget.style.borderColor = safeColors ? `${safeColors.primary}40` : "";
-                            e.currentTarget.style.boxShadow = "none";
-                        }}
-                    />
-                </div>
+                <GlobalSearch />
             </div>
 
             <div className="flex items-center gap-6">

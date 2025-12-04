@@ -9,6 +9,7 @@ import { createPost } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { getUserData } from "@/lib/services/firestore";
 import { useUserStore } from "@/lib/store";
+import { postSchema } from "@/lib/validations/schemas";
 
 interface CreatePostProps {
     isOpen: boolean;
@@ -37,8 +38,14 @@ export function CreatePost({ isOpen, onClose, onPostCreated }: CreatePostProps) 
     const handlePost = async () => {
         if (!user) return;
 
-        if (!text.trim() && images.length === 0) {
-            setError("Please add some content to your post");
+        // Validation
+        const validationResult = postSchema.safeParse({
+            content: text.trim(),
+            images: images.length > 0 ? images : undefined,
+        });
+
+        if (!validationResult.success) {
+            setError(validationResult.error.issues[0].message);
             return;
         }
 

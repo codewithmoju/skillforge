@@ -1,48 +1,49 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/lib/hooks/useAuth';
-import { getNotifications, markAsRead, markAllAsRead, Notification } from '@/lib/services/notifications';
-import { Loader2, Heart, UserPlus, MessageCircle, Bell } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { collection, query, where, orderBy, getDocs, updateDoc, doc, writeBatch } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, Check, Trash2, MessageSquare, Heart, UserPlus, Trophy, Star } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
 
-function timeAgo(dateString: string) {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-    let interval = seconds / 31536000;
-    if (interval > 1) return Math.floor(interval) + " years ago";
-
-    interval = seconds / 2592000;
-    if (interval > 1) return Math.floor(interval) + " months ago";
-
-    interval = seconds / 86400;
-    if (interval > 1) return Math.floor(interval) + " days ago";
-
-    interval = seconds / 3600;
-    if (interval > 1) return Math.floor(interval) + " hours ago";
-
-    interval = seconds / 60;
-    if (interval > 1) return Math.floor(interval) + " minutes ago";
-
-    return Math.floor(seconds) + " seconds ago";
+interface Notification {
+    id: string;
+    type: 'like' | 'comment' | 'follow' | 'achievement' | 'system';
+    title: string;
+    message: string;
+    read: boolean;
+    createdAt: any;
+    link?: string;
+    sender?: {
+        name: string;
+        photoURL?: string;
+    };
 }
 
 export default function NotificationsPage() {
     const { user } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         if (!user) return;
 
         const fetchNotifications = async () => {
             try {
-                const data = await getNotifications(user.uid);
+                const q = query(
+                    collection(db, "users", user.uid, "notifications"),
+                    orderBy("createdAt", "desc")
+                );
+                const snapshot = await getDocs(q);
+                const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
                 setNotifications(data);
             } catch (error) {
-                console.error('Error fetching notifications:', error);
+                console.error("Failed to fetch notifications:", error);
             } finally {
                 setLoading(false);
             }
@@ -51,152 +52,130 @@ export default function NotificationsPage() {
         fetchNotifications();
     }, [user]);
 
-    const handleMarkAllRead = async () => {
+    const markAsRead = async (id: string) => {
         if (!user) return;
         try {
-            await markAllAsRead(user.uid);
+            await updateDoc(doc(db, "users", user.uid, "notifications", id), { read: true });
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        } catch (error) {
+            console.error("Failed to mark as read:", error);
+        }
+    };
+
+    const markAllAsRead = async () => {
+        if (!user) return;
+        try {
+            const batch = writeBatch(db);
+            notifications.forEach(n => {
+                if (!n.read) {
+                    const ref = doc(db, "users", user.uid, "notifications", n.id);
+                    batch.update(ref, { read: true });
+                }
+            });
+            await batch.commit();
             setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         } catch (error) {
-            console.error('Error marking all as read:', error);
+            console.error("Failed to mark all as read:", error);
         }
     };
 
-    const handleNotificationClick = async (notification: Notification) => {
-        if (!notification.read) {
-            try {
-                await markAsRead(notification.id);
-                setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, read: true } : n));
-            } catch (error) {
-                console.error('Error marking notification as read:', error);
-            }
+    const deleteNotification = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!user) return;
+        try {
+            const { deleteDoc } = await import("firebase/firestore");
+            await deleteDoc(doc(db, "users", user.uid, "notifications", id));
+            setNotifications(prev => prev.filter(n => n.id !== id));
+        } catch (error) {
+            console.error("Failed to delete notification:", error);
         }
     };
 
-    const getIcon = (type: Notification['type']) => {
+    const getIcon = (type: string) => {
         switch (type) {
-            case 'like':
-                return <Heart className="w-5 h-5 text-red-400 fill-red-400" />;
-            case 'follow':
-                return <UserPlus className="w-5 h-5 text-blue-400" />;
-            case 'comment':
-                return <MessageCircle className="w-5 h-5 text-green-400" />;
-            case 'mention':
-                return <Bell className="w-5 h-5 text-yellow-400" />;
-            default:
-                return <Bell className="w-5 h-5 text-gray-400" />;
+            case 'like': return <Heart className="w-5 h-5 text-rose-500" />;
+            case 'comment': return <MessageSquare className="w-5 h-5 text-blue-500" />;
+            case 'follow': return <UserPlus className="w-5 h-5 text-emerald-500" />;
+            case 'achievement': return <Trophy className="w-5 h-5 text-amber-500" />;
+            default: return <Bell className="w-5 h-5 text-slate-400" />;
         }
-    };
-
-    const getMessage = (notification: Notification) => {
-        switch (notification.type) {
-            case 'like':
-                return 'liked your post';
-            case 'follow':
-                return 'started following you';
-            case 'comment':
-                return 'commented on your post';
-            case 'mention':
-                return 'mentioned you in a post';
-            default:
-                return 'interacted with you';
-        }
-    };
-
-    const getLink = (notification: Notification) => {
-        if (notification.type === 'follow') {
-            return `/profile/${notification.fromUserName}`; // Assuming username is available or we fetch it. Wait, fromUserName is name not username.
-            // We might need to store username in notification or fetch it.
-            // For now, let's assume we can link to profile but we need username.
-            // The notification service stores `fromUserName` which is likely the display name.
-            // We should probably store `fromUserUsername` too if we want to link correctly.
-            // Let's update the service later if needed, for now let's link to dashboard or just not link if we can't.
-            // Actually, let's just link to /profile/ID if we supported it, but we support /profile/USERNAME.
-            // I'll assume for now that I can't easily link to profile without username.
-            // But wait, I can store username in notification.
-        }
-        if (notification.postId) {
-            // We don't have a single post page yet? Or maybe we do?
-            // We don't have a dedicated single post page in the plan.
-            // But we can link to the feed or create a post modal.
-            // For now, let's just make it non-clickable or link to home.
-            return '/dashboard';
-        }
-        return '/dashboard';
     };
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center min-h-screen">
-                <Loader2 className="w-8 h-8 text-accent-cyan animate-spin" />
+            <div className="min-h-screen pt-24 px-6 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             </div>
         );
     }
 
     return (
-        <div className="max-w-2xl mx-auto px-4 py-6 pb-24 md:pb-6">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold text-white">Notifications</h1>
+        <div className="min-h-screen pt-24 pb-12 px-6 max-w-4xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Notifications</h1>
+                    <p className="text-slate-400">Stay updated with your community activity</p>
+                </div>
                 {notifications.some(n => !n.read) && (
-                    <button
-                        onClick={handleMarkAllRead}
-                        className="text-sm text-accent-cyan hover:text-accent-cyan/80 transition-colors"
-                    >
-                        Mark all as read
-                    </button>
+                    <Button variant="outline" size="sm" onClick={markAllAsRead} className="flex items-center gap-2">
+                        <Check className="w-4 h-4" /> Mark all read
+                    </Button>
                 )}
             </div>
 
-            <div className="space-y-2">
-                {notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                        <div
-                            key={notification.id}
-                            onClick={() => handleNotificationClick(notification)}
-                            className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${notification.read
-                                ? 'bg-slate-900/30 border-slate-800/50'
-                                : 'bg-slate-800/50 border-slate-700'
-                                }`}
-                        >
-                            <div className="flex-shrink-0">
-                                {notification.fromUserPhoto ? (
-                                    <img
-                                        src={notification.fromUserPhoto}
-                                        alt={notification.fromUserName}
-                                        className="w-10 h-10 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                                        <span className="text-white font-bold">
-                                            {notification.fromUserName.charAt(0).toUpperCase()}
-                                        </span>
+            <div className="space-y-4">
+                <AnimatePresence>
+                    {notifications.length > 0 ? (
+                        notifications.map((notification) => (
+                            <motion.div
+                                key={notification.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, x: -20 }}
+                                onClick={() => {
+                                    if (!notification.read) markAsRead(notification.id);
+                                    if (notification.link) router.push(notification.link);
+                                }}
+                                className={`relative p-5 rounded-2xl border transition-all cursor-pointer group ${notification.read
+                                        ? "bg-slate-900/50 border-white/5 hover:border-white/10"
+                                        : "bg-slate-800/50 border-cyan-500/30 hover:border-cyan-500/50"
+                                    }`}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className={`p-3 rounded-xl ${notification.read ? "bg-slate-800" : "bg-slate-700"}`}>
+                                        {getIcon(notification.type)}
                                     </div>
-                                )}
-                                <div className="absolute -bottom-1 -right-1 bg-slate-900 rounded-full p-1">
-                                    {getIcon(notification.type)}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <h3 className={`font-semibold ${notification.read ? "text-slate-200" : "text-white"}`}>
+                                                {notification.title}
+                                            </h3>
+                                            <span className="text-xs text-slate-500 whitespace-nowrap ml-4">
+                                                {notification.createdAt?.toDate ? formatDistanceToNow(notification.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
+                                            </span>
+                                        </div>
+                                        <p className="text-slate-400 text-sm leading-relaxed">{notification.message}</p>
+                                    </div>
+                                    <button
+                                        onClick={(e) => deleteNotification(notification.id, e)}
+                                        className="opacity-0 group-hover:opacity-100 p-2 text-slate-500 hover:text-rose-500 transition-all"
+                                    >
+                                        <Trash2 className="w-4 h-4" />
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                                <p className="text-white">
-                                    <span className="font-semibold">{notification.fromUserName}</span>{' '}
-                                    <span className="text-slate-300">{getMessage(notification)}</span>
-                                </p>
-                                <p className="text-xs text-slate-500 mt-1">
-                                    {timeAgo(notification.createdAt)}
-                                </p>
-                            </div>
-
-                            {!notification.read && (
-                                <div className="w-2 h-2 rounded-full bg-accent-cyan flex-shrink-0" />
-                            )}
+                                {!notification.read && (
+                                    <div className="absolute top-5 right-5 w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]" />
+                                )}
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="text-center py-20 rounded-3xl border border-dashed border-white/10 bg-slate-900/50">
+                            <Bell className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-white mb-2">All caught up!</h3>
+                            <p className="text-slate-400">No new notifications to show.</p>
                         </div>
-                    ))
-                ) : (
-                    <div className="text-center py-12 text-slate-500">
-                        <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                        <p>No notifications yet</p>
-                    </div>
-                )}
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

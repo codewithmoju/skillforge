@@ -19,13 +19,13 @@ export default function LandingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  useEffect(() => {
-    if (!loading && user) {
-      router.push("/roadmap");
-    }
-  }, [user, loading, router]);
+  // useEffect(() => {
+  //   if (!loading && user) {
+  //     router.push("/roadmap");
+  //   }
+  // }, [user, loading, router]);
 
-  if (loading || user) {
+  if (loading) {
     return <SplashScreen />;
   }
 

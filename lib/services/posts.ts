@@ -101,6 +101,30 @@ export async function deletePost(postId: string, userId: string): Promise<void> 
     }
 }
 
+export async function updatePost(postId: string, userId: string, content: string): Promise<void> {
+    try {
+        // Verify ownership (optional but recommended)
+        const postRef = doc(db, 'posts', postId);
+        const postSnap = await getDoc(postRef);
+
+        if (!postSnap.exists()) {
+            throw new Error("Post not found");
+        }
+
+        if (postSnap.data().userId !== userId) {
+            throw new Error("Unauthorized");
+        }
+
+        await updateDoc(postRef, {
+            "content.text": content,
+            updatedAt: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Error updating post:', error);
+        throw error;
+    }
+}
+
 export async function getUserPosts(userId: string, limitCount: number = 50): Promise<Post[]> {
     try {
         const q = query(

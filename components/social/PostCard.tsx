@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2, AlertTriangle } from "lucide-react";
-import { Post, likePost, savePost, deletePost } from "@/lib/services/posts";
+import { Heart, Bookmark, MessageCircle, MoreVertical, Trash2, AlertTriangle, Edit2 } from "lucide-react";
+import { likePost, savePost, deletePost } from "@/lib/services/posts";
+import type { Post } from "@/lib/services/posts";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useUserStore } from "@/lib/store";
 import Link from "next/link";
@@ -108,6 +109,27 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
         }
     };
 
+    const [isEditing, setIsEditing] = useState(false);
+    const [editText, setEditText] = useState(post.content.text || "");
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const handleUpdate = async () => {
+        if (!user || !editText.trim()) return;
+
+        setIsUpdating(true);
+        try {
+            const { updatePost } = await import("@/lib/services/posts");
+            await updatePost(post.id, user.uid, editText);
+            setIsEditing(false);
+            // Optimistic update (in real app, might want to refetch or update parent state)
+            post.content.text = editText;
+        } catch (error) {
+            console.error("Failed to update post:", error);
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -150,6 +172,16 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
                         {showMenu && (
                             <div className="absolute right-0 mt-2 w-48 bg-slate-800 rounded-xl shadow-xl border border-slate-700 z-10 overflow-hidden">
                                 <button
+                                    onClick={() => {
+                                        setIsEditing(true);
+                                        setShowMenu(false);
+                                    }}
+                                    className="w-full px-4 py-3 text-left text-sm text-slate-300 hover:bg-slate-700 flex items-center gap-2"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                    Edit Post
+                                </button>
+                                <button
                                     onClick={handleDelete}
                                     className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-slate-700 flex items-center gap-2"
                                 >
@@ -187,8 +219,33 @@ export function PostCard({ post, isLiked: initialLiked = false, isSaved: initial
 
             {/* Content */}
             <div className="px-4 pb-4">
-                {post.content.text && (
-                    <p className="text-slate-300 mb-3 whitespace-pre-wrap">{post.content.text}</p>
+                {isEditing ? (
+                    <div className="mb-3">
+                        <textarea
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-slate-200 focus:outline-none focus:border-cyan-500 min-h-[100px]"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                            <button
+                                onClick={() => setIsEditing(false)}
+                                className="px-3 py-1.5 text-sm text-slate-400 hover:text-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleUpdate}
+                                disabled={isUpdating}
+                                className="px-3 py-1.5 text-sm bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 disabled:opacity-50"
+                            >
+                                {isUpdating ? "Saving..." : "Save"}
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    post.content.text && (
+                        <p className="text-slate-300 mb-3 whitespace-pre-wrap">{post.content.text}</p>
+                    )
                 )}
 
                 {/* Roadmap Preview */}

@@ -8,6 +8,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { BrandMark } from "@/components/ui/BrandMark";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const navLinks = [
     { name: "Home", href: "/" },
@@ -21,6 +22,7 @@ const navLinks = [
 export function LandingNavbar() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const pathname = usePathname();
+    const { user } = useAuth();
 
     return (
         <>
@@ -52,16 +54,28 @@ export function LandingNavbar() {
                     </div>
 
                     <div className="hidden md:flex items-center gap-4">
-                        <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
-                            Log in
-                        </Link>
-                        <Link href="/signup">
-                            <Button
-                                className="bg-white text-[#071A3F] hover:bg-slate-200 rounded-xl px-6 h-11 shadow-[0_0_20px_rgba(255,255,255,0.2)] font-bold transition-all duration-300"
-                            >
-                                Get Started
-                            </Button>
-                        </Link>
+                        {user ? (
+                            <Link href="/dashboard">
+                                <Button
+                                    className="bg-white text-[#071A3F] hover:bg-slate-200 rounded-xl px-6 h-11 shadow-[0_0_20px_rgba(255,255,255,0.2)] font-bold transition-all duration-300"
+                                >
+                                    Dashboard
+                                </Button>
+                            </Link>
+                        ) : (
+                            <>
+                                <Link href="/login" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">
+                                    Log in
+                                </Link>
+                                <Link href="/signup">
+                                    <Button
+                                        className="bg-white text-[#071A3F] hover:bg-slate-200 rounded-xl px-6 h-11 shadow-[0_0_20px_rgba(255,255,255,0.2)] font-bold transition-all duration-300"
+                                    >
+                                        Get Started
+                                    </Button>
+                                </Link>
+                            </>
+                        )}
                     </div>
 
                     {/* Mobile Menu Toggle */}

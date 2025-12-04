@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Loader2, CheckCheck } from "lucide-react";
 import { collection, query, where, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import Link from "next/link";
 
 export function NotificationList() {
     const { user } = useAuth();
@@ -95,6 +96,11 @@ export function NotificationList() {
                         onRead={handleRead}
                     />
                 ))}
+            </div>
+            <div className="p-2 border-t border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky bottom-0 z-10">
+                <Link href="/notifications" className="block w-full text-center text-xs text-cyan-400 hover:text-cyan-300 py-2 transition-colors">
+                    View all notifications
+                </Link>
             </div>
         </div>
     );

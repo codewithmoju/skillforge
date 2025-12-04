@@ -545,15 +545,29 @@ export function SkillTree({ learningAreas, goal, onFetchDetails }: SkillTreeProp
                                             </div>
 
                                             <div className="grid gap-3">
-                                                {selectedTopic.subtopics.map((sub, i) => (
-                                                    <MissionObjective
-                                                        key={i}
-                                                        sub={sub}
-                                                        index={i}
-                                                        topic={selectedTopic}
-                                                        onPlay={() => setActiveMission({ topic: selectedTopic, subtopicIndex: i })}
-                                                    />
-                                                ))}
+                                                {loadingTopicId === selectedTopic.id ? (
+                                                    // Generic Loading Skeletons
+                                                    Array.from({ length: 3 }).map((_, i) => (
+                                                        <div key={i} className="rounded-xl border-2 border-slate-800/50 bg-slate-900/30 p-4 flex items-center gap-4 animate-pulse">
+                                                            <div className="w-12 h-12 rounded-xl bg-slate-800" />
+                                                            <div className="flex-1 space-y-2">
+                                                                <div className="h-4 w-3/4 bg-slate-800 rounded" />
+                                                                <div className="h-3 w-1/2 bg-slate-800/50 rounded" />
+                                                            </div>
+                                                            <div className="w-10 h-10 rounded-full bg-slate-800" />
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    selectedTopic.subtopics.map((sub, i) => (
+                                                        <MissionObjective
+                                                            key={i}
+                                                            sub={sub}
+                                                            index={i}
+                                                            topic={selectedTopic}
+                                                            onPlay={() => setActiveMission({ topic: selectedTopic, subtopicIndex: i })}
+                                                        />
+                                                    ))
+                                                )}
                                             </div>
                                         </motion.div>
 

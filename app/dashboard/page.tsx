@@ -29,6 +29,7 @@ import { getTopLeaderboard, getUserRank, type LeaderboardEntry } from "@/lib/ser
 import { ACHIEVEMENT_DEFINITIONS } from "@/lib/utils/achievementSystem";
 import type { Achievement } from "@/lib/types/gamification";
 import { getLevelTier, getXPForLevel } from "@/lib/utils/levelSystem";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 
 const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 180, 365];
 
@@ -829,7 +830,11 @@ export default function DashboardPage() {
         );
     }
 
-    return <DashboardContent />;
+    return (
+        <ErrorBoundary>
+            <DashboardContent />
+        </ErrorBoundary>
+    );
 }
 
 function TrophyIcon() {
